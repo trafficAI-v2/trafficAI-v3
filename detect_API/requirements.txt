@@ -1,0 +1,27 @@
+# 安裝所有套件，在終端機執行:
+# pip install -r requirements.txt
+
+# --- Web 框架 (API) ---
+Flask==3.0.3
+Flask-Cors==4.0.1
+# --- 資料庫連線驅動 ---
+psycopg2-binary==2.9.9
+
+# --- YOLO 辨識與核心依賴 ---
+ultralytics==8.2.2
+torch==2.2.2
+torchvision==0.17.2
+
+# --- 影像處理與網路請求 ---
+opencv-python==4.9.0.80
+numpy==1.26.4
+Pillow==10.3.0
+# 用於發送 HTTP 請求至您的車牌辨識 API
+requests==2.32.3
+
+# --- 環境與工具 ---
+# 用於從 .env 檔案讀取 DATABASE_URL 和 MODEL_PATH
+python-dotenv==1.0.1
+
+Flask-SocketIO==5.3.6
+gevent-websocket==0.10.1

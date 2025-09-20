@@ -1,0 +1,24 @@
+# 安裝所有套件，在終端機執行:
+# pip install -r requirements.txt
+
+# --- Web 框架與伺服器相關（ＡＰＩ） ---
+Flask==2.3.3
+Flask-Cors==4.0.1
+
+# --- 資料庫 ORM 與連線驅動 ---
+Flask-SQLAlchemy==3.1.1
+psycopg2-binary==2.9.9
+
+# --- YOLO辨識與GOOGLE API  ---
+torch==2.2.2
+torchvision==0.17.2
+ultralytics==8.2.2
+google-generativeai==0.5.4
+
+# --- 影像處理相關 ---
+opencv-python==4.9.0.80
+Pillow==10.3.0
+numpy==1.26.4
+
+# --- 環境與工具 ---
+python-dotenv==1.0.1

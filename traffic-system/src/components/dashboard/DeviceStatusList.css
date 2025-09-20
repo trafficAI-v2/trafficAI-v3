@@ -1,0 +1,95 @@
+/* src/components/dashboard/DeviceStatusList.css */
+
+/* 元件的根容器 */
+.device-status-list-container {
+  width: 100%;
+}
+
+/* 列表的基本重置 */
+.device-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* 每個列表項的樣式 */
+.device-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 8px; /* 增加垂直間距，左右留一點空間 */
+  border-bottom: 1px solid #f0f0f0; /* 細分隔線 */
+}
+
+/* 移除最後一個項目的底部分隔線 */
+.device-list-item:last-child {
+  border-bottom: none;
+}
+
+/* 左側內容（圓點 + 名稱）的容器 */
+.device-info {
+  display: flex;
+  align-items: center;
+  gap: 16px; /* 圓點和文字之間的間距 */
+}
+
+/* 狀態圓點的通用樣式 */
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  /* 使用 flex-shrink: 0 避免圓點在高解析度下被壓縮變形 */
+  flex-shrink: 0; 
+}
+
+/* 運作中 (online) 狀態的圓點顏色 */
+.status-dot.online {
+  background-color: #28a745; /* 綠色 */
+}
+
+/* 離線 (offline) 狀態的圓點顏色 */
+.status-dot.offline {
+  background-color: #dc3545; /* 紅色 */
+}
+
+/* 設備名稱文字 */
+.device-name {
+  font-size: 16px;
+  color: #333;
+}
+
+.status-text {
+  font-size: 14px;
+  white-space: nowrap;
+  margin-left: 16px;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+/* 运作中状态的文字颜色 */
+.status-text.online {
+  color: #45961a; /* 灰色 */
+}
+
+/* 离线状态的文字颜色 */
+.status-text.offline {
+  color: #dc3545; /* 红色 */
+}
+
+/* 載入中和錯誤訊息的提示樣式 */
+.status-message {
+  padding: 24px;
+  color: #888;
+  font-style: italic;
+  text-align: center;
+}
+.status-message.error {
+  color: #dc3545;
+  font-weight: 500;
+  font-style: normal;
+}
+.no-devices-prompt {
+  padding: 24px;
+  color: #888;
+  text-align: center;
+}

@@ -1,0 +1,463 @@
+/*違規管理頁面ＣＳＳ */
+
+.violation-log-page {
+  background-color: #f4f7f8; /* 頁面的淺灰色背景 */
+  padding: 2rem;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; /* 提升字體渲染效果 */
+}
+
+/* --- 頁面標題 --- */
+.page-header-container {
+  margin-bottom: 1.5rem;
+}
+.page-header-container h1 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #1a2b3c;
+}
+.page-header-container p {
+  font-size: 1rem;
+  color: #6a7889;
+}
+
+/* --- 主要佈局容器 --- */
+.log-container-card {
+  width: 100%;
+}
+
+/* --- (已修改) 隱藏 TSX 中有但目標圖片沒有的元素 --- */
+.active-filters {
+  display: none;
+}
+
+/* === (新增) 搜尋欄樣式 === */
+.search-bar-container {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+.search-bar-container input {
+  width: 100%;
+  padding: 0.875rem 2.5rem 0.875rem 1.25rem; /* 右側 padding 為圖示留出空間 */
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background-color: #fff;
+  font-size: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search-bar-container input::placeholder {
+  color: #94a3b8;
+}
+
+.search-bar-container input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px #3b82f6;
+}
+
+.search-bar-container .search-icon {
+  position: absolute;
+  right: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.25rem;
+  color: #64748b;
+  pointer-events: none; /* 讓圖示不會擋住滑鼠點擊 */
+}
+
+/* === (新增) 分頁標籤樣式 === */
+.log-tabs {
+  display: flex;
+  background-color: #f1f5f9; /* 標籤容器的淺灰色背景 */
+  border-radius: 8px;
+  padding: 0.3rem;
+  margin-bottom: 1.5rem;
+}
+
+.log-tab-button {
+  flex: 1; /* 讓所有標籤均分寬度 */
+  padding: 0.6rem 1rem;
+  border: none;
+  background-color: transparent; /* 未選中時為透明背景 */
+  color: #64748b; /* 未選中時的文字顏色 */
+  font-size: 0.9rem;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s ease-in-out;
+}
+
+.log-tab-button.active {
+  background-color: #ffffff; /* 選中時為白色背景 */
+  color: #1e293b; /* 選中時的文字顏色 */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); /* 增加立體感的細微陰影 */
+}
+
+
+/* --- 批量操作欄 (勾選後出現) --- */
+.bulk-actions-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+  background-color: #eef2f7; /* 使用一個與現有UI協調的中性色 */
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.bulk-actions-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem; /* 按鈕之間的間距 */
+}
+
+.bulk-actions-buttons button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.bulk-actions-buttons button:hover {
+  opacity: 0.9;
+}
+
+.bulk-confirm-btn {
+  background-color: #16a34a; /* 確認按鈕的綠色 */
+}
+
+.bulk-reject-btn {
+  background-color: #dc2626; /* 駁回按鈕的紅色 */
+}
+
+
+/* --- 頂部篩選器網格 --- */
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 三欄佈局 */
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.filter-group label {
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #334155;
+}
+
+/* --- 自訂輸入框與下拉選單樣式 --- */
+.custom-select-wrapper,
+.date-picker-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+/* 輸入框/選單內的圖示 */
+.custom-select-wrapper svg,
+.date-picker-input svg {
+  position: absolute;
+  left: 0.875rem; /* 14px */
+  font-size: 1.25rem; /* 20px */
+  color: #94a3b8;
+  pointer-events: none; /* 讓圖示可被點穿 */
+}
+
+/* 模擬下拉選單的箭頭 */
+.custom-select-wrapper::after {
+  content: '▼';
+  position: absolute;
+  right: 1rem;
+  font-size: 0.6rem;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+/* 輸入框/選單的通用樣式 */
+.custom-select-wrapper select,
+.date-picker-input input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.5rem; /* 左側 padding 為圖示留出空間 */
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background-color: #fff;
+  font-size: 0.9rem;
+  color: #1e293b;
+  -webkit-appearance: none; /* 隱藏 select 預設箭頭 (for Safari/Chrome) */
+  -moz-appearance: none;    /* 隱藏 select 預設箭頭 (for Firefox) */
+  appearance: none;        /* 隱藏 select 預設箭頭 (標準語法) */
+}
+.date-picker-input input::placeholder {
+  color: #64748b;
+}
+.date-picker-input input:focus,
+.custom-select-wrapper select:focus {
+  outline: none;
+  border-color: #3b82f6; /* 點擊時顯示藍色外框，提升體驗 */
+  box-shadow: 0 0 0 1px #3b82f6;
+}
+
+/* --- 違規紀錄列表 (主要的白色卡片) --- */
+.violation-card-list {
+  background-color: #ffffff;
+  border-radius: 8px; /* 圓角 */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); /* 柔和陰影 */
+  overflow: hidden; /* 確保內部元素的圓角裁切正確 */
+}
+
+/* --- 列表標頭 --- */
+.card-list-header {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1.5fr 2.5fr 1fr;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background-color: #f8f9fa; /* 標頭的淺灰色背景 */
+  border-bottom: 1px solid #eef2f7;
+}
+
+.header-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: #6c757d;
+  font-weight: 600;
+  text-transform: uppercase; /* 字母大寫 */
+}
+
+.header-cell.status {
+  justify-content: flex-start; /* 狀態標題文字靠左 */
+}
+
+/* --- 列表內容 (單筆違規卡片) --- */
+.violation-card {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1.5fr 2.5fr 1fr; /* 必須與標頭的 grid-template-columns 匹配 */
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #eef2f7;
+  font-size: 0.9rem;
+  color: #333;
+  transition: background-color 0.2s ease-in-out; /* 懸停顏色變化的平滑過渡效果 */
+}
+.violation-card:last-child {
+  border-bottom: none; /* 最後一筆紀錄移除底線 */
+}
+
+.violation-card:hover {
+  background-color: #f8f9fa; /* 滑鼠放上去時，背景變為淺灰色 */
+}
+
+/* --- 被選中的違規卡片樣式 --- */
+.violation-card.selected {
+  background-color: #eff6ff; /* 使用一個淡藍色來表示選中狀態 */
+}
+/* 讓被選中的項目在 hover 時有不同的顏色，以提供更好的反饋 */
+.violation-card.selected:hover {
+  background-color: #dbeafe;
+}
+
+
+/* --- 卡片中的儲存格 --- */
+.card-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.card-cell.checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* 主要文字 (違規類型, 車牌號碼) */
+.card-cell .type,
+.card-cell .plate-number {
+  font-weight: 600;
+  color: #2d3748;
+}
+
+/* 時間 (日期與時間分行顯示) */
+.card-cell .cell-content {
+  display: flex;
+  flex-direction: column;
+}
+.card-cell .date {
+  font-weight: 500;
+  color: #2d3748;
+}
+.card-cell .time {
+  font-size: 0.85rem;
+  color: #718096;
+}
+
+.card-cell.location {
+  color: #4a5568;
+  font-weight: 500;
+}
+
+.card-cell.status {
+  align-items: flex-start; /* 確保狀態標籤靠左對齊 */
+}
+
+/* === 狀態標籤樣式 === */
+/* 基礎樣式 (所有標籤共用) */
+.status-tag {
+  display: inline-block;
+  padding: 0.3rem 0.8rem;
+  border-radius: 9999px; /* 藥丸形狀 */
+  font-size: 0.875rem;   /* 調整字體大小使其更和諧 */
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+/* 待審核: 黃色 */
+.status-tag[data-status="待審核"] {
+  background-color: #fef3c7; 
+  color: #92400e;          
+}
+
+/* 已確認: 綠色 */
+.status-tag[data-status="已確認"] {
+  background-color: #dcfce7;
+  color: #166534;          
+}
+
+/* 已駁回: 紅色 */
+.status-tag[data-status="已駁回"] {
+  background-color: #fee2e2; 
+  color: #991b1b;           
+}
+
+/* 已開罰: 灰色 */
+.status-tag[data-status="已開罰"] {
+  background-color: #e2e8f0; 
+  color: #334155;          
+}
+
+
+/* ======================================== */
+/*          === 自訂勾選框樣式 ===          */
+/* ======================================== */
+
+/*  targeting all checkboxes within the header and card cells */
+.header-cell.checkbox input[type="checkbox"],
+.card-cell.checkbox input[type="checkbox"] {
+  /* 1. 隱藏預設樣式 */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+
+  /* 2. 建立自訂方框 */
+  display: inline-block;
+  width: 1.25rem;  /* 20px */
+  height: 1.25rem; /* 20px */
+  border: 2px solid #cbd5e1; /* 未選中時的邊框顏色 */
+  border-radius: 4px; /* 輕微圓角 */
+  background-color: #fff; /* 未選中時的背景色 */
+
+  /* 3. 準備放置偽元素 (勾勾) */
+  position: relative;
+  cursor: pointer;
+  outline: none; /* 移除點擊時的藍色外框 */
+  vertical-align: middle; /* 確保與旁邊的文字對齊 */
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+/* 4. 建立勾勾 (使用 ::after 偽元素) - 初始狀態隱藏 */
+.header-cell.checkbox input[type="checkbox"]::after,
+.card-cell.checkbox input[type="checkbox"]::after {
+  content: '';
+  position: absolute;
+  /* 將勾勾置中 */
+  top: 45%; /* 微調垂直位置 */
+  left: 50%;
+
+  /* 透過邊框繪製勾勾形狀 */
+  width: 0.35rem;  /* 勾勾的寬度 */
+  height: 0.7rem;  /* 勾勾的高度 */
+  border: solid white; /* 勾勾的顏色 */
+  border-width: 0 3px 3px 0; /* 只顯示右邊和底部的邊框 */
+
+  /* 初始狀態：旋轉並縮放為0 (隱藏) */
+  transform: translate(-50%, -50%) rotate(45deg) scale(0);
+  opacity: 0;
+  transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
+}
+
+/* 5. 定義選中 (:checked) 時的樣式 */
+.header-cell.checkbox input[type="checkbox"]:checked,
+.card-cell.checkbox input[type="checkbox"]:checked {
+  background-color: #000; /* 選中時的黑色背景 */
+  border-color: #000;     /* 選中時的黑色邊框 */
+}
+
+/* 6. 選中時顯示勾勾 */
+.header-cell.checkbox input[type="checkbox"]:checked::after,
+.card-cell.checkbox input[type="checkbox"]:checked::after {
+  transform: translate(-50%, -50%) rotate(45deg) scale(1); /* 恢復正常大小 */
+  opacity: 1; /* 設為不透明 */
+}
+
+
+/* --- 載入中 / 錯誤 / 無資料時的訊息 --- */
+.table-message {
+  padding: 3rem;
+  text-align: center;
+  color: #718096;
+  font-size: 1rem;
+}
+.table-message.error {
+  color: #e53e3e; /* 紅色錯誤文字 */
+}
+
+/* --- 列表頁尾 --- */
+.log-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 0; /* 放在卡片外部，提供上下留白 */
+  font-size: 0.9rem;
+  color: #718096;
+}
+
+/* 匯出按鈕 */
+.export-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  color: #334155;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.export-button:hover {
+  background-color: #f8f9fa;
+  border-color: #cbd5e1;
+}
+.export-button svg {
+  font-size: 1.1rem;
+}
