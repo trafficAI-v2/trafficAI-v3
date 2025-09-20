@@ -1,17 +1,14 @@
 import React, { useState, useEffect } from 'react';
-// 確保 Camera 類型中有 id 和 name
-import type { Camera } from '../../types'; 
+// 确保 Camera 类型中有 id 和 name
+import type { Camera, ViolationType } from '../../types'; 
 import { BiPlay, BiStop } from 'react-icons/bi';
 import DeviceStatusList from './DeviceStatusList'; 
 import ManualAnnotationTab from './ManualAnnotationTab';
 
 const TABS = ['即時監控', '影像設定', '手動標註'];
 
-// 假設 Camera 類型的定義，根據您的註解和修正，它應該看起來像這樣：
-// export interface Camera {
-//   id: number | string; // 新增唯一的 ID
-//   name: string;
-// }
+// 从环境变数读取 API 的基础 URL (例如 http://localhost:5001)
+const DETECT_BASE_URL = import.meta.env.VITE_DETECT_API_URL || 'http://localhost:5001';
 
 const CameraFeed: React.FC = () => {
   // --- 所有状态都将被保留 ---
@@ -21,69 +18,28 @@ const CameraFeed: React.FC = () => {
   const [contrast, setContrast] = useState<number>(50);
   const [zoom, setZoom] = useState<number>(50); 
   const [cameras, setCameras] = useState<Camera[]>([]);
-  const [selectedCamera, setSelectedCamera] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(true);
+  const [selectedCameraId, setSelectedCameraId] = useState<string>('0'); // (修改) 预设选中 '0'
+  const [loading, setLoading] = useState<boolean>(false); // (修改) 初始 loading 可以是 false
   const [error, setError] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
 
+  // (新增) 侦测相关状态
+  const [isDetecting, setIsDetecting] = useState<boolean>(false);
+  const [detectionStatus, setDetectionStatus] = useState<string>('已停止');
+  const [videoStreamUrl, setVideoStreamUrl] = useState<string | null>(null);
+
   // --- 副作用 ---
+  
+  // (修改) 这个 useEffect 现在只用来设定预设的摄影机选项
   useEffect(() => {
-    const API_BASE_URL = import.meta.env.VITE_CAMERA_LIST_URL;
-    
-    // --- 錯誤修正 1：使用 AbortController 來清理非同步操作 ---
-    const controller = new AbortController();
-    const signal = controller.signal;
-
-    if (!API_BASE_URL) {
-      console.error("錯誤：環境變數 VITE_API_BASE_URL 未設定。");
-      setError("前端設定錯誤：未找到 API 位址。");
-      setLoading(false);
-      return;
-    }
-
-    const fetchCameras = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await fetch(`${API_BASE_URL}`, { signal }); // 將 signal 傳入 fetch
-        if (!response.ok) {
-          throw new Error(`獲取攝影機列表失敗: ${response.status}`);
-        }
-        
-        const rawData: { camera_name: string }[] = await response.json();
-
-        // --- 錯誤修正 2：在轉換資料時，為每個項目添加唯一的 id ---
-        const formattedData: Camera[] = rawData.map((item, index) => ({
-          id: index.toString(), // 將索引轉換為字串作為唯一的 key
-          name: item.camera_name,
-        }));
-
-        setCameras(formattedData);
-
-        if (formattedData.length > 0) {
-          setSelectedCamera(formattedData[0].name);
-        }
-
-      } catch (err: any) {
-        // 如果錯誤是因請求被中止而引起的，則不要更新狀態
-        if (err.name === 'AbortError') {
-          console.log('Fetch aborted');
-        } else {
-          setError(err.message);
-          console.error("Failed to fetch cameras:", err);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCameras();
-    
-    // 返回一個清理函式，當組件卸載時，它會被呼叫
-    return () => {
-      controller.abort();
-    };
-  }, []); // 空依賴陣列確保此 effect 只在掛載和卸載時運行一次
+    // 我们可以直接设定内建和外接镜头的选项
+    const defaultCameras: Camera[] = [
+      { id: '0', name: '內建鏡頭 (0)' },
+      { id: '1', name: '外接鏡頭 (1)' }
+    ];
+    setCameras(defaultCameras);
+    setSelectedCameraId(defaultCameras[0].id); // 预设选中第一个
+  }, []);
 
   useEffect(() => {
     const timerId = setInterval(() => {
@@ -91,13 +47,73 @@ const CameraFeed: React.FC = () => {
     }, 1000);
     return () => clearInterval(timerId);
   }, []);
+  
+  // --- (新增) API 互动函式 ---
+  const handleStartDetection = async () => {
+    if (isDetecting) return;
+    setDetectionStatus('正在啟動...');
+    setError(null);
 
-  // --- 条件渲染 ---
+    try {
+      if (!DETECT_BASE_URL) throw new Error("API 位址未設定 (VITE_DETECT_API_URL)");
+
+      const response = await fetch(`${DETECT_BASE_URL}/start_detection`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ video_path: selectedCameraId })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.message || '啟動偵測失敗');
+      }
+
+      const data = await response.json();
+      if (data.status === 'success') {
+        // 加上时间戳参数来防止快取
+        setVideoStreamUrl(`${DETECT_BASE_URL}/video_feed?t=${new Date().getTime()}`);
+        setIsDetecting(true);
+        setDetectionStatus('運行中');
+      } else {
+        throw new Error(data.message || '後端返回成功狀態失敗');
+      }
+    } catch (err: any) {
+      console.error('啟動偵測時發生錯誤:', err);
+      setError(err.message);
+      setDetectionStatus('錯誤');
+    }
+  };
+
+  const handleStopDetection = async () => {
+    if (!isDetecting) return;
+    setDetectionStatus('正在停止...');
+
+    try {
+      if (!DETECT_BASE_URL) throw new Error("API 位址未設定 (VITE_DETECT_API_URL)");
+
+      const response = await fetch(`${DETECT_BASE_URL}/stop_detection`, { method: 'POST' });
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.message || '停止偵測失敗');
+      }
+      const data = await response.json();
+      if (data.status === 'success') {
+        setVideoStreamUrl(null);
+        setIsDetecting(false);
+        setDetectionStatus('已停止');
+      } else {
+        throw new Error(data.message || '後端返回成功狀態失敗');
+      }
+    } catch (err: any) {
+      console.error('停止偵測時發生錯誤:', err);
+      setError(err.message);
+      setDetectionStatus('錯誤');
+    }
+  };
+
+  // --- 条件渲染 (如果需要的话) ---
   if (loading) {
-    return <div className="panel camera-feed-panel"><p>正在載入攝影機資料...</p></div>;
-  }
-  if (error) {
-    return <div className="panel camera-feed-panel"><p className="text-red-500">錯誤: {error}</p></div>;
+    return <div className="panel camera-feed-panel"><p>正在載入資料...</p></div>;
   }
 
   return (
@@ -124,27 +140,66 @@ const CameraFeed: React.FC = () => {
           <>
             <div className="controls-bar">
               <select 
-                value={selectedCamera} 
-                onChange={(e) => setSelectedCamera(e.target.value)} 
-                disabled={cameras.length === 0}
+                value={selectedCameraId} 
+                onChange={(e) => setSelectedCameraId(e.target.value)} 
+                disabled={isDetecting || cameras.length === 0}
               >
-                {cameras.length === 0 ? (
-                  <option>無可用攝影機</option>
-                ) : (
-                  // --- 錯誤修正 2：使用 cam.id 作為 key ---
-                  cameras.map(cam => (
-                    <option key={cam.id} value={cam.name}>{cam.name}</option>
-                  ))
-                )}
+                {cameras.map(cam => (
+                  <option key={cam.id} value={cam.id}>{cam.name}</option>
+                ))}
               </select>
-              <button className="start-button">
+              <button className="start-button" onClick={handleStartDetection} disabled={isDetecting}>
                 <BiPlay />
                 <span>開始偵測</span>
               </button>
-              <button className="stop-button">
+              <button className="stop-button" onClick={handleStopDetection} disabled={!isDetecting}>
                 <BiStop />
                 <span>停止偵測</span>
               </button>
+            </div>
+            
+            <div className="detection-status-bar">
+              <strong>狀態: </strong>
+              <span className={`status-${isDetecting ? 'running' : 'stopped'}`}>
+                {detectionStatus}
+              </span>
+              {error && <span className="error-message"> | 錯誤: {error}</span>}
+            </div>
+
+            <div className="video-container">
+              {isDetecting && videoStreamUrl ? (
+                <img 
+                  src={videoStreamUrl} 
+                  alt="即時影像串流" 
+                  className="live-stream-image"
+                  onError={() => { // (新增) 错误处理，防止图片损坏图示
+                      setError('影像串流載入失敗，請檢查後端日誌。');
+                      setIsDetecting(false);
+                      setDetectionStatus('錯誤');
+                      setVideoStreamUrl(null);
+                  }}
+                />
+              ) : (
+                <div className="mock-video-stream">
+                  <p className="stream-placeholder-text">點擊「開始偵測」以顯示即時影像</p>
+                </div>
+              )}
+              
+              <div className="video-overlay-header">
+                <div className="video-overlay-top">
+                  <span>{cameras.find(c => c.id === selectedCameraId)?.name || '未選擇攝影機'}</span>
+                  <span className={`camera-status-dot ${isDetecting ? 'online' : 'offline'}`}></span>
+                </div>
+                <div className="video-overlay-timestamp">
+                  <span>
+                    {currentTime.toLocaleString('zh-TW', {
+                      year: 'numeric', month: 'numeric', day: '2-digit',
+                      hour: '2-digit', minute: '2-digit', second: '2-digit',
+                      hour12: false
+                    }).replace(/\//g, '-')}
+                  </span>
+                </div>
+              </div>
             </div>
 
             <div className="confidence-slider-container">
@@ -165,26 +220,6 @@ const CameraFeed: React.FC = () => {
                 }}
               />
               <p className="slider-description">僅顯示信心度高於閾值的檢測結果</p>
-            </div>
-
-            <div className="video-container">
-              <div className="mock-video-stream">
-                <div className="video-overlay-header">
-                  <div className="video-overlay-top">
-                    <span>{selectedCamera || '未選擇攝影機'}</span>
-                    <span className="camera-status-dot"></span>
-                  </div>
-                  <div className="video-overlay-timestamp">
-                    <span>
-                      {currentTime.toLocaleString('zh-TW', {
-                        year: 'numeric', month: 'numeric', day: 'numeric',
-                        hour: 'numeric', minute: 'numeric', second: 'numeric',
-                        hour12: true,
-                      })}
-                    </span>
-                  </div>
-                </div>
-              </div>
             </div>
           </>
         )}

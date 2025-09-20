@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=['http://localhost:8080'], supports_credentials=True)
 
 MODEL_PATH = os.getenv('MODEL_PATH')
 DATABASE_URL = os.getenv('DATABASE_URL')

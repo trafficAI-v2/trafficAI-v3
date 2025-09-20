@@ -11,7 +11,7 @@ app = Flask(__name__)
 
 # 允許的前端來源，.env 裡可設定 CORS_ALLOWED_ORIGINS=http://localhost:8080
 allowed_origins = os.getenv('CORS_ALLOWED_ORIGINS', '*')
-CORS(app, resources={r"/*": {"origins": allowed_origins.split(',')}}, supports_credentials=True)
+CORS(app)
 socketio = SocketIO(app, cors_allowed_origins=allowed_origins)
 
 # --- 資料庫連線 ---
