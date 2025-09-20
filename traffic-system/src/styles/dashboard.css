@@ -108,6 +108,14 @@
   color: white; 
   border:1.5px solid rgb(209, 207, 207);
   border-radius: 8px;
+  overflow: hidden; /* 防止影像超出容器 */
+}
+
+.live-stream-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* 保持比例並填滿容器 */
+  object-position: center; /* 居中顯示 */
 }
 
 .mock-video-stream {
