@@ -12,9 +12,6 @@ services:
     env_file:
       - ./.env
     restart: unless-stopped
-    depends_on:
-      api2:
-        condition: service_healthy
 
   api1:
     build:
@@ -25,22 +22,6 @@ services:
       - "3001:3001"
     env_file:
       - ./.env
-    restart: unless-stopped
-
-  api2:
-    build:
-      context: ./detect_API
-      dockerfile: Dockerfile
-    container_name: traffic_api_detect
-    ports:
-      - "5001:5001"
-    environment:
-      - MODEL_PATH=/app/halbest.pt
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5001/status"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
     restart: unless-stopped
 
   api3:
