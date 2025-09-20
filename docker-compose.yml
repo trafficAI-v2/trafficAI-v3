@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   frontend:
     build:
@@ -19,7 +18,7 @@ services:
 
   api1:
     build:
-      context: ./carpalate_detect_api
+      context: ./carplate_detect_api
       dockerfile: Dockerfile
     container_name: traffic_api_carplate
     ports:
@@ -38,7 +37,7 @@ services:
     environment:
       - MODEL_PATH=/app/halbest.pt
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5001/"]
+      test: ["CMD", "curl", "-f", "http://localhost:5001/status"]
       interval: 30s
       timeout: 10s
       retries: 5

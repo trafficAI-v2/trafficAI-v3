@@ -66,14 +66,15 @@ def get_violation_types():
     try:
         conn = get_db_connection()
         with conn.cursor() as cur:
-            cur.execute('SELECT type_name FROM violation_type;')
+            # 從 violations 表中獲取不重複的違規類型，而不是從不存在的 violation_type 表
+            cur.execute('SELECT DISTINCT violation_type FROM violations WHERE violation_type IS NOT NULL ORDER BY violation_type;')
             types_raw = cur.fetchall()
         conn.close()
 
         violation_types = [{'type_name': row[0]} for row in types_raw]
         return jsonify(violation_types)
     except Exception as e:
-        print("❌ Error in get_violation_types:", e)
+        print(f"❌ Error in get_violation_types: {e}")
         return jsonify({'error': 'Internal Server Error'}), 500
 
 
@@ -139,7 +140,7 @@ def get_violations():
         return jsonify({'error': 'Internal Server Error'}), 500
 
 
-@app.route('/violations/latest', methods=['GET'])
+@app.route('/api/violations/latest', methods=['GET'])
 def get_latest_violations():
     try:
         conn = get_db_connection()
@@ -244,4 +245,4 @@ def handle_disconnect():
 # 主程式啟動
 # ==================================================
 if __name__ == "__main__":
-    socketio.run(app, host='0.0.0.0', port=3002, debug=True)
+    socketio.run(app, host='0.0.0.0', port=3002, debug=True, allow_unsafe_werkzeug=True)
