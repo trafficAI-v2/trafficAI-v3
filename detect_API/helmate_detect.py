@@ -53,7 +53,6 @@ if not os.path.exists(SCREENSHOT_PATH):
 
 # ==================== 2. 輔助函式 (保持不變) ====================
 def call_lpr_api(image_data):
-    # ... 內容不變 ...
     try:
         _, img_encoded = cv2.imencode('.jpg', image_data)
         files = {'file': ('violation.jpg', img_encoded.tobytes(), 'image/jpeg')}
@@ -73,17 +72,24 @@ def call_lpr_api(image_data):
         return None
 
 def save_to_database(owner_info, image_path):
+    """
+    將違規資料存入資料庫，並回傳新紀錄的完整資料以供廣播。
+    """
     sql = """
         INSERT INTO violations (
             license_plate, owner_name, owner_phone, owner_email,
             owner_address, violation_type, violation_address,
-            image_path, timestamp
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) 
+            image_path, timestamp, fine
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
+        RETURNING id, violation_type, license_plate, timestamp, status; 
     """
+    # 【修改】在 SQL 語句最後加上 RETURNING，這會讓 INSERT 操作回傳指定欄位的值
+
     conn = None 
     try:
         with psycopg2.connect(DATABASE_URL) as conn:
             with conn.cursor() as cur:
+                timestamp_now = datetime.now() # 先產生一個時間戳，確保寫入和回傳的是同一個
                 cur.execute(sql, (
                     owner_info.get('license_plate_number', 'N/A'),
                     owner_info.get('full_name', 'N/A'),
@@ -93,13 +99,44 @@ def save_to_database(owner_info, image_path):
                     '未戴安全帽',
                     '高雄市燕巢區安招里安林路112號',
                     image_path,
-                    datetime.now()
+                    timestamp_now,
+                    800
                 ))
+                # 【修改】獲取 RETURNING 回傳的結果
+                new_record = cur.fetchone() 
+                if new_record:
+                    # 【修改】將回傳的 tuple 格式化為字典
+                    return {
+                        'id': new_record[0],
+                        'type': new_record[1],
+                        'plateNumber': new_record[2],
+                        'timestamp': new_record[3].isoformat() + 'Z', # 轉換為 ISO 格式並標示為 UTC
+                        'status': new_record[4]
+                    }
+                return None # 如果沒有回傳結果，則返回 None
+
     except (Exception, psycopg2.DatabaseError) as error:
         logging.error(f"資料庫寫入錯誤: {error}")
+        return None # 發生錯誤時返回 None
     finally:
         if conn is not None:
             conn.close()
+
+def notify_violation(violation_data):
+    """
+    向另一個 Flask 應用程式的廣播 API 發送 POST 請求。
+    """
+    # 【關鍵】這裡是您另一個 Flask 應用程式 (包含 WebSocket) 的 URL
+    notify_url = 'http://localhost:3002/notify/new-violation' # 請確認埠號是否正確
+    
+    try:
+        response = requests.post(notify_url, json=violation_data, timeout=3)
+        if response.status_code == 200:
+            logging.info(f"✅ 成功通知伺服器廣播新違規: {violation_data['plateNumber']}")
+        else:
+            logging.error(f"❌ 通知伺服器失敗，狀態碼: {response.status_code}, 回應: {response.text}")
+    except requests.exceptions.RequestException as e:
+        logging.error(f"❌ 呼叫廣播 API 時發生網路錯誤: {e}")
 
 # ==================== 3. 核心偵測與串流邏輯  ====================
 
@@ -136,45 +173,82 @@ def perform_inference():
     logging.info("模型推理執行緒已結束。")
 
 def run_detection_logic():
-    """【服務員1】從共享變數拿結果，判斷是否違規。"""
+    """
+    【服務員1】從共享變數拿結果，判斷是否違規，並在成功後觸發資料庫儲存與即時通知。
+    """
     global stop_detection_flag, latest_results, data_lock, latest_frame
+    
     last_successful_detection_time = 0
-    violation_cooldown = 2.0
+    violation_cooldown = 2.0  # 每次成功偵測後的冷卻時間（秒），防止重複觸發
+    
     logging.info("背景偵測邏輯執行緒已啟動。")
+
     while not stop_detection_flag:
-        time.sleep(0.1) # 降低此執行緒的檢查頻率
+        time.sleep(0.1)  # 降低此執行緒的 CPU 使用率，每 0.1 秒檢查一次即可
+
+        # 使用 with data_lock: 安全地從共享變數中讀取最新畫面和結果
         with data_lock:
             if latest_frame is None or latest_results is None:
-                continue
+                continue  # 如果沒有新畫面或結果，就繼續等待
+            
+            # 複製一份到本地變數，以盡快釋放鎖，讓其他執行緒可以工作
             local_frame_copy = latest_frame.copy()
             local_results = latest_results
         
         current_time = time.time()
+        
+        # 檢查是否已超過冷卻時間，避免對同一個事件重複處理
         if current_time - last_successful_detection_time > violation_cooldown:
             frame_height, frame_width, _ = local_frame_copy.shape
+            
+            # 遍歷偵測到的所有物件框
             for box in local_results.boxes:
+                # 只處理信心度高於我們設定的嚴格閾值的物件
                 if box.conf[0] > CONFIDENCE_THRESHOLD:
                     class_name = no_helmet_model.names[int(box.cls[0])]
+                    
+                    # 判斷是否為我們關注的「未戴安全帽」類別
                     if class_name.lower() == NO_HELMET_CLASS_NAME.lower():
                         x1, y1, x2, y2 = map(int, box.xyxy[0])
-                        # ... 後續截圖、API呼叫、存資料庫的邏輯完全不變 ...
-                        box_width = x2 - x1; box_height = y2 - y1
+                        
+                        # 擴大截圖範圍以包含更多上下文（例如車牌）
+                        box_width = x2 - x1
+                        box_height = y2 - y1
                         new_x1 = max(0, x1 - int(box_width * EXPAND_SIDES_FACTOR))
                         new_y1 = max(0, y1)
                         new_x2 = min(frame_width, x2 + int(box_width * EXPAND_SIDES_FACTOR))
                         new_y2 = min(frame_height, y2 + int(box_height * EXPAND_DOWN_FACTOR))
+                        
+                        # 截取擴大後的圖像區域
                         crop_img = local_frame_copy[new_y1:new_y2, new_x1:new_x2]
+                        
                         if crop_img.size > 0:
+                            # 呼叫 API 進行車牌辨識
                             owner_info = call_lpr_api(crop_img)
+                            
                             if owner_info:
+                                # 準備檔案名稱並儲存截圖
                                 ts_str = time.strftime("%Y%m%d_%H%M%S")
                                 filename = os.path.join(SCREENSHOT_PATH, f"success_{ts_str}.jpg")
                                 cv2.imwrite(filename, crop_img)
-                                save_to_database(owner_info, filename)
+                                
+                                # === 【核心修改】 ===
+                                # 1. 將資料存入資料庫，並接收回傳的完整新紀錄
+                                new_violation_data = save_to_database(owner_info, filename)
+                                
+                                # 2. 如果資料庫寫入成功（有回傳資料），就呼叫通知函式
+                                if new_violation_data:
+                                    notify_violation(new_violation_data)
+                                
+                                # 更新最後成功時間以啟動冷卻計時
                                 last_successful_detection_time = time.time()
+                                
                                 plate = owner_info.get('license_plate_number', 'N/A')
-                                logging.info(f"成功偵測到違規 (車牌: {plate})，資料已寫入資料庫。")
+                                logging.info(f"成功偵測到違規 (車牌: {plate})，資料已寫入資料庫並發送通知。")
+                                
+                                # 處理完一筆違規後就跳出迴圈，等待下一次冷卻結束
                                 break 
+
     logging.info("背景偵測邏輯執行緒已結束。")
 
 def generate_frames():

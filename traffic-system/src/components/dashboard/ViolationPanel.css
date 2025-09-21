@@ -37,13 +37,6 @@
   min-height: 0;
   margin-right: -12px;
   padding-right: 12px;
-
-  /* ✅ --- 關鍵修改 2：設定最大高度以容納 8 筆紀錄 --- */
-  /*
-    這個數值是根據新的、更大的卡牌尺寸計算得來的。
-    (每張卡牌的高度 + margin-bottom) * 8
-    您可以根據您的視覺偏好，自由調整這個 `52rem` 的數值。
-  */
   max-height: 52rem;
 }
 
@@ -59,42 +52,39 @@
   align-items: center;
   border: 1px solid #f0f3f6;
   border-radius: 10px;
-
-  /* ✅ --- 關鍵修改 1：讓卡牌變高變大 --- */
-  padding: 1.25rem 1rem; /* 增加垂直 padding (原為 1rem) */
-  margin-bottom: 1rem; /* 增加卡牌間距 (原為 0.75rem) */
+  padding: 1.25rem 1rem;
+  margin-bottom: 1rem;
 }
 
 .violation-details {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem; /* 稍微增加內部間距 */
+  gap: 0.35rem;
 }
 .violation-type {
-  /* 稍微加大字體 */
   font-size: 1.05rem; 
   font-weight: 600;
   color: #2d3748;
 }
 .violation-info {
-  /* 稍微加大字體 */
   font-size: 0.9rem;
   color: #718096;
 }
 
 /* --- 狀態標籤 --- */
 .status-tag {
-  /* 稍微加大標籤 */
   padding: 0.3rem 0.8rem;
   font-size: 0.85rem;
   border-radius: 9999px;
   font-weight: 500;
   white-space: nowrap;
 }
-.status-pending {
-  background-color: #f0f5ff;
-  color: #1d39c4;
-}
+
+/* 【修改】套用新的、多彩的狀態標籤顏色 */
+.status-tag.status-待審核 { background-color: #f7e5b2; color: #b08909; }
+.status-tag.status-已確認 { background-color: #d1fae5; color: #065f46; }
+.status-tag.status-已駁回 { background-color: #fee2e2; color: #991b1b; }
+.status-tag.status-已開罰 { background-color: #e0e7ff; color: #4639ff; }
 
 /* --- 提示訊息 --- */
 .panel-message, .no-violations-placeholder {
