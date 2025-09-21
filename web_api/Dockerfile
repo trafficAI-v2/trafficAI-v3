@@ -23,4 +23,4 @@ COPY . .
 EXPOSE 3002
 
 
-CMD ["python", "app.py"]
+CMD ["gunicorn", "--worker-class", "eventlet", "-w", "1", "--bind", "0.0.0.0:3002", "app:app"]

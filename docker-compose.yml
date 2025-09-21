@@ -1,3 +1,5 @@
+# docker-compose.yml (基於您現有配置的修正版)
+
 services:
   frontend:
     build:
@@ -5,15 +7,18 @@ services:
       dockerfile: Dockerfile
     container_name: traffic_frontend
     ports:
-      - "8080:5173"
+      - "8080:8080" # 修正：容器內外都使用 8080 端口
     volumes:
       - ./traffic-system:/app
       - /app/node_modules
-    env_file:
-      - ./.env
+    environment:
+      # 【關鍵】明確告訴前端，API 服務的地址是 http://localhost:3002
+      # 這是從您瀏覽器訪問的地址
+      - VITE_API_BASE_URL=http://localhost:3002
     restart: unless-stopped
 
-  api1:
+  # 這是您的 AI 偵測服務 (之前叫 api1)
+  ai_detector:
     build:
       context: ./carplate_detect_api
       dockerfile: Dockerfile
@@ -23,14 +28,32 @@ services:
     env_file:
       - ./.env
     restart: unless-stopped
+    depends_on: # 【建議】讓 AI 服務等待主 API 啟動後再啟動
+      - web_api
 
-  api3:
+  # 這是您的主 Web API 服務 (之前叫 api3)，我們改名為 web_api 以更清晰
+  web_api:
     build:
       context: ./web_api
       dockerfile: Dockerfile
     container_name: traffic_api_web
     ports:
       - "3002:3002"
+    environment:
+      # 【關鍵】從 .env 檔案讀取 DATABASE_URL
+      - DATABASE_URL=${DATABASE_URL} 
+      # 【關鍵】告訴 API 如何連接到下面定義的 Redis 容器
+      - REDIS_URL=redis://redis:6379/0
     env_file:
-      - ./.env
+      - ./.env # 您也可以繼續使用 env_file 來載入所有變數
+    restart: unless-stopped
+    depends_on: # 【關鍵】讓主 API 等待 Redis 服務完全啟動後再啟動
+      - redis
+
+  # 【新增】Redis 服務
+  redis:
+    image: "redis:alpine"
+    container_name: redis_server
+    ports:
+      - "6379:6379"
     restart: unless-stopped

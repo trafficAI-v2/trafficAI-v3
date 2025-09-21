@@ -34,12 +34,14 @@ CORS(app, origins=['http://localhost:8080'], supports_credentials=True)
 # 本地運行模式的路徑設定
 MODEL_PATH = os.path.join(os.path.dirname(__file__), 'halbest.pt')
 DATABASE_URL = os.getenv('DATABASE_URL')
-LPR_API_URL = "http://localhost:3001/recognize_plate"
+LPR_API_URL = "http://localhost:3001/recognize_plate"  # 車牌API (容器)
+WEB_API_URL = "http://localhost:3002"  # Web API (容器)
 
 print(f"⚡ 本地運行模式配置 (性能優化版):")
 print(f"   模型路徑: {MODEL_PATH}")
 print(f"   資料庫: {'已配置' if DATABASE_URL else '未配置'}")
 print(f"   車牌API: {LPR_API_URL}")
+print(f"   Web API: {WEB_API_URL}")
 
 # 全域變數管理
 global_cap = None
@@ -117,9 +119,12 @@ def call_lpr_api(image_data):
         return None
 
 def save_to_database(owner_info, image_path):
+    """
+    將違規資料存入資料庫，並回傳新紀錄的完整資料以供廣播。
+    """
     if not DATABASE_URL:
         logging.warning("資料庫未配置，跳過資料儲存")
-        return
+        return None
         
     db_start_time = time.time()
     sql = """
@@ -128,6 +133,7 @@ def save_to_database(owner_info, image_path):
             owner_address, violation_type, violation_address,
             image_path, timestamp, fine
         ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
+        RETURNING id, violation_type, license_plate, timestamp, status; 
     """
     try:
         # 使用連接池參數優化連接
@@ -137,6 +143,7 @@ def save_to_database(owner_info, image_path):
             application_name='traffic_ai'
         ) as conn:
             with conn.cursor() as cur:
+                timestamp_now = datetime.now()
                 cur.execute(sql, (
                     owner_info.get('license_plate_number', 'N/A'),
                     owner_info.get('full_name', 'N/A'),
@@ -146,21 +153,51 @@ def save_to_database(owner_info, image_path):
                     '未戴安全帽',
                     '高雄市燕巢區安招里安林路112號',
                     image_path,
-                    datetime.now(),
+                    timestamp_now,
                     800
                 ))
+                # 獲取 RETURNING 回傳的結果
+                new_record = cur.fetchone() 
                 # 立即提交，不等待事務結束
                 conn.commit()
-        
-        db_duration = time.time() - db_start_time
-        logging.info(f"💾 資料庫寫入成功，耗時: {db_duration:.3f}s")
+                
+                if new_record:
+                    # 將回傳的 tuple 格式化為字典
+                    result = {
+                        'id': new_record[0],
+                        'type': new_record[1],
+                        'plateNumber': new_record[2],
+                        'timestamp': new_record[3].isoformat() + 'Z',
+                        'status': new_record[4]
+                    }
+                    
+                    db_duration = time.time() - db_start_time
+                    logging.info(f"💾 資料庫寫入成功，耗時: {db_duration:.3f}s")
+                    return result
         
     except psycopg2.OperationalError as e:
         db_duration = time.time() - db_start_time
         logging.error(f"資料庫連接錯誤 (耗時: {db_duration:.3f}s): {e}")
+        return None
     except Exception as error:
         db_duration = time.time() - db_start_time
         logging.error(f"資料庫寫入錯誤 (耗時: {db_duration:.3f}s): {error}")
+        return None
+
+def notify_violation(violation_data):
+    """
+    向 Web API 發送通知以廣播新違規。
+    """
+    notify_url = f'{WEB_API_URL}/notify/new-violation'
+    logging.info(f"🚀 準備發送通知到: {notify_url}")
+    try:
+        response = requests.post(notify_url, json=violation_data, timeout=3)
+        if response.status_code == 200:
+            logging.info(f"✅ 成功通知伺服器廣播新違規: {violation_data['plateNumber']}")
+        else:
+            logging.error(f"❌ 通知伺服器失敗，狀態碼: {response.status_code}, 回應: {response.text}")
+    except requests.exceptions.RequestException as e:
+        logging.error(f"❌ 呼叫廣播 API 時發生網路錯誤: {e}")
 
 # ==================== 3. 核心偵測與串流邏輯 (性能優化) ====================
 def frame_producer():
@@ -286,10 +323,14 @@ def process_violation(crop_img):
             cv2.imwrite(filename, crop_img)
             save_img_end_time = time.time()
             
-            # 步驟3: 資料庫寫入
+            # 步驟3: 資料庫寫入並獲取返回的違規資料
             db_start_time = time.time()
-            save_to_database(owner_info, filename)
+            new_violation_data = save_to_database(owner_info, filename)
             db_end_time = time.time()
+            
+            # 步驟4: 如果資料庫寫入成功，發送通知
+            if new_violation_data:
+                notify_violation(new_violation_data)
             
             # 性能統計
             db_duration = db_end_time - db_start_time

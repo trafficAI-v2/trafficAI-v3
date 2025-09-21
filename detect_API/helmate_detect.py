@@ -127,8 +127,8 @@ def notify_violation(violation_data):
     向另一個 Flask 應用程式的廣播 API 發送 POST 請求。
     """
     # 【關鍵】這裡是您另一個 Flask 應用程式 (包含 WebSocket) 的 URL
-    notify_url = 'http://localhost:3002/notify/new-violation' # 請確認埠號是否正確
-    
+    notify_url = 'http://web_api:3002/notify/new-violation' # 使用容器服務名稱
+    logging.info(f"🚀 準備發送通知到: {notify_url}")
     try:
         response = requests.post(notify_url, json=violation_data, timeout=3)
         if response.status_code == 200:
