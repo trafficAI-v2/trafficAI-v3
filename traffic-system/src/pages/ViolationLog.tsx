@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BiSearch, BiTag, BiMapPin, BiX, BiCalendar, BiDownload } from 'react-icons/bi';
+// 【新增】從 react-router-dom 引入 Link，並加入新圖示
+import { Link } from 'react-router-dom';
+import { BiSearch, BiTag, BiMapPin, BiX, BiCalendar, BiDownload, BiReceipt, BiCheckCircle } from 'react-icons/bi';
 import './ViolationLog.css'; 
 
 // --- 從環境變數讀取後端 API 的 URL ---
@@ -7,6 +9,9 @@ const VIOLATIONS_URL = import.meta.env.VITE_GET_VIOLATIONS_URL;
 const VIOLATION_TYPES_URL = import.meta.env.VITE_VIOLATION_TYPES_URL;
 const CAMERAS_LIST_URL = import.meta.env.VITE_CAMERA_LIST_URL;
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+// 【新增】定義獲取已確認數量的 API URL
+const CONFIRMED_COUNT_URL = `${API_BASE_URL}/api/violations/confirmed-count`;
 
 // --- TypeScript 型別定義 ---
 interface ViolationType {
@@ -45,6 +50,23 @@ const ViolationLog: React.FC = () => {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const headerCheckboxRef = useRef<HTMLInputElement>(null);
 
+  // 【新增】用於儲存待產生罰單數量的狀態
+  const [confirmedCount, setConfirmedCount] = useState<number>(0);
+
+  // --- 輔助函式 ---
+  // 【新增】一個可重複使用的函式來獲取已確認數量
+  const fetchConfirmedCount = async () => {
+    try {
+        if (!CONFIRMED_COUNT_URL) return;
+        const response = await fetch(CONFIRMED_COUNT_URL);
+        if (!response.ok) return; // 靜默失敗，不顯示錯誤給使用者
+        const data = await response.json();
+        setConfirmedCount(data.count);
+    } catch (err) {
+        console.error("獲取已確認違規數量失敗:", err);
+    }
+  };
+
   // --- Effects ---
 
   // Effect 1: 元件初次載入時，獲取篩選器選項
@@ -82,7 +104,7 @@ const ViolationLog: React.FC = () => {
     const fetchViolations = async () => {
       setLoading(true);
       setError(null);
-      setSelectedIds([]); // 每次重新載入資料時，清空勾選
+      setSelectedIds([]);
       try {
         const params = new URLSearchParams();
         if (activeTab !== '全部') params.append('status', activeTab);
@@ -116,6 +138,11 @@ const ViolationLog: React.FC = () => {
     }
   }, [selectedIds, violations]);
 
+  // Effect 4: 元件初次載入時，獲取待處理罰單的數量
+  useEffect(() => {
+    fetchConfirmedCount();
+  }, []);
+
   // --- 輔助函式 ---
   const formatTimestamp = (isoString: string): { date: string, time: string } => {
     if (!isoString) return { date: 'N/A', time: '' };
@@ -137,15 +164,12 @@ const ViolationLog: React.FC = () => {
   };
 
   // --- 事件處理函式 ---
-
-  // 處理單筆紀錄的勾選
   const handleRowSelect = (id: number) => {
     setSelectedIds(prev =>
       prev.includes(id) ? prev.filter(selectedId => selectedId !== id) : [...prev, id]
     );
   };
 
-  // 處理全選
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
       setSelectedIds(violations.map(v => v.id));
@@ -154,7 +178,6 @@ const ViolationLog: React.FC = () => {
     }
   };
 
-  // 處理批量更新 API 請求
   const handleBulkUpdate = async (newStatus: '已確認' | '已駁回' | '已開罰') => {
     if (selectedIds.length === 0) return;
     if (!API_BASE_URL) {
@@ -175,14 +198,14 @@ const ViolationLog: React.FC = () => {
         const errorData = await response.json();
         throw new Error(errorData.error || `API 請求失敗`);
       }
-      // 前端樂觀更新：從當前列表中移除已處理的項目
       setViolations(prev => prev.filter(v => !selectedIds.includes(v.id)));
-      
+      // 在批量操作成功後，重新獲取一次數量
+      fetchConfirmedCount();
     } catch (err: any) {
       console.error("批量更新失敗:", err);
       alert(`錯誤：無法更新紀錄。\n${err.message}`);
     } finally {
-      setSelectedIds([]); // 無論成功或失敗都清空選項
+      setSelectedIds([]);
     }
   };
 
@@ -190,11 +213,31 @@ const ViolationLog: React.FC = () => {
   return (
     <div className="violation-log-page">
       <div className="page-header-container">
-        <h1>違規紀錄</h1>
-        <p>檢視並管理檢測到的違規行為</p>
+        <div>
+          <h1>違規紀錄</h1>
+          <p>檢視並管理檢測到的違規行為</p>
+        </div>
+        {/* 條件渲染：只有當 confirmedCount > 0 時才顯示按鈕 */}
+        {confirmedCount > 0 && (
+          <Link to="/generate-tickets" className="generate-tickets-btn">
+            <BiReceipt />
+            <span>罰單產生區 ({confirmedCount})</span>
+          </Link>
+        )}
       </div>
 
       <div className="log-container-card">
+        {/* 條件渲染：只有當 confirmedCount > 0 時才顯示通知橫幅 */}
+        {confirmedCount > 0 && (
+          <div className="ticket-notification-bar">
+            <BiCheckCircle />
+            <span>
+              目前有 <strong>{confirmedCount}</strong> 筆已確認違規等待生成罰單。
+              <Link to="/generate-tickets" className="notification-link">立即前往產生罰單專區</Link>
+            </span>
+          </div>
+        )}
+
         <div className="search-bar-container">
           <BiSearch className="search-icon" />
           <input
@@ -217,30 +260,19 @@ const ViolationLog: React.FC = () => {
           ))}
         </div>
 
-        {/* 批量操作列，根據 activeTab 條件渲染不同的按鈕 */}
         {selectedIds.length > 0 && (
           <div className="bulk-actions-bar">
             <span>已選擇 {selectedIds.length} 筆紀錄</span>
             <div className="bulk-actions-buttons">
               {activeTab === '已確認' ? (
-                // 如果在「已確認」頁面
                 <>
-                  <button onClick={() => handleBulkUpdate('已駁回')} className="bulk-action-btn reject">
-                    批量駁回
-                  </button>
-                  <button onClick={() => handleBulkUpdate('已開罰')} className="bulk-action-btn issue-fine">
-                    批量開罰
-                  </button>
+                  <button onClick={() => handleBulkUpdate('已駁回')} className="bulk-action-btn reject">批量駁回</button>
+                  <button onClick={() => handleBulkUpdate('已開罰')} className="bulk-action-btn issue-fine">批量開罰</button>
                 </>
               ) : (
-                // 在其他所有頁面
                 <>
-                  <button onClick={() => handleBulkUpdate('已駁回')} className="bulk-action-btn reject">
-                    批量駁回
-                  </button>
-                  <button onClick={() => handleBulkUpdate('已確認')} className="bulk-action-btn confirm">
-                    批量確認
-                  </button>
+                  <button onClick={() => handleBulkUpdate('已駁回')} className="bulk-action-btn reject">批量駁回</button>
+                  <button onClick={() => handleBulkUpdate('已確認')} className="bulk-action-btn confirm">批量確認</button>
                 </>
               )}
             </div>

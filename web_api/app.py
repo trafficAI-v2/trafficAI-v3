@@ -272,6 +272,82 @@ def handle_connect():
 def handle_disconnect():
     print('❌ Client disconnected')
 
+# ==================================================
+# 獲取待處理罰單數量 API
+# ==================================================
+@app.route('/api/violations/confirmed-count', methods=['GET'])
+def get_confirmed_violations_count():
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            # 查詢 status 為 '已確認' 的紀錄總數
+            cur.execute("SELECT COUNT(*) FROM violations WHERE status = '已確認';")
+            count = cur.fetchone()[0]
+        conn.close()
+        return jsonify({'count': count})
+    except Exception as e:
+        print(f"❌ Error in get_confirmed_violations_count: {e}")
+        return jsonify({'error': 'Internal Server Error'}), 500
+    
+
+# ==================================================
+# 【新增】罰單產生區 API
+# ==================================================
+
+# 1. 獲取所有「已確認」(待生成罰單) 的違規紀錄
+@app.route('/api/violations/confirmed', methods=['GET'])
+def get_confirmed_violations():
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            # 查詢所有 status 為 '已確認' 的紀錄
+            cur.execute("""
+                SELECT id, violation_type, license_plate, timestamp, violation_address 
+                FROM violations 
+                WHERE status = '已確認' 
+                ORDER BY timestamp DESC;
+            """)
+            violations_raw = cur.fetchall()
+        conn.close()
+
+        violations = [
+            {
+                'id': row[0],
+                'type': row[1],
+                'plateNumber': row[2],
+                'timestamp': row[3].isoformat() if row[3] else None,
+                'location': row[4]
+            }
+            for row in violations_raw
+        ]
+        return jsonify(violations)
+    except Exception as e:
+        print(f"❌ Error in get_confirmed_violations: {e}")
+        return jsonify({'error': 'Internal Server Error'}), 500
+
+# 2. 生成罰單 (將單筆紀錄狀態更新為 '已開罰')
+@app.route('/api/violation/<int:violation_id>/generate-ticket', methods=['POST'])
+def generate_ticket(violation_id):
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            # 將指定 id 的紀錄狀態從 '已確認' 更新為 '已開罰'
+            cur.execute(
+                "UPDATE violations SET status = '已開罰' WHERE id = %s AND status = '已確認';", 
+                (violation_id,)
+            )
+            updated_rows = cur.rowcount
+        conn.commit()
+        conn.close()
+
+        if updated_rows > 0:
+            return jsonify({'message': f'罰單 (ID: {violation_id}) 已成功生成。'}), 200
+        else:
+            return jsonify({'error': '找不到對應的待處理紀錄，或狀態不符。'}), 404
+            
+    except Exception as e:
+        print(f"❌ Error in generate_ticket: {e}")
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 # ==================================================
 # 主程式啟動

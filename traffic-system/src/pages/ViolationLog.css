@@ -6,6 +6,9 @@
 
 /* ----- 頁面標題 ----- */
 .page-header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 24px;
 }
 .page-header-container h1 {
@@ -20,83 +23,125 @@
   font-size: 16px;
 }
 
-/* ----- 主要內容容器卡片 ----- */
 .log-container-card {
   background-color: #ffffff;
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
+  /* 關鍵：設定為 Flex 佈局，並讓子項目垂直排列 */
   display: flex;
-  flex-direction: column;
-  gap: 20px;
+  flex-direction: column; 
+  gap: 20px; /* 項目之間的垂直間距 */
+  
+  /* 【最終修正】強制所有子項目在水平方向上撐滿，確保版面一致 */
+  align-items: stretch; /* 修正拼字錯誤：cneter -> stretch */
 }
 
-/* ----- 搜尋框 ----- */
-.search-bar-container {
-  position: relative;
-}
-.search-bar-container input {
+/* --- 通知橫幅 (確保它也能撐滿) --- */
+.ticket-notification-bar {
+  /* 本身不需要設定 width，它會被父層自動拉伸 */
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: #f0f3f6; /* 根據圖片微調背景色 */
+  color: #334155;
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 14px;
   width: 100%;
-  padding: 10px 16px 10px 40px;
+  box-sizing: border-box;
+  margin: 0; /* 確保沒有外邊距 */
+}
+
+
+/* ----- 搜尋框 (使用更高優先級確保樣式生效) ----- */
+.violation-log-page .search-bar-container {
+  position: relative;
+  width: 100% !important; /* 使用 !important 確保覆蓋其他樣式 */
+  max-width: none !important; /* 移除任何最大寬度限制 */
+  display: block; /* 改為 block，確保完全撐滿 */
+  box-sizing: border-box;
+  margin: 0; /* 確保沒有外邊距，與通知欄對齊 */
+}
+.violation-log-page .search-bar-container input {
+  width: 100% !important; /* 使用 !important 確保輸入框填滿容器 */
+  padding: 12px 16px 12px 40px; /* 增加 padding 使高度與通知橫幅更一致 */
   border-radius: 8px;
   border: 1px solid #d1d5db;
   font-size: 14px;
   box-sizing: border-box;
   transition: border-color 0.2s, box-shadow 0.2s;
+  display: block; /* 確保輸入框是 block 元素 */
 }
-.search-bar-container input:focus {
+.violation-log-page .search-bar-container input:focus {
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
-.search-icon {
+.violation-log-page .search-icon {
   position: absolute;
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
   color: #9ca3af;
   font-size: 20px;
+  z-index: 1;
+  pointer-events: none; /* 確保圖示不會影響點擊 */
 }
 
-/* ----- 分頁標籤 (*** 滿版樣式更新 ***) ----- */
-.log-tabs {
+/* ----- 分頁標籤 (與通知欄和搜尋欄保持相同寬度) ----- */
+.violation-log-page .log-tabs {
   display: flex;
-  background-color: #f3f4f6; /* 容器的淺灰色背景 */
-  padding: 6px;
-  border-radius: 10px; /* 容器的圓角 */
-  width: 100%; /* 改為 100%，讓容器滿版 */
+  width: 100% !important;             /* 強制撐滿與通知欄相同寬度 */
+  background-color: #f3f4f6;
+  border-radius: 10px;
+  padding: 0;              /* 移除 padding，讓按鈕自己撐開 */
+  gap: 6px;                /* 保持 tab 間距 */
+  box-sizing: border-box;
+  margin: 0;               /* 確保沒有外邊距，與上方元素對齊 */
 }
 
-.log-tab-button {
-  flex-grow: 1; /* 讓每個按鈕平均分配寬度 */
-  text-align: center; /* 確保文字在加寬的按鈕中居中 */
+.violation-log-page .log-tab-button {
+  flex: 1;                 /* 讓所有按鈕「平均分配」父容器的寬度 */
+  text-align: center;      /* 文字置中 */
   border: none;
   background-color: transparent;
   outline: none;
   color: #4b5563;
   font-size: 14px;
   font-weight: 500;
-  padding: 10px 20px;
+  padding: 10px 8px;       /* 調整 padding 讓文字更好置中 */
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease-in-out;
+  white-space: nowrap;
+  display: flex;           /* 使用 flex 來完美置中 */
+  align-items: center;     /* 垂直置中 */
+  justify-content: center; /* 水平置中 */
 }
+
 
 /* 當滑鼠懸停在「未選中」的按鈕上時的效果 */
-.log-tab-button:not(.active):hover {
+.violation-log-page .log-tab-button:not(.active):hover {
   color: #1f2937;
   background-color: #e5e7eb;
+  border-radius: 6px;
+  margin: 4px;              /* 懸停時也使用相同的邊距 */
+  padding: 8px 12px;        /* 懸停時也使用相同的內邊距 */
 }
 
-/* 被選中的活動頁籤的樣式 */
-.log-tab-button.active {
-  background-color: #ffffff;
-  color: #3b82f6;
+/* 被選中的活動頁籤的樣式 (白色部分更小，完美置中) */
+.violation-log-page .log-tab-button.active {
+  background-color: #ffffff; /* 白色背景 */
+  color: #1f2937;           /* 深色文字 */
   font-weight: 600;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); /* 更明顯的陰影效果 */
+  border-radius: 6px;       /* 稍微小一點的圓角 */
+  margin: 4px;              /* 更大的外邊距讓白色部分更小 */
+  padding: 8px 12px;        /* 調整內邊距讓白色區域更緊湊 */
 }
 
-/* ----- 篩選器容器 ----- */
+/* ----- 篩選器 ----- */
 .filters-container {
   display: flex;
   flex-direction: column;
@@ -127,8 +172,6 @@
 .remove-tag-icon:hover {
   color: #374151;
 }
-
-/* ----- 篩選器網格 ----- */
 .filters-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -202,7 +245,6 @@
 .header-cell.time, .card-cell.time         { flex: 2; }
 .header-cell.location, .card-cell.location { flex: 2.5; }
 .header-cell.status, .card-cell.status     { flex: 1; justify-content: center; }
-
 .list-body {
   display: flex;
   flex-direction: column;
@@ -212,7 +254,7 @@
   padding: 12px 16px;
   align-items: center;
   border-bottom: 1px solid #e5e7eb;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, border-left 0.2s, padding-left 0.2s;
 }
 .violation-card:last-child {
   border-bottom: none;
@@ -250,8 +292,8 @@
   white-space: nowrap;
 }
 .status-tag.status-待審核 { background-color: #f7e5b2; color: #b08909; }
-.status-tag.status-已確認 { background-color: #d1fae5; color: #065f46; }
-.status-tag.status-已駁回 { background-color: #fee2e2; color: #991b1b; }
+.status-tag.status-已確認 { background-color: #d1fae5; color: #065f46; } 
+.status-tag.status-已駁回 { background-color: #fee2e2; color: #991b1b;  }
 .status-tag.status-已開罰 { background-color: #e0e7ff; color: #4639ff; }
 .table-message {
   color: #6b7280;
@@ -291,9 +333,64 @@
   border-color: #9ca3af;
 }
 
-/* ======================================== */
-/*        === 自訂勾選框樣式 ===            */
-/* ======================================== */
+/* ----- 批量操作列樣式 ----- */
+.bulk-actions-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  background-color: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 8px;
+  color: #4338ca;
+  font-weight: 500;
+  font-size: 14px;
+}
+.bulk-actions-buttons {
+  display: flex;
+  gap: 12px;
+}
+.bulk-action-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-weight: 500;
+  font-size: 14px;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+/* 確認按鈕 (深色背景) */
+.bulk-action-btn.confirm {
+  background-color: #0cbd41; /* 深綠色背景 */
+  border-color: #25ea60;
+  color: #ffffff;
+}
+.bulk-action-btn.confirm:hover {
+  background-color: #14a94a; /* 滑鼠懸停時變淺一點 */
+}
+
+/* 駁回按鈕 (白色背景) */
+.bulk-action-btn.reject {
+  background-color: #ff0000d8;
+  border-color: #d1d5db; /* 灰色邊框 */
+  color: #ffffff;
+}
+.bulk-action-btn.reject:hover {
+  background-color: #cf0202; /* 滑鼠懸停時變灰一點 */
+}
+
+.bulk-action-btn.issue-fine { background-color: #22c55e; }
+.bulk-action-btn.issue-fine:hover { background-color: #16a34a; }
+
+/* ----- 被選中卡片的樣式 ----- */
+.violation-card.selected {
+  background-color: #eef2ff !important; 
+  border-left: 4px solid #4f46e5;
+  padding-left: 12px;
+}
+
+/* ----- 自訂勾選框樣式 ----- */
 .header-cell.checkbox input[type="checkbox"],
 .card-cell.checkbox input[type="checkbox"] {
   -webkit-appearance: none;
@@ -303,7 +400,7 @@
   width: 20px;
   height: 20px;
   border: 2px solid #cbd5e1;
-  border-radius: 4px;
+  border-radius: 6px; /* 稍微方一點的圓角 */
   background-color: #fff;
   position: relative;
   cursor: pointer;
@@ -327,70 +424,69 @@
 }
 .header-cell.checkbox input[type="checkbox"]:checked,
 .card-cell.checkbox input[type="checkbox"]:checked {
-  background-color: #000;
-  border-color: #000;
+  background-color: #1f2937; /* 深灰色 */
+  border-color: #1f2937;
 }
 .header-cell.checkbox input[type="checkbox"]:checked::after,
 .card-cell.checkbox input[type="checkbox"]:checked::after {
   transform: translate(-50%, -50%) rotate(45deg) scale(1);
   opacity: 1;
 }
-/* ----- 【新增】批量操作列樣式 ----- */
-.bulk-actions-bar {
-  display: flex;
-  justify-content: space-between;
+
+/* ======================================== */
+/*  【新增】罰單通知橫幅與按鈕樣式          */
+/* ======================================== */
+
+/* --- 罰單產生區按鈕 (綠色) --- */
+.generate-tickets-btn {
+  display: inline-flex;
   align-items: center;
-  padding: 12px 20px;
-  background-color: #eef2ff; /* 淺紫色背景，與選中行顏色一致 */
-  border: 1px solid #c7d2fe; /* 邊框顏色 */
-  border-radius: 8px; /* 圓角 */
-  color: #4338ca; /* 文字顏色 */
-  font-weight: 500;
+  gap: 8px;
+  background-color: #16a34a; /* 綠色背景 */
+  color: #ffffff;
+  padding: 10px 16px;
   font-size: 14px;
-}
-
-.bulk-actions-buttons {
-  display: flex;
-  gap: 12px; /* 按鈕之間的間距 */
-}
-
-.bulk-action-btn {
-  padding: 8px 16px;
-  border-radius: 6px;
-  border: 1px solid;
   font-weight: 500;
-  font-size: 14px;
+  border: none;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s; /* 過渡動畫 */
+  text-decoration: none;
+  transition: background-color 0.2s;
+}
+.generate-tickets-btn:hover {
+  background-color: #15803d; /* 滑鼠懸停時變深 */
+}
+.generate-tickets-btn svg {
+  font-size: 18px;
 }
 
-/* 確認按鈕 (深色背景) */
-.bulk-action-btn.confirm {
-  background-color: #0cbd41; /* 深綠色背景 */
-  border-color: #25ea60;
-  color: #ffffff;
+/* --- 通知橫幅 --- */
+.ticket-notification-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: #f0f3f6;
+  color: #334155;
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 14px;
 }
-.bulk-action-btn.confirm:hover {
-  background-color: #14a94a; /* 滑鼠懸停時變淺一點 */
+.ticket-notification-bar svg {
+  font-size: 20px;
+  color: #16a34a;
+  flex-shrink: 0;
+}
+.ticket-notification-bar strong {
+  color: #1f2937;
 }
 
-/* 駁回按鈕 (白色背景) */
-.bulk-action-btn.reject {
-  background-color: #ff0000d8;
-  border-color: #d1d5db; /* 灰色邊框 */
-  color: #ffffff;
+/* --- 橫幅內的連結 --- */
+.notification-link {
+  color: #2563eb;
+  font-weight: 500;
+  text-decoration: none;
+  margin-left: 8px;
 }
-.bulk-action-btn.reject:hover {
-  background-color: #cf0202; /* 滑鼠懸停時變灰一點 */
-}
-
-
-/* ----- 【新增】被選中卡片的樣式 ----- */
-.violation-card.selected {
-  /* 使用 !important 來確保這個背景色優先於 :hover 效果 */
-  background-color: #eef2ff !important; 
-  /* 左側加上一個醒目的標示線 */
-  border-left: 4px solid #4f46e5;
-  /* 重新計算 padding，讓內容不會貼在標示線上 */
-  padding-left: 12px;
+.notification-link:hover {
+  text-decoration: underline;
 }

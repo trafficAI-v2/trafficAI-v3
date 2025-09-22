@@ -1,0 +1,104 @@
+/* ================================================= */
+/*      GenerateTickets.css (Based on your Log CSS)  */
+/* ================================================= */
+
+.generate-tickets-page {
+  padding: 24px 40px;
+  background-color: #f8f9fc;
+  min-height: 100vh;
+}
+
+/* ----- 頁面標題 ----- */
+.page-header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+.page-header-container h1 { margin: 0; font-size: 28px; font-weight: 600; color: #1f2937; }
+.page-header-container p { margin: 4px 0 0; color: #6b7280; font-size: 16px; }
+.back-link { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; background-color: #fff; color: #334155; font-weight: 500; text-decoration: none; transition: all 0.2s; }
+.back-link:hover { background-color: #f8fafc; border-color: #cbd5e1; }
+
+
+/* ----- 統計卡片 ----- */
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 24px; }
+.stat-box { display: flex; justify-content: space-between; align-items: center; background-color: #fff; padding: 20px; border-radius: 8px; border: 1px solid #eef2f7; }
+.stat-content { display: flex; flex-direction: column; }
+.stat-label { color: #6a7889; font-size: 14px; margin-bottom: 8px; }
+.stat-value { font-size: 24px; font-weight: 700; }
+.stat-icon { font-size: 22px; }
+.stat-box.pending .stat-value, .stat-box.pending .stat-icon { color: #f97316; }
+.stat-box.generated .stat-value, .stat-box.generated .stat-icon { color: #22c55e; }
+.stat-box.fine .stat-value, .stat-box.fine .stat-icon { color: #8b5cf6; }
+
+
+/* ----- 主要內容容器卡片 ----- */
+.log-container-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ----- 工具列 (搜尋 & 頁籤) ----- */
+.toolbar { display: flex; }
+.search-bar-container { position: relative; width: 320px; }
+.search-bar-container input { width: 100%; padding: 10px 16px 10px 40px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 14px; box-sizing: border-box; transition: border-color 0.2s, box-shadow 0.2s; }
+.search-bar-container input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
+.search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 20px; }
+.log-tabs { display: flex; background-color: #f3f4f6; padding: 6px; border-radius: 10px; width: fit-content; }
+.log-tab-button { display: flex; align-items: center; gap: 8px; border: none; background-color: transparent; outline: none; color: #4b5563; font-size: 14px; font-weight: 500; padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: all 0.3s ease-in-out; }
+.log-tab-button:not(.active):hover { color: #1f2937; background-color: #e5e7eb; }
+.log-tab-button.active { background-color: #ffffff; color: #1f2937; font-weight: 600; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); }
+
+/* ----- 列表 ----- */
+.violation-list-container { border: 1px solid #e5e7eb; border-radius: 8px; }
+.list-header { display: flex; padding: 10px 16px; font-size: 12px; font-weight: 500; text-transform: uppercase; color: #6b7280; background-color: #f9fafb; border-bottom: 1px solid #e5e7eb; border-radius: 8px 8px 0 0; }
+.list-body { display: flex; flex-direction: column; }
+.violation-card { display: flex; padding: 12px 16px; align-items: center; border-bottom: 1px solid #e5e7eb; transition: background-color 0.2s; }
+.violation-card:last-child { border-bottom: none; }
+.violation-card:hover { background-color: #f9fafb; }
+
+/* ----- 儲存格 ----- */
+.header-cell, .card-cell { display: flex; align-items: center; padding: 4px 8px; min-width: 0; }
+.cell-content-vertical { display: flex; flex-direction: column; }
+.main-info { font-weight: 500; color: #111827; }
+.sub-info { font-size: 13px; color: #6b7280; margin-top: 4px; }
+.card-cell.c-location { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ----- 欄位寬度 ----- */
+.header-cell.h-id, .card-cell.c-id           { flex: 1.5; }
+.header-cell.h-plate, .card-cell.c-plate     { flex: 1.5; }
+.header-cell.h-type, .card-cell.c-type       { flex: 1.5; justify-content: center; }
+.header-cell.h-time, .card-cell.c-time       { flex: 2; }
+.header-cell.h-location, .card-cell.c-location { flex: 3; }
+.header-cell.h-action, .card-cell.c-action   { flex: 1.5; justify-content: flex-end; }
+
+/* ----- 元件樣式 ----- */
+.sub-info.confidence { background-color: #f3f4f6; color: #4b5563; font-size: 12px; padding: 2px 8px; border-radius: 4px; width: fit-content; }
+.type-tag { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; background-color: #fee2e2; color: #b91c1c; }
+.generate-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border: none; background-color: #3b82f6; color: #fff; border-radius: 6px; font-weight: 500; cursor: pointer; transition: background-color 0.2s; }
+.generate-btn:hover { background-color: #2563eb; }
+
+/* ----- 頁腳 ----- */
+.log-footer { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: #374151; padding-top: 16px; border-top: 1px solid #e5e7eb; }
+.export-button { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border: 1px solid #d1d5db; background-color: #fff; border-radius: 6px; font-weight: 500; cursor: pointer; transition: background-color 0.2s, border-color 0.2s; }
+.export-button:hover { background-color: #f9fafb; border-color: #9ca3af; }
+
+/* ----- 表格訊息 ----- */
+.table-message { color: #6b7280; font-size: 14px; text-align: center; padding: 48px; }
+.table-message.error { color: #b91c1c; font-weight: 500; }
+
+/* --- 【新增】已開罰狀態標籤 --- */
+.status-pill.issued {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: #d1fae5; 
+  color: #065f46;
+}
