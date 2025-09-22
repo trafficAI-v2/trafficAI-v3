@@ -106,7 +106,12 @@ kill -9 <PID>
 ```bash
 # 重啟 Docker 服務
 docker compose down
+# 重建容器和重啟 Docker
+docker compose up -d --build
+#建立 Docker 並在背景啟動
 docker compose up -d
+#少了 -d 啟動容器並日誌會直接輸出在終端機
+docker compose up 
 
 # 檢視容器日誌
 docker logs traffic_frontend
