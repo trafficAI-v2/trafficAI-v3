@@ -293,23 +293,27 @@ def get_confirmed_violations_count():
 # ==================================================
 # 【新增】罰單產生區 API
 # ==================================================
+# 1. 獲取罰單列表 (依據 '已確認' 或 '已開罰' 狀態)
+@app.route('/api/tickets/list', methods=['GET'])
+def get_tickets_list():
+    status = request.args.get('status')
+    if not status or status not in ['已確認', '已開罰']:
+        return jsonify({'error': "必須提供 '已確認' 或 '已開罰' 的 status 參數"}), 400
 
-# 1. 獲取所有「已確認」(待生成罰單) 的違規紀錄
-@app.route('/api/violations/confirmed', methods=['GET'])
-def get_confirmed_violations():
     try:
         conn = get_db_connection()
         with conn.cursor() as cur:
-            # 查詢所有 status 為 '已確認' 的紀錄
+            # 【修正】從 SELECT 語句中移除 confidence
             cur.execute("""
-                SELECT id, violation_type, license_plate, timestamp, violation_address 
+                SELECT id, violation_type, license_plate, timestamp, violation_address
                 FROM violations 
-                WHERE status = '已確認' 
+                WHERE status = %s
                 ORDER BY timestamp DESC;
-            """)
+            """, (status,))
             violations_raw = cur.fetchall()
         conn.close()
 
+        # 【修正】從回傳的 JSON 中移除 confidence
         violations = [
             {
                 'id': row[0],
@@ -322,10 +326,39 @@ def get_confirmed_violations():
         ]
         return jsonify(violations)
     except Exception as e:
-        print(f"❌ Error in get_confirmed_violations: {e}")
+        print(f"❌ Error in get_tickets_list: {e}")
         return jsonify({'error': 'Internal Server Error'}), 500
 
-# 2. 生成罰單 (將單筆紀錄狀態更新為 '已開罰')
+
+# 2. 獲取罰單統計數量與總金額
+@app.route('/api/tickets/counts', methods=['GET'])
+def get_tickets_counts():
+    """
+    專為「罰單產生區」設計，獲取統計數字。
+    """
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    COUNT(CASE WHEN status = '已確認' THEN 1 END) AS pending_count,
+                    COUNT(CASE WHEN status = '已開罰' THEN 1 END) AS generated_count,
+                    COALESCE(SUM(CASE WHEN status = '已開罰' THEN fine END), 0) AS total_fine
+                FROM violations;
+            """)
+            counts = cur.fetchone()
+        conn.close()
+
+        result = {
+            'pendingCount': int(counts[0]) if counts else 0,
+            'generatedCount': int(counts[1]) if counts else 0,
+            'totalFine': int(counts[2]) if counts else 0
+        }
+        return jsonify(result)
+    except Exception as e:
+        print(f"❌ Error in get_tickets_counts: {e}")
+        return jsonify({'error': 'Internal Server Error'}), 500
+    
 @app.route('/api/violation/<int:violation_id>/generate-ticket', methods=['POST'])
 def generate_ticket(violation_id):
     try:
@@ -343,12 +376,12 @@ def generate_ticket(violation_id):
         if updated_rows > 0:
             return jsonify({'message': f'罰單 (ID: {violation_id}) 已成功生成。'}), 200
         else:
+            # 如果找不到對應的 ID 或狀態不符，回傳 404 是合理的
             return jsonify({'error': '找不到對應的待處理紀錄，或狀態不符。'}), 404
             
     except Exception as e:
         print(f"❌ Error in generate_ticket: {e}")
         return jsonify({'error': 'Internal Server Error'}), 500
-
 # ==================================================
 # 主程式啟動
 # ==================================================

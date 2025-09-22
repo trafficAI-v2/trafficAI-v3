@@ -8,8 +8,14 @@ import './GenerateTickets.css';
 
 // --- API Endpoints ---
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-// 這是唯一需要從後端 "GET" 的資料列表
-const CONFIRMED_VIOLATIONS_URL = `${API_BASE_URL}/api/violations/confirmed`;
+
+// 指向新的「罰單列表」專用 API
+const getViolationsByStatusURL = (status: string) => 
+  `${API_BASE_URL}/api/tickets/list?status=${encodeURIComponent(status)}`;
+
+// 指向新的「罰單統計」專用 API
+const GET_COUNTS_URL = `${API_BASE_URL}/api/tickets/counts`;
+
 
 // --- 型別定義 ---
 interface Violation {
@@ -18,29 +24,56 @@ interface Violation {
   plateNumber: string;
   timestamp: string;
   location: string;
-  confidence: number;
+}
+
+interface ViolationCounts {
+  pendingCount: number;
+  generatedCount: number;
+  totalFine: number;
 }
 
 const GenerateTickets: React.FC = () => {
-  // --- 狀態管理 ---
+  // --- 狀態管理 (State) ---
   const [activeTab, setActiveTab] = useState<'pending' | 'generated'>('pending');
-  const [pendingList, setPendingList] = useState<Violation[]>([]);
-  const [generatedList, setGeneratedList] = useState<Violation[]>([]); // 在本地客戶端維護已生成的列表
+  const [violations, setViolations] = useState<Violation[]>([]);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [generatedCount, setGeneratedCount] = useState(0);
+  const [totalFine, setTotalFine] = useState(0);
+  
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // --- 資料獲取邏輯 (只獲取待處理列表) ---
-  const fetchPendingViolations = async () => {
+  // --- 資料獲取邏輯 ---
+
+  const fetchCounts = async () => {
+    try {
+      const response = await fetch(GET_COUNTS_URL);
+      if (!response.ok) return; // 靜默失敗
+      const data: ViolationCounts = await response.json();
+      setPendingCount(data.pendingCount);
+      setGeneratedCount(data.generatedCount);
+      setTotalFine(data.totalFine); 
+    } catch (err) {
+      console.error("獲取統計數量失敗:", err);
+    }
+  };
+
+  const fetchViolations = async (tab: 'pending' | 'generated') => {
     setLoading(true);
     setError(null);
+    setViolations([]);
+    
+    const status = tab === 'pending' ? '已確認' : '已開罰';
+    const url = getViolationsByStatusURL(status);
+    
     try {
-      const response = await fetch(CONFIRMED_VIOLATIONS_URL);
+      const response = await fetch(url);
       if (!response.ok) {
-        throw new Error('無法獲取待處理罰單列表');
+        throw new Error(`無法獲取狀態為 "${status}" 的列表`);
       }
       const data: Violation[] = await response.json();
-      setPendingList(data);
+      setViolations(data);
     } catch (err: any) {
       setError(err.message);
       console.error("獲取資料失敗:", err);
@@ -49,6 +82,15 @@ const GenerateTickets: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    fetchViolations(activeTab);
+  }, [activeTab]);
+
+  useEffect(() => {
+    fetchCounts();
+  }, []);
+  
+  // --- 輔助函式 ---
   const formatTimestamp = (isoString: string): { date: string, time: string } => {
     if (!isoString) return { date: 'N/A', time: '' };
     try {
@@ -67,50 +109,40 @@ const GenerateTickets: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    fetchPendingViolations();
-  }, []);
-
-  // --- 【核心修改】事件處理函式 ---
+  // --- 事件處理函式 ---
   const handleGenerateTicket = async (violationToGenerate: Violation) => {
     try {
-      // 1. 呼叫後端 API，真正執行生成動作
       const response = await fetch(`${API_BASE_URL}/api/violation/${violationToGenerate.id}/generate-ticket`, {
         method: 'POST',
       });
 
-      // 2. 檢查後端是否回報成功
+      // 【建議修改】更強壯的錯誤處理
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || '後端生成罰單失敗');
+        let errorMessage = `後端伺服器發生錯誤 (HTTP ${response.status})`;
+        try {
+          const errorData = await response.json();
+          if (errorData && errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (jsonError) {
+          console.error("無法將錯誤回應解析為 JSON:", jsonError);
+        }
+        throw new Error(errorMessage);
       }
-
-      // 3. 後端成功後，才更新前端的狀態
-      alert(`VIO-${violationToGenerate.id} 的罰單已成功在伺服器生成！`);
       
-      // 從「待生成」列表中移除
-      setPendingList(prevList => prevList.filter(v => v.id !== violationToGenerate.id));
-      
-      // 將該項目加入到「已生成」列表
-      setGeneratedList(prevList => [violationToGenerate, ...prevList]);
+      fetchViolations(activeTab);
+      fetchCounts();
 
     } catch (err: any) {
-      // 如果過程中發生任何錯誤，顯示錯誤訊息，UI 不會變動
       alert(`操作失敗: ${err.message}`);
       console.error("生成罰單時發生錯誤:", err);
     }
   };
   
-  // --- 根據當前頁籤決定要顯示哪個列表 ---
-  const sourceList = activeTab === 'pending' ? pendingList : generatedList;
-  const filteredList = sourceList.filter(v => 
+  const filteredList = violations.filter(v => 
     `VIO-${v.id}`.toLowerCase().includes(searchTerm.toLowerCase()) || 
     v.plateNumber.toLowerCase().includes(searchTerm.toLowerCase())
   );
-  
-  const pendingCount = pendingList.length;
-  const generatedCount = generatedList.length;
-  const estimatedFine = pendingCount * 2400;
 
   return (
     <div className="generate-tickets-page">
@@ -141,8 +173,8 @@ const GenerateTickets: React.FC = () => {
         </div>
         <div className="stat-box fine">
           <div className="stat-content">
-            <span className="stat-label">預估罰鍰</span>
-            <span className="stat-value">NT$ {estimatedFine.toLocaleString()}</span>
+            <span className="stat-label">總罰鍰金額</span>
+            <span className="stat-value">NT$ {(totalFine || 0).toLocaleString()}</span>
           </div>
           <FaFileInvoiceDollar className="stat-icon" />
         </div>
@@ -154,7 +186,9 @@ const GenerateTickets: React.FC = () => {
                 <BiSearch className="search-icon"/>
                 <input 
                     type="text" 
-                    placeholder="搜尋違規ID或車牌號碼"
+                    id="ticket-search"
+                    name="ticket-search"
+                    placeholder="車牌號碼"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -187,12 +221,12 @@ const GenerateTickets: React.FC = () => {
           <div className="list-body">
             {loading ? <div className="table-message">正在載入...</div> :
              error ? <div className="table-message error">{error}</div> :
-             filteredList.length === 0 ? <div className="table-message">沒有資料</div> :
+             filteredList.length === 0 ? <div className="table-message">沒有符合條件的紀錄</div> :
              filteredList.map(v => {
                const { date, time } = formatTimestamp(v.timestamp);
                return (
                 <div key={v.id} className="violation-card">
-                  <div className="card-cell c-id"><div className="cell-content-vertical"><span className="main-info">VIO-{v.id}</span><span className="sub-info confidence">{v.confidence}%</span></div></div>
+                  <div className="card-cell c-id"><div className="cell-content-vertical"><span className="main-info">VIO-{v.id}</span></div></div>
                   <div className="card-cell c-plate"><div className="cell-content-vertical"><span className="main-info">{v.plateNumber}</span><span className="sub-info">小客車</span></div></div>
                   <div className="card-cell c-type"><span className="type-tag">{v.type}</span></div>
                   <div className="card-cell c-time"><div className="cell-content-vertical"><span className="main-info">{date}</span><span className="sub-info">{time}</span></div></div>
