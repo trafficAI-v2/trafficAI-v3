@@ -130,10 +130,10 @@
   padding: 8px 12px;        /* 懸停時也使用相同的內邊距 */
 }
 
-/* 被選中的活動頁籤的樣式 (白色部分更小，完美置中) */
+/* 被選中的活動頁籤的樣式 (白色部分更小，完美置中，藍色文字) */
 .violation-log-page .log-tab-button.active {
   background-color: #ffffff; /* 白色背景 */
-  color: #1f2937;           /* 深色文字 */
+  color: #3b82f6;           /* 藍色文字 */
   font-weight: 600;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); /* 更明顯的陰影效果 */
   border-radius: 6px;       /* 稍微小一點的圓角 */
