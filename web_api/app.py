@@ -4,6 +4,9 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_socketio import SocketIO
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt, JWTManager
+from functools import wraps
 
 # --- 應用程式設定 ---
 load_dotenv()
