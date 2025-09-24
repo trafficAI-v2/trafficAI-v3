@@ -105,9 +105,6 @@ const Login: React.FC = () => {
             {isLoading ? '登入中...' : '登入'}
           </button>
 
-          <p className="signup-link">
-            還沒有帳號？ <Link to="/register">立即註冊</Link>
-          </p>
         </form>
       </div>
     </div>
