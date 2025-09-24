@@ -385,7 +385,7 @@ def generate_ticket(violation_id):
     
 
 # ==================================================
-# 【新增】統計分析 API
+# 【新增】統計分析 API 
 # ==================================================
 @app.route('/api/analytics', methods=['GET'])
 def get_analytics_data():
@@ -414,7 +414,7 @@ def get_analytics_data():
                 COUNT(*) AS total_violations,
                 COUNT(CASE WHEN status = '已開罰' THEN 1 END) AS tickets_issued,
                 COALESCE(SUM(CASE WHEN status = '已開罰' THEN fine END), 0) AS total_fines
-            FROM detect_violations
+            FROM violations  -- <--- 修正點 1
             WHERE 1=1 {time_filter_sql};
         """)
         kpi = cur.fetchone()
@@ -430,7 +430,7 @@ def get_analytics_data():
             SELECT
                 date_trunc('day', timestamp)::date AS day,
                 COUNT(id)
-            FROM detect_violations
+            FROM violations  -- <--- 修正點 2
             WHERE 1=1 {time_filter_sql}
             GROUP BY day
             ORDER BY day;
@@ -444,7 +444,7 @@ def get_analytics_data():
         # --- 4. 計算違規類型分布 ---
         cur.execute(f"""
             SELECT violation_type, COUNT(id)
-            FROM detect_violations
+            FROM violations  -- <--- 修正點 3
             WHERE 1=1 {time_filter_sql}
             GROUP BY violation_type
             ORDER BY COUNT(id) DESC;
@@ -458,7 +458,7 @@ def get_analytics_data():
         # --- 5. 計算高風險區域分析 (前 5 名) ---
         cur.execute(f"""
             SELECT violation_address, COUNT(id)
-            FROM detect_violations
+            FROM violations  -- <--- 修正點 4
             WHERE 1=1 {time_filter_sql}
             GROUP BY violation_address
             ORDER BY COUNT(id) DESC
@@ -471,12 +471,10 @@ def get_analytics_data():
         }
         
         # --- 6. 執法效率分析 ---
-        # 注意：這個查詢是基於整個資料表的數據，因為效率分析通常不限於特定時間範圍
-        # 且這裡假設沒有 'processing_time' 欄位，故回傳假資料。
-        # 如果需要真實數據，資料庫需要記錄狀態變更的時間戳。
+        # 注意：此為靜態示意數據
         efficiency_data = {
             'labels': ['待審核', '已確認', '已駁回', '已開罰'],
-            'data': [0, 1.3, 0.85, 2.6] # 暫時使用靜態數據
+            'data': [0, 1.3, 0.85, 2.6]
         }
         
         # --- 7. 罰款收入統計 (過去 6 個月) ---
@@ -484,7 +482,7 @@ def get_analytics_data():
             SELECT
                 to_char(date_trunc('month', timestamp), 'YYYY-MM') AS month,
                 SUM(fine)
-            FROM detect_violations
+            FROM violations  -- <--- 修正點 5
             WHERE status = '已開罰' AND timestamp >= NOW() - INTERVAL '6 months'
             GROUP BY month
             ORDER BY month;
@@ -492,7 +490,7 @@ def get_analytics_data():
         revenue = cur.fetchall()
         revenue_data = {
             'labels': [r[0] for r in revenue],
-            'data': [int(r[1]) for r in revenue]
+            'data': [int(r[1]) if r[1] is not None else 0 for r in revenue] # 增加 None 檢查
         }
 
         # --- 8. 組合所有數據並回傳 ---
@@ -513,8 +511,8 @@ def get_analytics_data():
     except Exception as e:
         print(f"❌ Error in get_analytics_data: {e}")
         # 確保在出錯時也能關閉連線
-        if 'cur' in locals() and cur: cur.close()
-        if 'conn' in locals() and conn: conn.close()
+        if 'cur' in locals() and cur and not cur.closed: cur.close()
+        if 'conn' in locals() and conn and not conn.closed: conn.close()
         return jsonify({'error': 'Internal Server Error', 'details': str(e)}), 500
     
 
