@@ -1,59 +1,55 @@
-// src/App.tsx
+// src/App.tsx (最終版，整合 AuthContext)
 
-import React from 'react'; // 引入 React
-import { Routes, Route, Navigate } from 'react-router-dom'; // 引入路由相關元件
+import React from 'react'; // 主要的 React 物件
+import type { ReactNode } from 'react'; // 明確地告訴 TypeScript，我只是要匯入一個型別
+import { Routes, Route, Navigate } from 'react-router-dom';
 
 // --- 佈局與頁面元件 ---
-import Layout from './components/layout/Layout'; // 主佈局 (包含側邊欄和頂部導航)
-import Login from './pages/login';               // 登入頁面
-import Dashboard from './pages/Dashboard';           // 儀表板頁面
-import ViolationLog from './pages/ViolationLog';     // 違規紀錄頁面
-import GenerateTickets from './components/violations/GenerateTickets'; // 罰單產生區
-import Analytics from './pages/Analytics';         // 統計分析頁面
+import Layout from './components/layout/Layout';
+import Login from './pages/login'; // 【修正】確保 'L' 是大寫，與檔名一致
+import Dashboard from './pages/Dashboard';
+import ViolationLog from './pages/ViolationLog';
+import GenerateTickets from './components/violations/GenerateTickets';
+import Analytics from './pages/Analytics';
+import { useAuth } from './context/AuthContext'; // 引入我們自訂的 useAuth Hook
 
 // -------------------------------------------------------------------------
-// 【第 1 步：定義「路由守衛」元件】
-// 這個元件是實現權限控制的核心。
-// 它的工作是：檢查使用者是否已登入。
-// - 如果已登入，就顯示被它包裹的子元件 (例如 Layout)。
-// - 如果未登入，就強制將使用者重新導向到 '/login' 頁面。
+// 【升級版：「路由守衛」元件】
 // -------------------------------------------------------------------------
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // 目前，我們先用一個假的登入狀態來測試。
-  // 之後，這裡會替換成從 AuthContext 讀取真實的登入狀態。
-  const isAuthenticated = localStorage.getItem('accessToken'); // 檢查本機儲存是否有 token
+const ProtectedRoute: React.FC<{ children: ReactNode }> = ({ children }) => {
+  // 【核心修改】從 useAuth 中獲取真實的 token 和 isLoading 狀態
+  const { token, isLoading } = useAuth();
 
-  if (!isAuthenticated) {
-    // 如果未認證 (未登入)，則導向到登入頁面
+  // 情況 1：如果 AuthContext 正在進行初始的 token 驗證
+  // (例如，應用程式剛載入，正在檢查 localStorage)
+  // 我們先顯示一個簡單的載入訊息，避免畫面跳轉閃爍。
+  if (isLoading) {
+    return <div>正在驗證登入狀態...</div>; // 未來可以換成一個更美觀的載入動畫元件
+  }
+
+  // 情況 2：如果驗證完畢，且確定沒有 token (未登入)
+  if (!token) {
+    // 強制將使用者導向到登入頁面
     return <Navigate to="/login" replace />;
   }
 
-  // 如果已認證，則正常顯示子元件
+  // 情況 3：驗證通過，使用者已登入
+  // 正常顯示被包裹的子元件 (也就是 <Layout />)
   return <>{children}</>;
 };
 
 
 // -------------------------------------------------------------------------
-// 【第 2 步：主應用程式路由結構】
-// 這裡定義了整個應用程式的 URL 結構。
+// 【主應用程式路由結構】
+// (這部分不需要修改，保持原樣)
 // -------------------------------------------------------------------------
 function App() {
   return (
     <Routes>
       {/* --- 公開路由 --- */}
-      {/* 
-        這個區塊放置所有不需要登入就可以訪問的頁面。
-        我們的登入頁面就屬於這裡。
-      */}
       <Route path="/login" element={<Login />} />
 
-
       {/* --- 受保護的路由 --- */}
-      {/* 
-        這個區塊放置所有「必須登入」才能訪問的頁面。
-        我們用上面定義的 <ProtectedRoute> 元件將整個 <Layout> 包裹起來，
-        這意味著所有在 <Layout> 內部的頁面（儀表板、分析頁等）都被自動保護了。
-      */}
       <Route 
         path="/" 
         element={
@@ -62,23 +58,14 @@ function App() {
           </ProtectedRoute>
         }
       >
-        {/* 'index' 代表當 URL 是根路徑 '/' 時，預設顯示的頁面 */}
         <Route index element={<Dashboard />} />
-        
-        {/* 其他嵌套在 Layout 內的子頁面 */}
         <Route path="violations" element={<ViolationLog />} />
         <Route path="generate-tickets" element={<GenerateTickets />} />
         <Route path="analytics" element={<Analytics />} />
       </Route>
       
-
       {/* --- 備用路由 --- */}
-      {/* 
-        如果使用者訪問了任何未定義的路徑，我們可以將他們導向回首頁。
-        或者未來可以建立一個專門的 404 Not Found 頁面。
-      */}
       <Route path="*" element={<Navigate to="/" replace />} />
-
     </Routes>
   );
 }

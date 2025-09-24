@@ -1,5 +1,6 @@
 import os
 import psycopg2
+import secrets
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 from flask_cors import CORS
@@ -7,6 +8,9 @@ from flask_socketio import SocketIO
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt, JWTManager
 from functools import wraps
+from flask_mail import Mail, Message
+from datetime import datetime, timedelta, timezone
+
 
 # --- 應用程式設定 ---
 load_dotenv()
@@ -20,6 +24,15 @@ socketio = SocketIO(app, cors_allowed_origins=allowed_origins)
 # JWT 設定
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "default-dev-secret-key") 
 jwt = JWTManager(app)
+
+# Mail 初始化設定
+app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
+app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', 'True').lower() in ['true', '1', 't']
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
+mail = Mail(app)
 
 # --- 資料庫連線 ---
 def get_db_connection():
@@ -644,7 +657,154 @@ def login():
 def get_profile():
     # get_jwt_identity() 會回傳我們在 create_access_token 時放入的 identity_data
     current_user = get_jwt_identity()
-    return jsonify(logged_in_as=current_user), 200
+    return jsonify(logged_in_as=current_user) # <-- 【修正 4】這裡回傳的 JSON key 修正了一下
+
+# ==================================================
+# 【新增】忘記密碼流程 API
+# ==================================================
+
+# --- API 1: 請求密碼重設 ---
+@app.route('/api/forgot-password', methods=['POST'])
+def forgot_password():
+    data = request.get_json()
+    email = data.get('email')
+    if not email:
+        return jsonify({"error": "必須提供電子郵件地址"}), 400
+
+    # --- 【偵錯 1】檢查 Flask app 的郵件設定是否被正確載入 ---
+    print("--- DEBUG: Mail Config ---")
+    print(f"MAIL_SERVER: {app.config.get('MAIL_SERVER')}")
+    print(f"MAIL_USERNAME: {app.config.get('MAIL_USERNAME')}")
+    # 為了安全，我們不直接打印密碼，只檢查它是否存在
+    print(f"MAIL_PASSWORD is set: {'Yes' if app.config.get('MAIL_PASSWORD') else 'No'}")
+    print("--------------------------")
+    
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT id FROM users WHERE email = %s", (email,))
+        user = cur.fetchone()
+
+        if user:
+            token = secrets.token_urlsafe(32)
+            expires = datetime.now(timezone.utc) + timedelta(hours=1)
+            
+            cur.execute(
+                "UPDATE users SET reset_token = %s, reset_token_expires = %s WHERE email = %s",
+                (token, expires, email)
+            )
+            conn.commit()
+
+            reset_url = f"http://localhost:8080/reset-password?token={token}"
+            msg = Message(
+                subject="[Traffic AI] 密碼重設請求",
+                recipients=[email]
+            )
+            msg.body = f"""您好，
+
+            您已請求重設您的 Traffic AI 系統密碼。
+            請點擊以下連結來設定您的新密碼：
+            {reset_url}
+
+            如果您沒有請求此操作，請忽略此郵件。
+            此連結將在 1 小時後失效。
+
+            謝謝！
+            Traffic AI 系統團隊
+            """
+            
+            mail.send(msg)
+
+            # --- 【偵錯 2】在發送郵件前後都加上日誌 ---
+            print(">>> Attempting to send email...")
+            mail.send(msg)
+            print(">>> mail.send(msg) executed without crashing.")
+
+        cur.close()
+        conn.close()
+
+        return jsonify({"message": "如果該電子郵件已註冊，一封密碼重設郵件已被發送。"}), 200
+
+    except Exception as e:
+        # --- 【偵錯 3】確保任何錯誤都會被打印出來 ---
+        print(f"❌❌❌ CRITICAL ERROR in forgot_password: {e}")
+        import traceback
+        traceback.print_exc() # 打印完整的錯誤堆疊
+        return jsonify({"error": "伺服器內部錯誤"}), 500
+
+
+# --- API 2: 驗證重設 Token ---
+@app.route('/api/verify-reset-token', methods=['POST'])
+def verify_reset_token():
+    data = request.get_json()
+    token = data.get('token')
+    if not token:
+        return jsonify({"error": "缺少 token"}), 400
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id FROM users WHERE reset_token = %s AND reset_token_expires > %s",
+            (token, datetime.now(timezone.utc))
+        )
+        user = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if user:
+            return jsonify({"message": "Token 有效"}), 200
+        else:
+            return jsonify({"error": "無效或已過期的 token"}), 400
+
+    except Exception as e:
+        print(f"❌ Error in verify_reset_token: {e}")
+        return jsonify({"error": "伺服器內部錯誤"}), 500
+
+
+# --- API 3: 重設密碼 ---
+@app.route('/api/reset-password', methods=['POST'])
+def reset_password():
+    data = request.get_json()
+    token = data.get('token')
+    new_password = data.get('password')
+
+    if not token or not new_password:
+        return jsonify({"error": "缺少 token 或新密碼"}), 400
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id FROM users WHERE reset_token = %s AND reset_token_expires > %s",
+            (token, datetime.now(timezone.utc))
+        )
+        user = cur.fetchone()
+
+        if not user:
+            cur.close()
+            conn.close()
+            return jsonify({"error": "無效或已過期的 token"}), 400
+        
+        # 密碼雜湊
+        hashed_password = generate_password_hash(new_password)
+        
+        # 更新密碼，並清除 token，確保它只能用一次
+        cur.execute(
+            "UPDATE users SET password = %s, reset_token = NULL, reset_token_expires = NULL WHERE id = %s",
+            (hashed_password, user[0])
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return jsonify({"message": "密碼已成功重設"}), 200
+
+    except Exception as e:
+        print(f"❌ Error in reset_password: {e}")
+        return jsonify({"error": "伺服器內部錯誤"}), 500
+
+
     
 
 # ==================================================

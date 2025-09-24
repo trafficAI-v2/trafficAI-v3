@@ -1,39 +1,49 @@
-// src/pages/Login.tsx (新版，匹配新設計)
+// src/pages/Login.tsx (完整修正版)
 
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom'; // 引入 Link 用於註冊連結
-import { BiShield, BiShow, BiHide } from 'react-icons/bi'; // 引入圖示
+import { useNavigate, Link } from 'react-router-dom';
+import { BiShield, BiShow, BiHide } from 'react-icons/bi';
+import { useAuth } from '../context/AuthContext'; 
 import './Login.css';
 
+// 【修正點 1】確保元件定義的型別是 React.FC，而不是 React.FC<{}>
 const Login: React.FC = () => {
+  // --- 狀態管理 (State Hooks) ---
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false); // 新增狀態來控制密碼可視
+  const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  
+  // --- React Hooks ---
   const navigate = useNavigate();
+  const { login } = useAuth(); 
 
-
+  // --- 事件處理函式 ---
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    // 這裡我們仍然保留假的登入邏輯，下一步才會整合 AuthContext
-    console.log('Attempting to log in with:', { username, password, rememberMe });
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    if (username === 'admin' && password === 'password') {
-      console.log('Login successful!');
-      navigate('/');
-    } else {
-      setError('帳號或密碼錯誤，請重新輸入');
+    try {
+      const success = await login(username, password);
+      
+      if (success) {
+        navigate('/'); // 登入成功，跳轉到首頁
+      } else {
+        setError('帳號或密碼錯誤，請重新輸入');
+      }
+    } catch (err) {
+      console.error("登入過程中發生錯誤:", err);
+      setError('登入失敗，請檢查網路連線或稍後再試');
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
+  // --- JSX 渲染部分 ---
+  // 【修正點 2】將正確的 JSX return 區塊放在這裡
   return (
     <div className="login-page-container">
       <div className="login-header">
@@ -102,6 +112,7 @@ const Login: React.FC = () => {
       </div>
     </div>
   );
-};
+}; // <--- 元件定義在這裡結束
 
+// 【修正點 3】確保整個檔案只有這一個預設匯出
 export default Login;
