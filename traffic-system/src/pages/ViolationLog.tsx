@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-// 【新增】從 react-router-dom 引入 Link，並加入新圖示
 import { Link } from 'react-router-dom';
 import { BiSearch, BiTag, BiMapPin, BiX, BiCalendar, BiDownload, BiReceipt, BiCheckCircle } from 'react-icons/bi';
 import './ViolationLog.css'; 
@@ -34,6 +33,79 @@ interface ViolationRecord {
 
 const TABS = ['全部', '待審核', '已確認', '已駁回', '已開罰'];
 
+
+// --- 違規詳情元件 ---
+const ViolationDetail: React.FC<{ violation: ViolationRecord; onClose: () => void }> = ({ violation, onClose }) => {
+  const formattedDate = new Date(violation.timestamp).toLocaleDateString('en-CA'); // YYYY-MM-DD
+
+  return (
+    <div className="violation-detail-card">
+        <div className="detail-header">
+            <div>
+              <h3>違規詳情與罰單生成</h3>
+              <p>查看違規詳情並產生電子罰單</p>
+            </div>
+            <button className="close-detail-btn" onClick={onClose} aria-label="關閉詳情">
+                <BiX />
+            </button>
+        </div>
+
+        <div className="violation-image-placeholder">
+            <p>違規道路照片</p>
+        </div>
+
+        <div className="detail-form">
+            <div className="form-row">
+                <label>罰單編號</label>
+                <input type="text" value={`TKT-${violation.id}`} readOnly />
+            </div>
+            <div className="form-row">
+                <label>違規日期</label>
+                <input type="text" value={formattedDate} readOnly />
+            </div>
+            <div className="form-row">
+                <label>違規類型</label>
+                <input type="text" value={violation.type} readOnly />
+            </div>
+            <div className="form-row">
+                <label>偵測信心度</label>
+                <div className="confidence-display">87% <span className="confidence-level">中高</span></div>
+            </div>
+            <div className="form-row">
+                <label>車牌號碼</label>
+                <input type="text" value={violation.plateNumber} readOnly />
+            </div>
+            <div className="form-row">
+                <label>車輛類型</label>
+                <input type="text" value={violation.vehicleType} readOnly />
+            </div>
+            <div className="form-row">
+                <label>違規地點</label>
+                <input type="text" value={violation.location} readOnly />
+            </div>
+             <div className="form-row">
+                <label>罰單金額 (NT$)</label>
+                <input type="text" value="NT$ 2,400" readOnly />
+            </div>
+            <div className="form-row">
+                <label>開立人員</label>
+                <input type="text" value="系統自動生成" readOnly />
+            </div>
+            <div className="form-row">
+                <label>備註</label>
+                <textarea placeholder="輸入額外備註..."></textarea>
+            </div>
+        </div>
+
+        <div className="detail-footer-actions">
+            <button className="btn-secondary">駁回</button>
+            <button className="btn-primary">確認違規</button>
+        </div>
+    </div>
+  );
+};
+
+
 // --- React 元件主體 ---
 const ViolationLog: React.FC = () => {
   // --- 狀態管理 (State) ---
@@ -49,17 +121,19 @@ const ViolationLog: React.FC = () => {
   const [filterDate, setFilterDate] = useState<string>('');
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const headerCheckboxRef = useRef<HTMLInputElement>(null);
-
-  // 【新增】用於儲存待產生罰單數量的狀態
   const [confirmedCount, setConfirmedCount] = useState<number>(0);
+  const [selectedViolation, setSelectedViolation] = useState<ViolationRecord | null>(null);
+  
+  // 【移除】不再需要卡片位置的 State
+  // const [cardPosition, setCardPosition] = useState({ top: 0 });
+
 
   // --- 輔助函式 ---
-  // 【新增】一個可重複使用的函式來獲取已確認數量
   const fetchConfirmedCount = async () => {
     try {
         if (!CONFIRMED_COUNT_URL) return;
         const response = await fetch(CONFIRMED_COUNT_URL);
-        if (!response.ok) return; // 靜默失敗，不顯示錯誤給使用者
+        if (!response.ok) return;
         const data = await response.json();
         setConfirmedCount(data.count);
     } catch (err) {
@@ -68,8 +142,6 @@ const ViolationLog: React.FC = () => {
   };
 
   // --- Effects ---
-
-  // Effect 1: 元件初次載入時，獲取篩選器選項
   useEffect(() => {
     if (!VIOLATION_TYPES_URL || !CAMERAS_LIST_URL) {
       setError('前端設定錯誤：未找到篩選器 API 位址。');
@@ -94,7 +166,6 @@ const ViolationLog: React.FC = () => {
     fetchFiltersData();
   }, []);
 
-  // Effect 2: 當任何篩選條件改變時，重新向後端請求違規紀錄
   useEffect(() => {
     if (!VIOLATIONS_URL) {
       setError('前端設定錯誤：未找到違規紀錄 API 位址。');
@@ -128,7 +199,6 @@ const ViolationLog: React.FC = () => {
     return () => clearTimeout(handler);
   }, [activeTab, searchTerm, filterType, filterLocation, filterDate]);
 
-  // Effect 3: 控制表頭 checkbox 的 indeterminate 狀態
   useEffect(() => {
     if (headerCheckboxRef.current) {
       const numSelected = selectedIds.length;
@@ -138,12 +208,10 @@ const ViolationLog: React.FC = () => {
     }
   }, [selectedIds, violations]);
 
-  // Effect 4: 元件初次載入時，獲取待處理罰單的數量
   useEffect(() => {
     fetchConfirmedCount();
   }, []);
 
-  // --- 輔助函式 ---
   const formatTimestamp = (isoString: string): { date: string, time: string } => {
     if (!isoString) return { date: 'N/A', time: '' };
     try {
@@ -199,7 +267,6 @@ const ViolationLog: React.FC = () => {
         throw new Error(errorData.error || `API 請求失敗`);
       }
       setViolations(prev => prev.filter(v => !selectedIds.includes(v.id)));
-      // 在批量操作成功後，重新獲取一次數量
       fetchConfirmedCount();
     } catch (err: any) {
       console.error("批量更新失敗:", err);
@@ -208,191 +275,220 @@ const ViolationLog: React.FC = () => {
       setSelectedIds([]);
     }
   };
+  
+  // 【還原】handleRowClick 函式，不再需要 event 參數
+  const handleRowClick = (violation: ViolationRecord) => {
+    if (selectedViolation && selectedViolation.id === violation.id) {
+      setSelectedViolation(null);
+    } else {
+      setSelectedViolation(violation);
+    }
+  };
 
   // --- JSX 渲染 ---
   return (
-    <div className="violation-log-page">
-      <div className="page-header-container">
-        <div>
-          <h1>違規紀錄</h1>
-          <p>檢視並管理檢測到的違規行為</p>
-        </div>
-        {/* 條件渲染：只有當 confirmedCount > 0 時才顯示按鈕 */}
-        {confirmedCount > 0 && (
-          <Link to="/generate-tickets" className="generate-tickets-btn">
-            <BiReceipt />
-            <span>罰單產生區 ({confirmedCount})</span>
-          </Link>
-        )}
-      </div>
-
-      <div className="log-container-card">
-        {/* 條件渲染：只有當 confirmedCount > 0 時才顯示通知橫幅 */}
-        {confirmedCount > 0 && (
-          <div className="ticket-notification-bar">
-            <BiCheckCircle />
-            <span>
-              目前有 <strong>{confirmedCount}</strong> 筆已確認違規等待生成罰單。
-              <Link to="/generate-tickets" className="notification-link">立即前往產生罰單專區</Link>
-            </span>
+    <div className={`violation-log-page-wrapper ${selectedViolation ? 'detail-view-active' : ''}`}>
+      {/* 左側列表區塊 */}
+      <div className="violation-log-page">
+        <div className="page-header-container">
+          <div>
+            <h1>違規紀錄</h1>
+            <p>檢視並管理檢測到的違規行為</p>
           </div>
-        )}
-
-        <div className="search-bar-container">
-          <BiSearch className="search-icon" />
-          <input
-            type="text"
-            placeholder="搜尋車牌號碼"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        
-        <div className="log-tabs">
-          {TABS.map(tab => (
-            <button
-              key={tab}
-              className={`log-tab-button ${activeTab === tab ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab)}
-            >
-              {tab}
-            </button>
-          ))}
+          {confirmedCount > 0 && (
+            <Link to="/generate-tickets" className="generate-tickets-btn">
+              <BiReceipt />
+              <span>罰單產生區 ({confirmedCount})</span>
+            </Link>
+          )}
         </div>
 
-        {selectedIds.length > 0 && (
-          <div className="bulk-actions-bar">
-            <span>已選擇 {selectedIds.length} 筆紀錄</span>
-            <div className="bulk-actions-buttons">
-              {activeTab === '已確認' ? (
-                <>
-                  <button onClick={() => handleBulkUpdate('已駁回')} className="bulk-action-btn reject">批量駁回</button>
-                  <button onClick={() => handleBulkUpdate('已開罰')} className="bulk-action-btn issue-fine">批量開罰</button>
-                </>
+        <div className="log-container-card">
+          {confirmedCount > 0 && (
+            <div className="ticket-notification-bar">
+              <BiCheckCircle />
+              <span>
+                目前有 <strong>{confirmedCount}</strong> 筆已確認違規等待生成罰單。
+                <Link to="/generate-tickets" className="notification-link">立即前往產生罰單專區</Link>
+              </span>
+            </div>
+          )}
+
+          <div className="search-bar-container">
+            <BiSearch className="search-icon" />
+            <input
+              type="text"
+              placeholder="搜尋車牌號碼"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          <div className="log-tabs">
+            {TABS.map(tab => (
+              <button
+                key={tab}
+                className={`log-tab-button ${activeTab === tab ? 'active' : ''}`}
+                onClick={() => setActiveTab(tab)}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+
+          {selectedIds.length > 0 && (
+            <div className="bulk-actions-bar">
+              <span>已選擇 {selectedIds.length} 筆紀錄</span>
+              <div className="bulk-actions-buttons">
+                {activeTab === '已確認' ? (
+                  <>
+                    <button onClick={() => handleBulkUpdate('已駁回')} className="bulk-action-btn reject">批量駁回</button>
+                    <button onClick={() => handleBulkUpdate('已開罰')} className="bulk-action-btn issue-fine">批量開罰</button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={() => handleBulkUpdate('已駁回')} className="bulk-action-btn reject">批量駁回</button>
+                    <button onClick={() => handleBulkUpdate('已確認')} className="bulk-action-btn confirm">批量確認</button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="filters-container">
+              <div className="active-filters">
+                <span className="filter-tag">
+                  <BiTag /> {filterType} <BiX className="remove-tag-icon" onClick={() => setFilterType('所有類型')} />
+                </span>
+                <span className="filter-tag">
+                  <BiMapPin /> {filterLocation} <BiX className="remove-tag-icon" onClick={() => setFilterLocation('所有地點')} />
+                </span>
+              </div>
+      
+              <div className="filters-grid">
+                <div className="filter-group">
+                  <label>違規類型</label>
+                  <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+                    <option value="所有類型">所有類型</option>
+                    {violationTypes.map((vType, index) => (
+                      <option key={index} value={vType.type_name}>{vType.type_name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="filter-group">
+                  <label>違規地點</label>
+                  <select value={filterLocation} onChange={(e) => setFilterLocation(e.target.value)}>
+                    <option value="所有地點">所有地點</option>
+                    {locations.map((loc, index) => (
+                      <option key={index} value={loc.camera_name}>{loc.camera_name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="filter-group">
+                  <label>時間範圍</label>
+                  <div className="date-picker-input">
+                    <BiCalendar className="date-picker-icon"/>
+                    <input 
+                      type="text" 
+                      placeholder="選擇日期範圍"
+                      onFocus={(e) => (e.target.type = 'date')}
+                      onBlur={(e) => (e.target.type = 'text')}
+                      onChange={(e) => setFilterDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+          </div>
+          
+          <div className="violation-list-container">
+            <div className="list-header">
+              <div className="header-cell checkbox">
+                <input
+                  type="checkbox"
+                  ref={headerCheckboxRef}
+                  onChange={handleSelectAll}
+                /> 違規類型
+              </div>
+              <div className="header-cell plate">車牌號碼</div>
+              <div className="header-cell time">時間</div>
+              <div className="header-cell location">地點</div>
+              <div className="header-cell status">狀態</div>
+            </div>
+            
+            <div className="list-body">
+              {loading ? (
+                <div className="table-message">正在載入紀錄...</div>
+              ) : error ? (
+                <div className="table-message error">{error}</div>
+              ) : violations.length === 0 ? (
+                <div className="table-message">沒有符合條件的違規紀錄</div>
               ) : (
-                <>
-                  <button onClick={() => handleBulkUpdate('已駁回')} className="bulk-action-btn reject">批量駁回</button>
-                  <button onClick={() => handleBulkUpdate('已確認')} className="bulk-action-btn confirm">批量確認</button>
-                </>
+                violations.map(v => {
+                  const { date, time } = formatTimestamp(v.timestamp);
+                  const isSelected = selectedIds.includes(v.id);
+                  const isDetailActive = selectedViolation && selectedViolation.id === v.id;
+
+                  return (
+                    <div 
+                      key={v.id} 
+                      className={`violation-card ${isSelected ? 'selected' : ''} ${isDetailActive ? 'detail-active' : ''}`}
+                      onClick={() => handleRowClick(v)}
+                    >
+                      <div className="card-cell checkbox">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleRowSelect(v.id);
+                          }}
+                        />
+                        <div className="cell-content-vertical">
+                          <span className="type-main">{v.type}</span>
+                          <span className="plate-sub">VIO-{v.id}</span>
+                        </div>
+                      </div>
+                      <div className="card-cell plate">
+                         <div className="cell-content-vertical">
+                          <span className="plate-main">{v.plateNumber}</span>
+                          <span className="plate-sub">{v.vehicleType}</span> 
+                        </div>
+                      </div>
+                      <div className="card-cell time">
+                        <div className="cell-content-vertical">
+                          <span className="date-main">{date}</span>
+                          <span className="time-sub">{time}</span>
+                        </div>
+                      </div>
+                      <div className="card-cell location">{v.location}</div>
+                      <div className="card-cell status">
+                        <span className={`status-tag status-${v.status}`}>{v.status}</span>
+                      </div>
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>
+
+          <div className="log-footer">
+            <span>顯示 {violations.length} 筆，共 {violations.length} 筆紀錄</span>
+            <button className="export-button">
+              <BiDownload />
+              匯出紀錄
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      {/* 右側詳情區塊 */}
+      <div className="violation-detail-view">
+        {selectedViolation && (
+            <ViolationDetail 
+                violation={selectedViolation} 
+                onClose={() => setSelectedViolation(null)} 
+            />
         )}
-
-        <div className="filters-container">
-            <div className="active-filters">
-              <span className="filter-tag">
-                <BiTag /> {filterType} <BiX className="remove-tag-icon" onClick={() => setFilterType('所有類型')} />
-              </span>
-              <span className="filter-tag">
-                <BiMapPin /> {filterLocation} <BiX className="remove-tag-icon" onClick={() => setFilterLocation('所有地點')} />
-              </span>
-            </div>
-    
-            <div className="filters-grid">
-              <div className="filter-group">
-                <label>違規類型</label>
-                <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
-                  <option value="所有類型">所有類型</option>
-                  {violationTypes.map((vType, index) => (
-                    <option key={index} value={vType.type_name}>{vType.type_name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="filter-group">
-                <label>違規地點</label>
-                <select value={filterLocation} onChange={(e) => setFilterLocation(e.target.value)}>
-                  <option value="所有地點">所有地點</option>
-                  {locations.map((loc, index) => (
-                    <option key={index} value={loc.camera_name}>{loc.camera_name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="filter-group">
-                <label>時間範圍</label>
-                <div className="date-picker-input">
-                  <BiCalendar className="date-picker-icon"/>
-                  <input 
-                    type="text" 
-                    placeholder="選擇日期範圍"
-                    onFocus={(e) => (e.target.type = 'date')}
-                    onBlur={(e) => (e.target.type = 'text')}
-                    onChange={(e) => setFilterDate(e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-        </div>
-        
-        <div className="violation-list-container">
-          <div className="list-header">
-            <div className="header-cell checkbox">
-              <input
-                type="checkbox"
-                ref={headerCheckboxRef}
-                onChange={handleSelectAll}
-              /> 違規類型
-            </div>
-            <div className="header-cell plate">車牌號碼</div>
-            <div className="header-cell time">時間</div>
-            <div className="header-cell location">地點</div>
-            <div className="header-cell status">狀態</div>
-          </div>
-          
-          <div className="list-body">
-            {loading ? (
-              <div className="table-message">正在載入紀錄...</div>
-            ) : error ? (
-              <div className="table-message error">{error}</div>
-            ) : violations.length === 0 ? (
-              <div className="table-message">沒有符合條件的違規紀錄</div>
-            ) : (
-              violations.map(v => {
-                const { date, time } = formatTimestamp(v.timestamp);
-                const isSelected = selectedIds.includes(v.id);
-                return (
-                  <div key={v.id} className={`violation-card ${isSelected ? 'selected' : ''}`}>
-                    <div className="card-cell checkbox">
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => handleRowSelect(v.id)}
-                      />
-                      <div className="cell-content-vertical">
-                        <span className="type-main">{v.type}</span>
-                        <span className="plate-sub">VIO-{v.id}</span>
-                      </div>
-                    </div>
-                    <div className="card-cell plate">
-                       <div className="cell-content-vertical">
-                        <span className="plate-main">{v.plateNumber}</span>
-                        <span className="plate-sub">{v.vehicleType}</span> 
-                      </div>
-                    </div>
-                    <div className="card-cell time">
-                      <div className="cell-content-vertical">
-                        <span className="date-main">{date}</span>
-                        <span className="time-sub">{time}</span>
-                      </div>
-                    </div>
-                    <div className="card-cell location">{v.location}</div>
-                    <div className="card-cell status">
-                      <span className={`status-tag status-${v.status}`}>{v.status}</span>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-        <div className="log-footer">
-          <span>顯示 {violations.length} 筆，共 {violations.length} 筆紀錄</span>
-          <button className="export-button">
-            <BiDownload />
-            匯出紀錄
-          </button>
-        </div>
       </div>
     </div>
   );
