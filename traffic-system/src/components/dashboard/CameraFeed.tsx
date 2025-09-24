@@ -13,7 +13,7 @@ const DETECT_BASE_URL = import.meta.env.VITE_DETECT_API_URL || 'http://localhost
 const CameraFeed: React.FC = () => {
   // --- 所有状态都将被保留 ---
   const [activeTab, setActiveTab] = useState<string>(TABS[0]);
-  const [confidence, setConfidence] = useState<number>(70);
+  const [confidence, setConfidence] = useState<number>(65); // 預設 65% 對應後端 0.65
   const [brightness, setBrightness] = useState<number>(50);
   const [contrast, setContrast] = useState<number>(50);
   const [zoom, setZoom] = useState<number>(50); 
@@ -23,14 +23,32 @@ const CameraFeed: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // (新增) 侦测相关状态
+
   const [isDetecting, setIsDetecting] = useState<boolean>(false);
   const [detectionStatus, setDetectionStatus] = useState<string>('已停止');
   const [videoStreamUrl, setVideoStreamUrl] = useState<string | null>(null);
 
   // --- 副作用 ---
   
-  // (修改) 这个 useEffect 现在只用来设定预设的摄影机选项
+  // 組件初次載入時獲取當前信心度設定
+  useEffect(() => {
+    const fetchCurrentConfidence = async () => {
+      try {
+        if (!DETECT_BASE_URL) return;
+        const response = await fetch(`${DETECT_BASE_URL}/get_confidence`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.status === 'success') {
+            setConfidence(data.confidence_percent);
+          }
+        }
+      } catch (err) {
+        console.error('獲取信心度設定失敗:', err);
+      }
+    };
+    fetchCurrentConfidence();
+  }, []);
+
   useEffect(() => {
     // 我们可以直接设定内建和外接镜头的选项
     const defaultCameras: Camera[] = [
@@ -48,6 +66,32 @@ const CameraFeed: React.FC = () => {
     return () => clearInterval(timerId);
   }, []);
   
+  // --- (新增) 信心度調整函式 ---
+  const handleConfidenceChange = async (newConfidence: number) => {
+    setConfidence(newConfidence);
+    
+    // 即時更新後端信心度設定
+    try {
+      if (!DETECT_BASE_URL) return;
+      const response = await fetch(`${DETECT_BASE_URL}/set_confidence`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confidence: newConfidence })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.status === 'success') {
+          console.log(`✅ 信心度已更新至 ${newConfidence}%`);
+        }
+      } else {
+        console.error('更新信心度失敗');
+      }
+    } catch (err) {
+      console.error('更新信心度時發生錯誤:', err);
+    }
+  };
+
   // --- (新增) API 互动函式 ---
   const handleStartDetection = async () => {
     if (isDetecting) return;
@@ -166,6 +210,26 @@ const CameraFeed: React.FC = () => {
               {error && <span className="error-message"> | 錯誤: {error}</span>}
             </div>
 
+            <div className="confidence-slider-container">
+               <div className="slider-header">
+                <label htmlFor="confidence">信心度篩選:</label>
+                <span className="slider-value">{confidence}%</span>
+              </div>
+              <input
+                id="confidence"
+                type="range"
+                min="0"
+                max="100"
+                value={confidence}
+                onChange={(e) => handleConfidenceChange(Number(e.target.value))}
+                className="custom-slider"
+                style={{
+                  background: `linear-gradient(to right, #333 ${confidence}%, #e9e9e9 ${confidence}%)`
+                }}
+              />
+              <p className="slider-description">僅顯示信心度高於閾值的檢測結果 (即時調整後端檢測精度)</p>
+            </div>
+
             <div className="video-container">
               {isDetecting && videoStreamUrl ? (
                 <img 
@@ -202,25 +266,7 @@ const CameraFeed: React.FC = () => {
               </div>
             </div>
 
-            <div className="confidence-slider-container">
-               <div className="slider-header">
-                <label htmlFor="confidence">信心度篩選:</label>
-                <span className="slider-value">{confidence}%</span>
-              </div>
-              <input
-                id="confidence"
-                type="range"
-                min="0"
-                max="100"
-                value={confidence}
-                onChange={(e) => setConfidence(Number(e.target.value))}
-                className="custom-slider"
-                style={{
-                  background: `linear-gradient(to right, #333 ${confidence}%, #e9e9e9 ${confidence}%)`
-                }}
-              />
-              <p className="slider-description">僅顯示信心度高於閾值的檢測結果</p>
-            </div>
+            
           </>
         )}
 
