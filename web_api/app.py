@@ -382,6 +382,142 @@ def generate_ticket(violation_id):
     except Exception as e:
         print(f"❌ Error in generate_ticket: {e}")
         return jsonify({'error': 'Internal Server Error'}), 500
+    
+
+# ==================================================
+# 【新增】統計分析 API
+# ==================================================
+@app.route('/api/analytics', methods=['GET'])
+def get_analytics_data():
+    """
+    獲取儀表板所需的所有統計分析數據。
+    支持的查詢參數:
+    - time_range: 'today', 'last7days', 'last30days' (預設)
+    """
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # 1. 獲取時間範圍參數並設定 SQL 時間條件
+        time_range = request.args.get('time_range', 'last30days')
+        time_filter_sql = ""
+        if time_range == 'today':
+            time_filter_sql = "AND timestamp >= CURRENT_DATE"
+        elif time_range == 'last7days':
+            time_filter_sql = "AND timestamp >= NOW() - INTERVAL '7 days'"
+        else: # last30days
+            time_filter_sql = "AND timestamp >= NOW() - INTERVAL '30 days'"
+
+        # --- 2. 計算 KPI 總覽數據 ---
+        cur.execute(f"""
+            SELECT
+                COUNT(*) AS total_violations,
+                COUNT(CASE WHEN status = '已開罰' THEN 1 END) AS tickets_issued,
+                COALESCE(SUM(CASE WHEN status = '已開罰' THEN fine END), 0) AS total_fines
+            FROM detect_violations
+            WHERE 1=1 {time_filter_sql};
+        """)
+        kpi = cur.fetchone()
+        kpi_data = {
+            'totalViolations': kpi[0],
+            'confirmationRate': 0.0, # AI 準確率邏輯較複雜，暫時回傳 0
+            'ticketsIssued': kpi[1],
+            'totalFines': int(kpi[2]),
+        }
+
+        # --- 3. 計算違規趨勢 (依日期) ---
+        cur.execute(f"""
+            SELECT
+                date_trunc('day', timestamp)::date AS day,
+                COUNT(id)
+            FROM detect_violations
+            WHERE 1=1 {time_filter_sql}
+            GROUP BY day
+            ORDER BY day;
+        """)
+        trend = cur.fetchall()
+        trend_data = {
+            'labels': [t[0].strftime('%m-%d') for t in trend],
+            'data': [t[1] for t in trend]
+        }
+        
+        # --- 4. 計算違規類型分布 ---
+        cur.execute(f"""
+            SELECT violation_type, COUNT(id)
+            FROM detect_violations
+            WHERE 1=1 {time_filter_sql}
+            GROUP BY violation_type
+            ORDER BY COUNT(id) DESC;
+        """)
+        type_dist = cur.fetchall()
+        type_distribution_data = {
+            'labels': [t[0] for t in type_dist],
+            'data': [t[1] for t in type_dist]
+        }
+
+        # --- 5. 計算高風險區域分析 (前 5 名) ---
+        cur.execute(f"""
+            SELECT violation_address, COUNT(id)
+            FROM detect_violations
+            WHERE 1=1 {time_filter_sql}
+            GROUP BY violation_address
+            ORDER BY COUNT(id) DESC
+            LIMIT 5;
+        """)
+        locations = cur.fetchall()
+        location_data = {
+            'labels': [l[0] for l in locations],
+            'data': [l[1] for l in locations]
+        }
+        
+        # --- 6. 執法效率分析 ---
+        # 注意：這個查詢是基於整個資料表的數據，因為效率分析通常不限於特定時間範圍
+        # 且這裡假設沒有 'processing_time' 欄位，故回傳假資料。
+        # 如果需要真實數據，資料庫需要記錄狀態變更的時間戳。
+        efficiency_data = {
+            'labels': ['待審核', '已確認', '已駁回', '已開罰'],
+            'data': [0, 1.3, 0.85, 2.6] # 暫時使用靜態數據
+        }
+        
+        # --- 7. 罰款收入統計 (過去 6 個月) ---
+        cur.execute("""
+            SELECT
+                to_char(date_trunc('month', timestamp), 'YYYY-MM') AS month,
+                SUM(fine)
+            FROM detect_violations
+            WHERE status = '已開罰' AND timestamp >= NOW() - INTERVAL '6 months'
+            GROUP BY month
+            ORDER BY month;
+        """)
+        revenue = cur.fetchall()
+        revenue_data = {
+            'labels': [r[0] for r in revenue],
+            'data': [int(r[1]) for r in revenue]
+        }
+
+        # --- 8. 組合所有數據並回傳 ---
+        response_data = {
+            'kpi': kpi_data,
+            'trend': trend_data,
+            'typeDistribution': type_distribution_data,
+            'locationAnalysis': location_data,
+            'efficiencyAnalysis': efficiency_data,
+            'revenue': revenue_data,
+        }
+
+        cur.close()
+        conn.close()
+
+        return jsonify(response_data)
+
+    except Exception as e:
+        print(f"❌ Error in get_analytics_data: {e}")
+        # 確保在出錯時也能關閉連線
+        if 'cur' in locals() and cur: cur.close()
+        if 'conn' in locals() and conn: conn.close()
+        return jsonify({'error': 'Internal Server Error', 'details': str(e)}), 500
+    
+
 # ==================================================
 # 主程式啟動
 # ==================================================
