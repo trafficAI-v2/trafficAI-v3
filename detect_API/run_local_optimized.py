@@ -61,7 +61,7 @@ data_lock = threading.Lock()
 
 # 常數設定 - 性能優化
 NO_HELMET_CLASS_NAME = 'no-helmet'
-CONFIDENCE_THRESHOLD = 0.65
+CONFIDENCE_THRESHOLD = 0.65  # 可透過API動態調整
 VISUAL_CONFIDENCE = 0.5  # 提高閾值減少無效檢測
 SCREENSHOT_PATH = "successful_detections"
 EXPAND_DOWN_FACTOR = 3.0  # 減少截圖範圍
@@ -502,6 +502,46 @@ def get_status():
         return jsonify({"status": "running", "message": "偵測正在運行中 (優化版)。"})
     else:
         return jsonify({"status": "stopped", "message": "偵測已停止 (優化版)。"})
+
+@app.route('/set_confidence', methods=['POST'])
+def set_confidence():
+    """動態設定檢測信心度閾值"""
+    global CONFIDENCE_THRESHOLD, VISUAL_CONFIDENCE
+    
+    data = request.get_json()
+    if not data or 'confidence' not in data:
+        return jsonify({"status": "fail", "message": "請提供 'confidence' 參數 (0-100)"}), 400
+    
+    try:
+        confidence_percent = float(data['confidence'])
+        if not (0 <= confidence_percent <= 100):
+            return jsonify({"status": "fail", "message": "信心度必須在 0-100 之間"}), 400
+        
+        # 將百分比轉換為 0-1 的閾值
+        new_threshold = confidence_percent / 100.0
+        CONFIDENCE_THRESHOLD = new_threshold
+        VISUAL_CONFIDENCE = max(0.3, new_threshold - 0.1)  # 顯示閾值稍微低一點
+        
+        logging.info(f"🎯 信心度閾值已更新：{CONFIDENCE_THRESHOLD:.2f} (顯示閾值：{VISUAL_CONFIDENCE:.2f})")
+        return jsonify({
+            "status": "success", 
+            "confidence_threshold": CONFIDENCE_THRESHOLD,
+            "visual_threshold": VISUAL_CONFIDENCE,
+            "message": f"信心度閾值已設定為 {confidence_percent}%"
+        })
+        
+    except ValueError:
+        return jsonify({"status": "fail", "message": "信心度必須是數字"}), 400
+
+@app.route('/get_confidence', methods=['GET'])
+def get_confidence():
+    """獲取當前檢測信心度閾值"""
+    return jsonify({
+        "status": "success",
+        "confidence_percent": int(CONFIDENCE_THRESHOLD * 100),
+        "confidence_threshold": CONFIDENCE_THRESHOLD,
+        "visual_threshold": VISUAL_CONFIDENCE
+    })
 
 @app.route('/test_camera', methods=['POST'])
 def test_camera():
