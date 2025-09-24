@@ -17,6 +17,10 @@ allowed_origins = os.getenv('CORS_ALLOWED_ORIGINS', '*')
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins=allowed_origins)
 
+# JWT 設定
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "default-dev-secret-key") 
+jwt = JWTManager(app)
+
 # --- 資料庫連線 ---
 def get_db_connection():
     db_url = os.getenv('DATABASE_URL')
@@ -517,6 +521,130 @@ def get_analytics_data():
         if 'cur' in locals() and cur and not cur.closed: cur.close()
         if 'conn' in locals() and conn and not conn.closed: conn.close()
         return jsonify({'error': 'Internal Server Error', 'details': str(e)}), 500
+
+
+# ==================================================
+# 【新增】使用者註冊 API (適應你的 users 表)
+# ==================================================
+@app.route('/api/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    username = data.get('username')
+    email = data.get('email')
+    password = data.get('password')
+    name = data.get('name')
+    # 角色可以由前端傳入，或由後端指定預設值
+    role = data.get('role', 'operator') 
+
+    # --- 伺服器端驗證 ---
+    if not all([username, email, password, name]):
+        return jsonify({"error": "所有欄位 (username, email, password, name) 都是必填的"}), 400
+    if role not in ['admin', 'operator']:
+        return jsonify({"error": "無效的角色，只能是 'admin' 或 'operator'"}), 400
+
+    # --- 密碼雜湊 ---
+    # 【重要】儲存雜湊後的密碼，而不是原始密碼
+    hashed_password = generate_password_hash(password)
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # 檢查 username 或 email 是否已存在
+        cur.execute("SELECT id FROM users WHERE username = %s OR email = %s", (username, email))
+        if cur.fetchone():
+            cur.close()
+            conn.close()
+            return jsonify({"error": "使用者名稱或電子郵件已存在"}), 409 # 409 Conflict
+
+        # 【修改】INSERT 語句以匹配你的資料表欄位
+        # 注意：我們讓 id, status, createdAt 等欄位使用資料庫的預設值
+        sql = """
+            INSERT INTO users (username, email, password, name, role)
+            VALUES (%s, %s, %s, %s, %s) RETURNING id;
+        """
+        cur.execute(sql, (username, email, hashed_password, name, role))
+        
+        # 獲取新建立的使用者 ID (可選)
+        new_user_id = cur.fetchone()[0]
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return jsonify({
+            "message": f"使用者 '{username}' 註冊成功",
+            "userId": new_user_id
+        }), 201
+
+    except psycopg2.Error as e:
+        print(f"❌ 資料庫錯誤 in register: {e}")
+        return jsonify({"error": "資料庫操作失敗"}), 500
+    except Exception as e:
+        print(f"❌ 未知錯誤 in register: {e}")
+        return jsonify({"error": "伺服器內部錯誤"}), 500
+
+
+# ==================================================
+# 【新增】使用者登入 API (適應你的 users 表)
+# ==================================================
+@app.route('/api/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    username = data.get('username') # 使用者可以用 username 或 email 登入
+    password = data.get('password')
+
+    if not username or not password:
+        return jsonify({"error": "請提供使用者名稱和密碼"}), 400
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # 【修改】查詢語句，允許使用 username 或 email 登入，並獲取必要資訊
+        sql = """
+            SELECT username, password, role, name, status 
+            FROM users 
+            WHERE username = %s OR email = %s
+        """
+        cur.execute(sql, (username, username))
+        user = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if user:
+            db_username, db_password_hash, db_role, db_name, db_status = user
+            
+            # 檢查帳號狀態
+            if db_status != '啟用':
+                return jsonify({"error": "此帳號已被停用"}), 403 # 403 Forbidden
+
+            # 檢查密碼
+            if check_password_hash(db_password_hash, password):
+                # 密碼正確，產生 JWT
+                # 我們可以將使用者的角色和姓名等資訊放進 token 中
+                identity_data = {"username": db_username, "role": db_role, "name": db_name}
+                access_token = create_access_token(identity=identity_data)
+                
+                return jsonify(access_token=access_token)
+
+        # 如果使用者不存在或密碼錯誤，都回傳相同的錯誤訊息以增加安全性
+        return jsonify({"error": "使用者名稱或密碼錯誤"}), 401
+
+    except Exception as e:
+        print(f"❌ 錯誤 in login: {e}")
+        return jsonify({"error": "伺服器內部錯誤"}), 500
+
+
+# ==================================================
+# 【新增】一個 API 來獲取當前登入使用者的資訊
+# ==================================================
+@app.route('/api/profile', methods=['GET'])
+@jwt_required() # <--- 確保只有登入的使用者能存取
+def get_profile():
+    # get_jwt_identity() 會回傳我們在 create_access_token 時放入的 identity_data
+    current_user = get_jwt_identity()
+    return jsonify(logged_in_as=current_user), 200
     
 
 # ==================================================
