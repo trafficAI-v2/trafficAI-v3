@@ -1,34 +1,84 @@
-/* src/pages/Login.css */
+/* ============================================= */
+/* == Login Page Stylesheet (v3 - Final Layout) == */
+/* ============================================= */
 
+/* --- 1. 主容器 --- */
+/* 負責整個頁面的背景和垂直/水平居中佈局 */
 .login-page-container {
     display: flex;
+    flex-direction: column; /* 確保子項目垂直堆疊 */
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background-color: #f3f4f6; /* 淺灰色背景 */
+    background-color: #f8f9fa; /* 淺灰色背景 */
+    padding: 24px;
+    box-sizing: border-box; /* 確保 padding 不會影響總尺寸 */
   }
   
+  /* --- 2. 頁面頂部 Header --- */
+  /* 包含盾牌圖示和主標題 */
+  .login-header {
+    /* 【核心修正】確保文字和行內元素在其內部是水平置中的 */
+    text-align: center;
+    
+    /* 保持其他設定不變，確保寬度和間距正確 */
+    width: 100%;
+    max-width: 420px;
+    margin-bottom: 32px;
+    box-sizing: border-box;
+  }
+  
+  .header-icon {
+    font-size: 48px;
+    color: #3b82f6; /* 藍色圖示 */
+    position: relative; /* 啟用相對定位 */
+    left: 185px;         /* 向右移動 10 個像素，你可以調整這個數字 */
+  }
+  
+  .header-title {
+    font-size: 2rem; /* 32px */
+    font-weight: 700;
+    color: #111827; /* 深灰色文字 */
+    margin: 16px 0 8px;
+  }
+  
+  .header-subtitle {
+    font-size: 1rem; /* 16px */
+    color: #6b7280; /* 中灰色文字 */
+    margin: 0;
+  }
+  
+  /* --- 3. 登入表單卡片 --- */
   .login-card {
     width: 100%;
-    max-width: 400px;
-    padding: 40px;
+    max-width: 420px; /* 在大螢幕上限制最大寬度，防止表單過寬 */
+    padding: 32px;
     background-color: #ffffff;
     border-radius: 12px;
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    text-align: center;
+    border: 1px solid #e5e7eb; /* 淺灰色邊框 */
+    box-sizing: border-box;
   }
   
-  .login-title {
-    font-size: 2.5rem;
-    font-weight: 700;
+  /* --- 4. 卡片內部元素 --- */
+  .card-header {
+    /* 【核心修正】將卡片內的 "歡迎回來" 等文字置中 */
+    text-align: center;
+    
+    /* 保持原有的下邊距 */
+    margin-bottom: 24px;
+}
+  
+  .card-title {
+    font-size: 1.5rem; /* 24px */
+    font-weight: 600;
     color: #1f2937;
     margin: 0;
   }
   
-  .login-subtitle {
-    font-size: 1rem;
+  .card-subtitle {
+    font-size: 0.9rem; /* 14.4px */
     color: #6b7280;
-    margin: 8px 0 32px;
+    margin-top: 8px;
   }
   
   .login-form {
@@ -45,7 +95,7 @@
   }
   
   .input-group label {
-    font-size: 0.875rem;
+    font-size: 0.875rem; /* 14px */
     font-weight: 500;
     color: #374151;
   }
@@ -66,6 +116,54 @@
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
   }
   
+  .password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  
+  .password-wrapper input {
+    padding-right: 40px; /* 為眼睛圖示留出空間 */
+  }
+  
+  .password-toggle-icon {
+    position: absolute;
+    right: 12px;
+    cursor: pointer;
+    color: #9ca3af;
+    font-size: 20px;
+  }
+  
+  .options-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.875rem;
+  }
+  
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #374151;
+    cursor: pointer;
+  }
+  
+  .checkbox-label input {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .forgot-password-link {
+    color: #3b82f6;
+    text-decoration: none;
+    font-weight: 500;
+  }
+  
+  .forgot-password-link:hover {
+    text-decoration: underline;
+  }
+  
   .login-button {
     padding: 12px;
     border: none;
@@ -76,6 +174,7 @@
     font-weight: 600;
     cursor: pointer;
     transition: background-color 0.2s;
+    width: 100%;
   }
   
   .login-button:hover {
@@ -88,8 +187,24 @@
   }
   
   .error-message {
-    color: #ef4444;
+    color: #ef4444; /* 紅色 */
     font-size: 0.875rem;
     text-align: center;
     margin: 0;
+  }
+  
+  .signup-link {
+    text-align: center;
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+  
+  .signup-link a {
+    color: #3b82f6;
+    text-decoration: none;
+    font-weight: 500;
+  }
+  
+  .signup-link a:hover {
+    text-decoration: underline;
   }
