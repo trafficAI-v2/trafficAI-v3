@@ -251,6 +251,7 @@
   align-items: center;
   border-bottom: 1px solid #e5e7eb;
   transition: background-color 0.2s, border-left 0.2s, padding-left 0.2s;
+  cursor: pointer; 
 }
 .violation-card:last-child {
   border-bottom: none;
