@@ -335,10 +335,13 @@ const CameraFeed: React.FC = () => {
         )}
       </div>
 
-      <div className="ai-status-footer">
-        <p><strong>AI 輔-助檢測中</strong></p>
-        <p>系統正在自動檢測交通違規行為，檢測到的違規將顯示在右側面板中。</p>
-      </div>
+      {/* 只有在檢測運行時才顯示 AI 狀態頁腳 */}
+      {isDetecting && (
+        <div className="ai-status-footer">
+          <p><strong>AI 輔助檢測中</strong></p>
+          <p>系統正在自動檢測交通違規行為，檢測到的違規將顯示在右側面板中。</p>
+        </div>
+      )}
     </div>
   );
 };
