@@ -1,11 +1,13 @@
-// src/pages/SystemManagement.tsx (升級版 - 顯示使用者列表)
+// src/pages/SystemManagement.tsx (最終版 - 整合「新增使用者」彈出視窗)
 
-import React, { useState, useEffect } from 'react';
-import { BiPlus, BiEdit, BiTrash } from 'react-icons/bi'; // 引入更多圖示
+import React, { useState, useEffect, useCallback } from 'react';
+import { BiPlus, BiEdit, BiTrash } from 'react-icons/bi';
 import { useAuth } from '../context/AuthContext';
+import Modal from '../components/common/Modal'; // 引入我們建立的 Modal 元件
+import AddUserForm from '../components/system/AddUserForm'; // 引入我們建立的 AddUserForm 元件
 import '../styles/SystemManagement.css'; 
 
-// 定義從後端 API 收到的使用者資料的 TypeScript 型別
+// 定義使用者資料的 TypeScript 型別
 interface User {
   id: number;
   username: string;
@@ -18,48 +20,54 @@ interface User {
 
 const SystemManagement: React.FC = () => {
   // --- 狀態管理 ---
-  const [users, setUsers] = useState<User[]>([]); // 儲存從 API 獲取的使用者列表
-  const [isLoading, setIsLoading] = useState(true); // 管理載入狀態
-  const [error, setError] = useState<string | null>(null); // 管理錯誤訊息
-  const { token } = useAuth(); // 從 AuthContext 獲取 token，用於 API 請求的授權
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false); // 新增 state 來控制 Modal 的開關
+  const { token } = useAuth();
 
   // --- 資料獲取 ---
-  // 使用 useEffect Hook，在元件初次載入時執行一次 API 請求
+  // 使用 useCallback 將 fetchUsers 函式包裹起來，避免在 re-render 時重複建立
+  const fetchUsers = useCallback(async () => {
+    if (!token) {
+      setError("驗證失敗，請重新登入。");
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+      const response = await fetch(`${API_BASE_URL}/api/users`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!response.ok) {
+        throw new Error('無法獲取使用者列表，請確認您是否擁有管理員權限。');
+      }
+      const data: User[] = await response.json();
+      setUsers(data);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [token]); // 這個函式的依賴是 token
+
+  // 在元件初次載入時，呼叫 fetchUsers
   useEffect(() => {
-    const fetchUsers = async () => {
-      if (!token) {
-        setError("驗證失敗，請重新登入。");
-        setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(true);
-      setError(null);
-      try {
-        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-        const response = await fetch(`${API_BASE_URL}/api/users`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error('無法獲取使用者列表，請確認您是否擁有管理員權限。');
-        }
-        const data: User[] = await response.json();
-        setUsers(data);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchUsers();
-  }, [token]); // 這個 Effect 的依賴是 token，當 token 變化時會重新執行
+  }, [fetchUsers]);
 
-  // --- 渲染函式 ---
-  // 將表格的渲染邏輯封裝成一個函式，讓主 return 區塊更乾淨
+  // --- 事件處理 ---
+  // 當 AddUserForm 成功新增使用者後，要執行的回呼函式
+  const handleAddUserSuccess = () => {
+    setIsModalOpen(false); // 關閉 Modal
+    fetchUsers(); // 重新整理使用者列表以顯示新成員
+  };
+
+  // --- 渲染邏輯 ---
   const renderUserTable = () => {
     if (isLoading) return <p>正在載入使用者資料...</p>;
     if (error) return <p style={{ color: 'red' }}>錯誤: {error}</p>;
@@ -114,15 +122,28 @@ const SystemManagement: React.FC = () => {
       <div className="system-management-content content-card">
         <div className="management-section-header">
           <h2>使用者列表</h2>
-          <button className="add-user-button">
+          {/* 為按鈕加上 onClick 事件，點擊時將 isModalOpen 設為 true */}
+          <button className="add-user-button" onClick={() => setIsModalOpen(true)}>
             <BiPlus />
             新增使用者
           </button>
         </div>
         
-        {/* 呼叫渲染函式來顯示表格 */}
         {renderUserTable()}
       </div>
+
+      {/* 將 Modal 和 AddUserForm 渲染到頁面上 */}
+      {/* 它的顯示與否，由 isModalOpen 這個 state 決定 */}
+      <Modal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        title="新增使用者"
+      >
+        <AddUserForm 
+          onSuccess={handleAddUserSuccess} 
+          onCancel={() => setIsModalOpen(false)}
+        />
+      </Modal>
     </div>
   );
 };

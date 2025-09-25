@@ -137,3 +137,81 @@
     background-color: #e0e7ff; /* 淡藍色 */
     color: #4338ca;
   }
+
+/* --- 6. 新增使用者表單樣式 (在 Modal 內部) --- */
+.add-user-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px; /* 每個表單群組之間的間距 */
+  }
+  
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .form-group label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+  }
+  
+  .form-group input,
+  .form-group select {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    font-size: 14px;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  
+  .form-group input:focus,
+  .form-group select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  }
+  
+  .form-actions {
+    display: flex;
+    justify-content: flex-end; /* 讓按鈕靠右對齊 */
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+    margin-top: 8px;
+  }
+  
+  /* 沿用 base.css 或自訂通用按鈕樣式 */
+  .form-actions button {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .form-actions button[type="button"] {
+    background-color: #ffffff;
+    border-color: #d1d5db;
+    color: #374151;
+  }
+  .form-actions button[type="button"]:hover {
+    background-color: #f9fafb;
+  }
+  
+  .form-actions button[type="submit"] {
+    background-color: #1f2937;
+    color: #ffffff;
+  }
+  .form-actions button[type="submit"]:hover {
+    background-color: #374151;
+  }
+  .form-actions button:disabled {
+      background-color: #e5e7eb;
+      cursor: not-allowed;
+  }
