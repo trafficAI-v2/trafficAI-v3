@@ -12,6 +12,9 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 // 【新增】定義獲取已確認數量的 API URL
 const CONFIRMED_COUNT_URL = `${API_BASE_URL}/api/violations/confirmed-count`;
 
+// 【新增】定義車輛類型查詢 API URL
+const VEHICLE_TYPE_URL = `${API_BASE_URL}/api/owners`;
+
 // --- TypeScript 型別定義 ---
 interface ViolationType {
   type_name: string;
@@ -19,6 +22,12 @@ interface ViolationType {
 
 interface Camera {
   camera_name: string;
+}
+
+// 【新增】車輛類型資訊型別定義
+interface VehicleTypeInfo {
+  license_plate_number: string;
+  vehicle_type: string;
 }
 
 interface ViolationRecord {
@@ -29,14 +38,81 @@ interface ViolationRecord {
   timestamp: string;
   location: string;
   status: '待審核' | '已確認' | '已駁回' | '已開罰';
+  fine?: number; // 新增罰款金額欄位
+  ownerName?: string; // 車主姓名
+  ownerPhone?: string; // 車主電話
+  ownerEmail?: string; // 車主Email
+  ownerAddress?: string; // 車主地址
 }
 
 const TABS = ['全部', '待審核', '已確認', '已駁回', '已開罰'];
 
 
 // --- 違規詳情元件 ---
-const ViolationDetail: React.FC<{ violation: ViolationRecord; onClose: () => void }> = ({ violation, onClose }) => {
-  const formattedDate = new Date(violation.timestamp).toLocaleDateString('en-CA'); // YYYY-MM-DD
+const ViolationDetail: React.FC<{ 
+  violation: ViolationRecord; 
+  onClose: () => void;
+  onUpdateStatus: (id: number, status: '已確認' | '已駁回' | '已開罰') => void;
+}> = ({ violation, onClose, onUpdateStatus }) => {
+  // 車輛類型查詢狀態管理
+  const [vehicleTypeInfo, setVehicleTypeInfo] = useState<VehicleTypeInfo | null>(null);
+  const [vehicleTypeLoading, setVehicleTypeLoading] = useState<boolean>(false);
+  const [vehicleTypeError, setVehicleTypeError] = useState<string | null>(null);
+
+  // 使用與主列表相同的日期格式化邏輯，避免時區問題
+  const formatDate = (isoString: string): string => {
+    if (!isoString) return 'N/A';
+    try {
+      const [datePartStr] = isoString.split('T');
+      return datePartStr; // 返回 YYYY-MM-DD 格式
+    } catch (e) {
+      console.error("無法解析時間戳字串:", isoString, e);
+      return '無效日期';
+    }
+  };
+
+  // 查詢車輛類型
+  const fetchVehicleType = async (plateNumber: string) => {
+    if (!VEHICLE_TYPE_URL || !plateNumber) return;
+    
+    setVehicleTypeLoading(true);
+    setVehicleTypeError(null);
+    
+    try {
+      const response = await fetch(`${VEHICLE_TYPE_URL}/${encodeURIComponent(plateNumber)}/vehicle-type`);
+      if (!response.ok) {
+        if (response.status === 404) {
+          setVehicleTypeError('找不到該車牌的車輛類型');
+          return;
+        }
+        throw new Error(`查詢失敗 (HTTP ${response.status})`);
+      }
+      const data: VehicleTypeInfo = await response.json();
+      setVehicleTypeInfo(data);
+    } catch (err: any) {
+      console.error("查詢車輛類型失敗:", err);
+      setVehicleTypeError(err.message || '查詢車輛類型時發生錯誤');
+    } finally {
+      setVehicleTypeLoading(false);
+    }
+  };
+
+  // 當違規記錄變更時，查詢車輛類型
+  useEffect(() => {
+    if (violation.plateNumber) {
+      fetchVehicleType(violation.plateNumber);
+    }
+  }, [violation.plateNumber]);
+
+  const formattedDate = formatDate(violation.timestamp);
+
+  const handleReject = () => {
+    onUpdateStatus(violation.id, '已駁回');
+  };
+
+  const handleConfirm = () => {
+    onUpdateStatus(violation.id, '已確認');
+  };
 
   return (
     <div className="violation-detail-card">
@@ -57,7 +133,7 @@ const ViolationDetail: React.FC<{ violation: ViolationRecord; onClose: () => voi
         <div className="detail-form">
             <div className="form-row">
                 <label>罰單編號</label>
-                <input type="text" value={`TKT-${violation.id}`} readOnly />
+                <input type="text" value={`VIO-${violation.id}`} readOnly />
             </div>
             <div className="form-row">
                 <label>違規日期</label>
@@ -77,15 +153,42 @@ const ViolationDetail: React.FC<{ violation: ViolationRecord; onClose: () => voi
             </div>
             <div className="form-row">
                 <label>車輛類型</label>
-                <input type="text" value={violation.vehicleType} readOnly />
+                {vehicleTypeLoading ? (
+                    <input type="text" value="正在查詢車輛類型..." readOnly />
+                ) : vehicleTypeError ? (
+                    <input type="text" value={`${violation.vehicleType || '未指定'} (${vehicleTypeError})`} readOnly />
+                ) : vehicleTypeInfo ? (
+                    <input type="text" value={vehicleTypeInfo.vehicle_type} readOnly />
+                ) : (
+                    <input type="text" value={violation.vehicleType || '未指定'} readOnly />
+                )}
             </div>
             <div className="form-row">
                 <label>違規地點</label>
                 <input type="text" value={violation.location} readOnly />
             </div>
+            {/* 【修改】車主姓名欄位 - 直接使用 violations 資料表中的車主資訊 */}
+            <div className="form-row">
+                <label>車主姓名</label>
+                <input type="text" value={violation.ownerName || '未提供'} readOnly />
+            </div>
+            {/* 【新增】車主聯絡電話欄位 */}
+            <div className="form-row">
+                <label>車主電話</label>
+                <input type="text" value={violation.ownerPhone || '未提供'} readOnly />
+            </div>
+            {/* 【新增】車主地址欄位 */}
+            <div className="form-row">
+                <label>車主地址</label>
+                <input type="text" value={violation.ownerAddress || '未提供'} readOnly />
+            </div>
              <div className="form-row">
                 <label>罰單金額 (NT$)</label>
-                <input type="text" value="NT$ 2,400" readOnly />
+                <input 
+                    type="text" 
+                    value={violation.fine ? `NT$ ${violation.fine.toLocaleString()}` : 'NT$ 未設定'} 
+                    readOnly 
+                />
             </div>
             <div className="form-row">
                 <label>開立人員</label>
@@ -98,8 +201,8 @@ const ViolationDetail: React.FC<{ violation: ViolationRecord; onClose: () => voi
         </div>
 
         <div className="detail-footer-actions">
-            <button className="btn-secondary">駁回</button>
-            <button className="btn-primary">確認違規</button>
+            <button className="btn-secondary" onClick={handleReject}>駁回</button>
+            <button className="btn-primary" onClick={handleConfirm}>確認違規</button>
         </div>
     </div>
   );
@@ -124,8 +227,6 @@ const ViolationLog: React.FC = () => {
   const [confirmedCount, setConfirmedCount] = useState<number>(0);
   const [selectedViolation, setSelectedViolation] = useState<ViolationRecord | null>(null);
   
-  // 【移除】不再需要卡片位置的 State
-  // const [cardPosition, setCardPosition] = useState({ top: 0 });
 
 
   // --- 輔助函式 ---
@@ -266,13 +367,66 @@ const ViolationLog: React.FC = () => {
         const errorData = await response.json();
         throw new Error(errorData.error || `API 請求失敗`);
       }
-      setViolations(prev => prev.filter(v => !selectedIds.includes(v.id)));
+      
+      // 根據當前篩選標籤決定處理方式
+      if (activeTab === '全部') {
+        // 在「全部」標籤下，更新選中項目的狀態，不移除
+        setViolations(prev => prev.map(v => 
+          selectedIds.includes(v.id) ? { ...v, status: newStatus } : v
+        ));
+      } else {
+        // 在特定狀態標籤下，移除選中項目（因為它們不再符合當前篩選條件）
+        setViolations(prev => prev.filter(v => !selectedIds.includes(v.id)));
+      }
+      
       fetchConfirmedCount();
     } catch (err: any) {
       console.error("批量更新失敗:", err);
       alert(`錯誤：無法更新紀錄。\n${err.message}`);
     } finally {
       setSelectedIds([]);
+    }
+  };
+
+  // 【新增】處理單筆違規紀錄狀態更新
+  const handleSingleUpdate = async (id: number, newStatus: '已確認' | '已駁回' | '已開罰') => {
+    if (!API_BASE_URL) {
+      alert('錯誤：未在 .env.local 中設定 VITE_API_BASE_URL');
+      return;
+    }
+    const updateUrl = `${API_BASE_URL}/violations/status`;
+    try {
+      const response = await fetch(updateUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: [id],
+          status: newStatus,
+        }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `API 請求失敗`);
+      }
+      
+      // 根據當前篩選標籤決定處理方式
+      if (activeTab === '全部') {
+        // 在「全部」標籤下，更新該項目的狀態，不移除
+        setViolations(prev => prev.map(v => 
+          v.id === id ? { ...v, status: newStatus } : v
+        ));
+      } else {
+        // 在特定狀態標籤下，移除該項目（因為它不再符合當前篩選條件）
+        setViolations(prev => prev.filter(v => v.id !== id));
+      }
+      
+      // 關閉詳情頁面
+      setSelectedViolation(null);
+      // 重新獲取已確認數量
+      fetchConfirmedCount();
+    } catch (err: any) {
+      console.error("狀態更新失敗:", err);
+      alert(`錯誤：無法更新紀錄狀態。\n${err.message}`);
     }
   };
   
@@ -486,7 +640,8 @@ const ViolationLog: React.FC = () => {
         {selectedViolation && (
             <ViolationDetail 
                 violation={selectedViolation} 
-                onClose={() => setSelectedViolation(null)} 
+                onClose={() => setSelectedViolation(null)}
+                onUpdateStatus={handleSingleUpdate}
             />
         )}
       </div>
