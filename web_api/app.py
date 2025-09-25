@@ -834,6 +834,37 @@ def reset_password():
         return jsonify({"error": "伺服器內部錯誤"}), 500
 
 
+# ==================================================
+# 【新增】使用者管理 API
+# ==================================================
+@app.route('/api/users', methods=['GET'])
+@admin_required()
+def get_users_list():
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        # 查询所有使用者，但不包含敏感的 password 和 refreshToken 栏位
+        cur.execute("SELECT id, username, email, name, role, status, lastLogin FROM users ORDER BY createdAt DESC")
+        users_raw = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        users = [
+            {
+                "id": row[0],
+                "username": row[1],
+                "email": row[2],
+                "name": row[3],
+                "role": row[4],
+                "status": row[5],
+                "lastLogin": row[6].isoformat() if row[6] else None,
+            }
+            for row in users_raw
+        ]
+        return jsonify(users)
+    except Exception as e:
+        print(f"❌ Error in get_users_list: {e}")
+        return jsonify({'error': 'Internal Server Error'}), 500
 
     
 
