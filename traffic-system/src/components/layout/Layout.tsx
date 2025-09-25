@@ -1,14 +1,23 @@
-// 這個元件會包含 Header 和一個 Outlet。Outlet 是 react-router-dom 提供的一個元件，它會根據當前的路由，將對應的頁面元件渲染在這個位置。
+// src/components/layout/Layout.tsx
+
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Header from './Header';
+import { useAuth } from '../../context/AuthContext'; // 在 Layout 層級引入 useAuth
 
 const Layout: React.FC = () => {
+  const { user } = useAuth(); // 在這裡獲取 user 狀態
+
+  // 在 Layout 層級進行一次性的角色判斷
+  const isAdmin = user?.role === 'admin';
+
   return (
-    <div className="app-container bg-blue-100 min-h-screen">
-      <Header />
-      <main className="main-content p-4">
-        <Outlet /> {/* 子頁面將會被渲染在這裡 */}
+    <div className="app-container"> {/* 你的 CSS class */}
+      {/* 將判斷結果 isAdmin 作為 prop 傳遞給 Header */}
+      <Header isAdmin={isAdmin} /> 
+      
+      <main className="main-content">
+        <Outlet />
       </main>
     </div>
   );
