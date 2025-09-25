@@ -143,3 +143,82 @@
   height: 100%;
   object-fit: cover; /* 確保圖片不變形，填滿整個圓形 */
 }
+
+/* src/styles/layout.css (在檔案底部新增) */
+
+/* --- 使用者頭像區域 --- */
+.user-profile {
+  position: relative; /* 讓下拉選單可以相對它定位 */
+}
+
+.user-profile-button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+.user-profile-button:hover {
+    background-color: #f3f4f6;
+}
+
+.user-avatar { /* 取代之前的 user-admin */
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.user-name {
+    font-weight: 500;
+    color: #374151;
+}
+
+/* --- 下拉式選單 --- */
+.profile-dropdown {
+  position: absolute;
+  top: calc(100% + 8px); /* 顯示在頭像按鈕正下方，並留有 8px 間距 */
+  right: 0;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  width: 200px;
+  z-index: 1100;
+  border: 1px solid #f0f0f0;
+  overflow: hidden;
+  animation: fadeIn 0.2s ease-out;
+}
+.dropdown-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.dropdown-header strong {
+    display: block;
+    color: #1f2937;
+}
+.dropdown-header small {
+    color: #6b7280;
+    text-transform: capitalize;
+}
+
+.dropdown-menu {
+  list-style-type: none;
+  padding: 8px 0;
+  margin: 0;
+}
+.dropdown-menu li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.dropdown-menu li:hover {
+  background-color: #f3f4f6;
+}
+.dropdown-menu .logout-item {
+  color: #ef4444; /* 登出選項用紅色 */
+}

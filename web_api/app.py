@@ -721,8 +721,9 @@ def register():
         return jsonify({"error": "伺服器內部錯誤"}), 500
 
 
+
 # ==================================================
-# 【使用者登入 API (修正版)】
+# 【使用者登入 API (最終修正版 - 加入 lastLogin 更新)】
 # ==================================================
 @app.route('/api/login', methods=['POST'])
 def login():
@@ -734,10 +735,10 @@ def login():
         return jsonify({"error": "請提供使用者名稱和密碼"}), 400
 
     try:
+        # 第一次連線：用來驗證使用者是否存在
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # 【修改】我們現在也需要查詢 id，用來當作 identity
         sql = """
             SELECT id, username, password, role, name, status 
             FROM users 
@@ -754,23 +755,42 @@ def login():
             if db_status != '啟用':
                 return jsonify({"error": "此帳號已被停用"}), 403
 
+            # 驗證密碼
             if check_password_hash(db_password_hash, password):
-                # 【核心修正】
-                # 1. `identity` 使用唯一且簡單的值，例如使用者名稱。
+                
+                # --- 【核心修改】在回傳 token 之前，更新 lastLogin 時間戳 ---
+                try:
+                    # 建立一個新的資料庫連線來執行 UPDATE 操作
+                    update_conn = get_db_connection()
+                    update_cur = update_conn.cursor()
+                    
+                    # 使用 UTC 時間以保持時區一致性，並更新指定 user id 的 lastLogin 欄位
+                    update_cur.execute(
+                        'UPDATE users SET "lastLogin" = %s WHERE id = %s',
+                        (datetime.now(timezone.utc), db_id)
+                    )
+                    
+                    update_conn.commit() # 提交變更
+                    update_cur.close()
+                    update_conn.close()
+                except Exception as e:
+                    print(f"❌ 更新 lastLogin 失敗: {e}")
+                    # 注意：即使更新 lastLogin 失敗，我們仍然繼續登入流程，
+                    # 因為這不是核心功能，不應該因此阻止使用者登入。
+                # --------------------------------------------------------
+
+                # 密碼正確，繼續產生 JWT Token
                 identity = db_username
-                
-                # 2. 將角色 (role) 和姓名 (name) 等額外資訊，放到 `additional_claims` 中。
                 additional_claims = {"role": db_role, "name": db_name}
-                
-                # 3. 產生 token
                 access_token = create_access_token(identity=identity, additional_claims=additional_claims)
                 
                 return jsonify(access_token=access_token)
 
+        # 如果使用者不存在或密碼錯誤
         return jsonify({"error": "使用者名稱或密碼錯誤"}), 401
 
     except Exception as e:
-        print(f"❌ 錯誤 in login: {e}")
+        print(f"❌ 登入過程中發生嚴重錯誤: {e}")
         return jsonify({"error": "伺服器內部錯誤"}), 500
 
 
