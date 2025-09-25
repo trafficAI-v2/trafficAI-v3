@@ -28,50 +28,46 @@
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
-  /* 關鍵：設定為 Flex 佈局，並讓子項目垂直排列 */
   display: flex;
   flex-direction: column; 
-  gap: 20px; /* 項目之間的垂直間距 */
-  
-  /* 【最終修正】強制所有子項目在水平方向上撐滿，確保版面一致 */
-  align-items: stretch; /* 修正拼字錯誤：cneter -> stretch */
+  gap: 20px;
+  align-items: stretch;
 }
 
 /* --- 通知橫幅 (確保它也能撐滿) --- */
 .ticket-notification-bar {
-  /* 本身不需要設定 width，它會被父層自動拉伸 */
   display: flex;
   align-items: center;
   gap: 12px;
-  background-color: #f0f3f6; /* 根據圖片微調背景色 */
+  background-color: #f0f3f6;
   color: #334155;
   padding: 16px;
   border-radius: 8px;
   font-size: 14px;
   width: 100%;
   box-sizing: border-box;
-  margin: 0; /* 確保沒有外邊距 */
+  margin: 0;
 }
 
 
 /* ----- 搜尋框 (使用更高優先級確保樣式生效) ----- */
 .violation-log-page .search-bar-container {
   position: relative;
-  width: 100% !important; /* 使用 !important 確保覆蓋其他樣式 */
-  max-width: none !important; /* 移除任何最大寬度限制 */
-  display: block; /* 改為 block，確保完全撐滿 */
+  width: 100% !important;
+  max-width: none !important;
+  display: block;
   box-sizing: border-box;
-  margin: 0; /* 確保沒有外邊距，與通知欄對齊 */
+  margin: 0;
 }
 .violation-log-page .search-bar-container input {
-  width: 100% !important; /* 使用 !important 確保輸入框填滿容器 */
-  padding: 12px 16px 12px 40px; /* 增加 padding 使高度與通知橫幅更一致 */
+  width: 100% !important;
+  padding: 12px 16px 12px 40px;
   border-radius: 8px;
   border: 1px solid #d1d5db;
   font-size: 14px;
   box-sizing: border-box;
   transition: border-color 0.2s, box-shadow 0.2s;
-  display: block; /* 確保輸入框是 block 元素 */
+  display: block;
 }
 .violation-log-page .search-bar-container input:focus {
   outline: none;
@@ -86,38 +82,38 @@
   color: #9ca3af;
   font-size: 20px;
   z-index: 1;
-  pointer-events: none; /* 確保圖示不會影響點擊 */
+  pointer-events: none;
 }
 
 /* ----- 分頁標籤 (與通知欄和搜尋欄保持相同寬度) ----- */
 .violation-log-page .log-tabs {
   display: flex;
-  width: 100% !important;             /* 強制撐滿與通知欄相同寬度 */
+  width: 100% !important;
   background-color: #f3f4f6;
   border-radius: 10px;
-  padding: 0;              /* 移除 padding，讓按鈕自己撐開 */
-  gap: 6px;                /* 保持 tab 間距 */
+  padding: 0;
+  gap: 6px;
   box-sizing: border-box;
-  margin: 0;               /* 確保沒有外邊距，與上方元素對齊 */
+  margin: 0;
 }
 
 .violation-log-page .log-tab-button {
-  flex: 1;                 /* 讓所有按鈕「平均分配」父容器的寬度 */
-  text-align: center;      /* 文字置中 */
+  flex: 1;
+  text-align: center;
   border: none;
   background-color: transparent;
   outline: none;
   color: #4b5563;
   font-size: 14px;
   font-weight: 500;
-  padding: 10px 8px;       /* 調整 padding 讓文字更好置中 */
+  padding: 10px 8px;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease-in-out;
   white-space: nowrap;
-  display: flex;           /* 使用 flex 來完美置中 */
-  align-items: center;     /* 垂直置中 */
-  justify-content: center; /* 水平置中 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 
@@ -126,19 +122,19 @@
   color: #1f2937;
   background-color: #e5e7eb;
   border-radius: 6px;
-  margin: 4px;              /* 懸停時也使用相同的邊距 */
-  padding: 8px 12px;        /* 懸停時也使用相同的內邊距 */
+  margin: 4px;
+  padding: 8px 12px;
 }
 
 /* 被選中的活動頁籤的樣式 (白色部分更小，完美置中，藍色文字) */
 .violation-log-page .log-tab-button.active {
-  background-color: #ffffff; /* 白色背景 */
-  color: #3b82f6;           /* 藍色文字 */
+  background-color: #ffffff;
+  color: #3b82f6;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); /* 更明顯的陰影效果 */
-  border-radius: 6px;       /* 稍微小一點的圓角 */
-  margin: 4px;              /* 更大的外邊距讓白色部分更小 */
-  padding: 8px 12px;        /* 調整內邊距讓白色區域更緊湊 */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+  margin: 4px;
+  padding: 8px 12px;
 }
 
 /* ----- 篩選器 ----- */
@@ -360,26 +356,22 @@
   cursor: pointer;
   transition: all 0.2s;
 }
-/* 確認按鈕 (深色背景) */
 .bulk-action-btn.confirm {
-  background-color: #0cbd41; /* 深綠色背景 */
+  background-color: #0cbd41;
   border-color: #25ea60;
   color: #ffffff;
 }
 .bulk-action-btn.confirm:hover {
-  background-color: #14a94a; /* 滑鼠懸停時變淺一點 */
+  background-color: #14a94a;
 }
-
-/* 駁回按鈕 (白色背景) */
 .bulk-action-btn.reject {
   background-color: #ff0000d8;
-  border-color: #d1d5db; /* 灰色邊框 */
+  border-color: #d1d5db;
   color: #ffffff;
 }
 .bulk-action-btn.reject:hover {
-  background-color: #cf0202; /* 滑鼠懸停時變灰一點 */
+  background-color: #cf0202;
 }
-
 .bulk-action-btn.issue-fine { background-color: #22c55e; }
 .bulk-action-btn.issue-fine:hover { background-color: #16a34a; }
 
@@ -400,7 +392,7 @@
   width: 20px;
   height: 20px;
   border: 2px solid #cbd5e1;
-  border-radius: 6px; /* 稍微方一點的圓角 */
+  border-radius: 6px;
   background-color: #fff;
   position: relative;
   cursor: pointer;
@@ -424,7 +416,7 @@
 }
 .header-cell.checkbox input[type="checkbox"]:checked,
 .card-cell.checkbox input[type="checkbox"]:checked {
-  background-color: #1f2937; /* 深灰色 */
+  background-color: #1f2937;
   border-color: #1f2937;
 }
 .header-cell.checkbox input[type="checkbox"]:checked::after,
@@ -436,13 +428,11 @@
 /* ======================================== */
 /*  【新增】罰單通知橫幅與按鈕樣式          */
 /* ======================================== */
-
-/* --- 罰單產生區按鈕 (綠色) --- */
 .generate-tickets-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background-color: #16a34a; /* 綠色背景 */
+  background-color: #16a34a;
   color: #ffffff;
   padding: 10px 16px;
   font-size: 14px;
@@ -454,13 +444,12 @@
   transition: background-color 0.2s;
 }
 .generate-tickets-btn:hover {
-  background-color: #15803d; /* 滑鼠懸停時變深 */
+  background-color: #15803d;
 }
 .generate-tickets-btn svg {
   font-size: 18px;
 }
 
-/* --- 通知橫幅 --- */
 .ticket-notification-bar {
   display: flex;
   align-items: center;
@@ -480,7 +469,6 @@
   color: #1f2937;
 }
 
-/* --- 橫幅內的連結 --- */
 .notification-link {
   color: #2563eb;
   font-weight: 500;
@@ -489,4 +477,230 @@
 }
 .notification-link:hover {
   text-decoration: underline;
+}
+
+/* ================================================================== */
+/* 【最終版】主從式介面佈局 (高度自適應)                              */
+/* ================================================================== */
+
+/* 外層 wrapper 使用 Flexbox 佈局，並讓子元素從頂部對齊 */
+.violation-log-page-wrapper {
+  display: flex;
+  background-color: #f9fafb;
+  min-height: 100vh;
+  align-items: flex-start; /* 關鍵：讓子元素頂部對齊，而不是拉伸 */
+}
+
+/* 左側列表區塊 */
+.violation-log-page {
+  padding: 24px;
+  width: 100%;
+  transition: width 0.35s ease-in-out;
+  box-sizing: border-box;
+}
+
+/* 右側詳情區塊 */
+.violation-detail-view {
+  width: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: width 0.35s ease-in-out, opacity 0.2s ease-in-out;
+  flex-shrink: 0;
+  /* 給右側一個與左側對齊的上邊距 */
+  margin-top: 24px;
+  padding-right: 24px; /* 與左側的 padding 對稱 */
+  box-sizing: content-box; /* 確保 padding 不會影響寬度計算 */
+}
+
+/* 當右側詳情頁出現時的佈局變化 */
+.violation-log-page-wrapper.detail-view-active .violation-log-page {
+  width: 60%;
+}
+
+.violation-log-page-wrapper.detail-view-active .violation-detail-view {
+  width: 40%;
+  opacity: 1;
+}
+
+/* 被選中的項目高亮效果 */
+.violation-card.detail-active {
+  background-color: #eef2ff !important;
+  border-left: 4px solid #4f46e5;
+  padding-left: 12px;
+}
+
+/* --- 右側詳情面板內部樣式 --- */
+.violation-detail-card {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  /* 卡片本身的外觀 */
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
+  /* 移除 height: 100%，讓高度由內容決定 */
+  width: 100%;
+}
+
+.detail-header {
+  margin-bottom: 16px;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.detail-header h3 { 
+  margin-top: 0; 
+  margin-bottom: 4px;
+  font-size: 20px;
+  color: #1f2937;
+}
+.detail-header p { 
+  margin: 0;
+  color: #6b7280; 
+  font-size: 14px;
+}
+
+/* 關閉按鈕樣式 */
+.close-detail-btn {
+  background: #f3f4f6;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #6b7280;
+  transition: background-color 0.2s, color 0.2s;
+  flex-shrink: 0;
+}
+.close-detail-btn:hover {
+  background-color: #e5e7eb;
+  color: #1f2937;
+}
+.close-detail-btn svg {
+  font-size: 24px;
+}
+
+.violation-image-placeholder {
+    width: 100%;
+    height: 200px;
+    background: #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9ca3af;
+    border: 1px dashed #d1d5db;
+    border-radius: 8px;
+    margin-bottom: 24px;
+    flex-shrink: 0;
+}
+
+.detail-form {
+    /* 移除 flex-grow: 1，讓表單高度由內容決定 */
+    overflow-y: auto; /* 如果內容過多，內部可以滾動 */
+    padding-right: 12px;
+}
+
+.form-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+}
+.form-row label {
+    width: 100px;
+    flex-shrink: 0;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 500;
+}
+.form-row input, 
+.form-row textarea, 
+.confidence-display {
+    flex-grow: 1;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    background-color: #f9fafb;
+    color: #1f2937;
+}
+.form-row input:read-only {
+    background-color: #f3f4f6;
+    cursor: default;
+}
+
+.form-row textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.confidence-display { 
+  border: none;
+  background-color: transparent;
+  padding: 8px 0;
+  display: flex;
+  align-items: center;
+}
+.confidence-level {
+    margin-left: 8px;
+    padding: 2px 8px;
+    background-color: #d1fae5;
+    color: #065f46;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.detail-footer-actions {
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+  /* 移除 margin-top: auto，讓 footer 緊跟內容 */
+  margin-top: 16px; /* 給一個固定的上邊距 */
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  background-color: #ffffff;
+  flex-shrink: 0;
+}
+
+.detail-footer-actions button {
+    padding: 10px 20px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 14px;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+.detail-footer-actions .btn-secondary {
+  background-color: #fff;
+  color: #374151;
+}
+.detail-footer-actions .btn-secondary:hover {
+  background-color: #f9fafb;
+}
+
+.detail-footer-actions .btn-primary {
+  background-color: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+.detail-footer-actions .btn-primary:hover {
+  background-color: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.detail-footer-actions .btn-success {
+  background-color: #16a34a;
+  color: white;
+  border-color: #16a34a;
+}
+.detail-footer-actions .btn-success:hover {
+  background-color: #15803d;
+  border-color: #15803d;
 }
