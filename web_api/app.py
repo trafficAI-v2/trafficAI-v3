@@ -44,6 +44,32 @@ def get_db_connection():
 
 
 # ==================================================
+# 【權限控制裝飾器 (修正版)】
+# ==================================================
+def admin_required():
+    def wrapper(fn):
+        @wraps(fn)
+        @jwt_required()
+        def decorator(*args, **kwargs):
+            # get_jwt() 會回傳解碼後的整個 token payload (一個字典)
+            # 我們的 token payload 包含了 "sub", "iat", "exp", 以及我們自己加的 "role" 和 "name"
+            claims = get_jwt()
+            
+            # 【核心修正】直接從 claims 字典中獲取 'role' 的值
+            # 為了安全，使用 .get() 方法，如果 'role' 不存在，預設回傳 None
+            user_role = claims.get("role")
+            
+            # 檢查 role 是否為 'admin'
+            if user_role != "admin":
+                return jsonify(error="權限不足，僅限管理員操作"), 403
+            
+            # 如果是 admin，則正常執行原始的 API 函式
+            return fn(*args, **kwargs)
+        return decorator
+    return wrapper
+
+
+# ==================================================
 # 攝影機相關 API
 # ==================================================
 @app.route('/cameras_status', methods=['GET'])
@@ -540,6 +566,7 @@ def get_analytics_data():
 # 【新增】使用者註冊 API (適應你的 users 表)
 # ==================================================
 @app.route('/api/register', methods=['POST'])
+@admin_required()
 def register():
     data = request.get_json()
     username = data.get('username')
@@ -599,12 +626,12 @@ def register():
 
 
 # ==================================================
-# 【新增】使用者登入 API (適應你的 users 表)
+# 【使用者登入 API (修正版)】
 # ==================================================
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json()
-    username = data.get('username') # 使用者可以用 username 或 email 登入
+    username = data.get('username')
     password = data.get('password')
 
     if not username or not password:
@@ -614,9 +641,9 @@ def login():
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # 【修改】查詢語句，允許使用 username 或 email 登入，並獲取必要資訊
+        # 【修改】我們現在也需要查詢 id，用來當作 identity
         sql = """
-            SELECT username, password, role, name, status 
+            SELECT id, username, password, role, name, status 
             FROM users 
             WHERE username = %s OR email = %s
         """
@@ -626,22 +653,24 @@ def login():
         conn.close()
 
         if user:
-            db_username, db_password_hash, db_role, db_name, db_status = user
+            db_id, db_username, db_password_hash, db_role, db_name, db_status = user
             
-            # 檢查帳號狀態
             if db_status != '啟用':
-                return jsonify({"error": "此帳號已被停用"}), 403 # 403 Forbidden
+                return jsonify({"error": "此帳號已被停用"}), 403
 
-            # 檢查密碼
             if check_password_hash(db_password_hash, password):
-                # 密碼正確，產生 JWT
-                # 我們可以將使用者的角色和姓名等資訊放進 token 中
-                identity_data = {"username": db_username, "role": db_role, "name": db_name}
-                access_token = create_access_token(identity=identity_data)
+                # 【核心修正】
+                # 1. `identity` 使用唯一且簡單的值，例如使用者名稱。
+                identity = db_username
+                
+                # 2. 將角色 (role) 和姓名 (name) 等額外資訊，放到 `additional_claims` 中。
+                additional_claims = {"role": db_role, "name": db_name}
+                
+                # 3. 產生 token
+                access_token = create_access_token(identity=identity, additional_claims=additional_claims)
                 
                 return jsonify(access_token=access_token)
 
-        # 如果使用者不存在或密碼錯誤，都回傳相同的錯誤訊息以增加安全性
         return jsonify({"error": "使用者名稱或密碼錯誤"}), 401
 
     except Exception as e:
@@ -803,6 +832,7 @@ def reset_password():
     except Exception as e:
         print(f"❌ Error in reset_password: {e}")
         return jsonify({"error": "伺服器內部錯誤"}), 500
+
 
 
     
