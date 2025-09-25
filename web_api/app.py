@@ -147,9 +147,10 @@ def get_violations():
         date = request.args.get('date')
 
         # 2. 建立基礎 SQL 查詢語句和一個空的參數列表
-        # 【修改】在 SELECT 查詢的最前面加上 id
+        # 【修改】在 SELECT 查詢中加上車主資訊和 fine 欄位
         base_query = """
-            SELECT id, violation_type, license_plate, timestamp, violation_address, status
+            SELECT id, violation_type, license_plate, timestamp, violation_address, status, fine,
+                   owner_name, owner_phone, owner_email, owner_address
             FROM violations
             WHERE 1=1
         """
@@ -185,7 +186,7 @@ def get_violations():
         conn.close()
 
         # 6. 將從資料庫取出的原始資料 (tuple) 格式化為前端需要的 JSON 格式
-        # 【修改】將 id 加入回傳的 JSON 中，並更新所有欄位的索引
+        # 【修改】將車主資訊和 fine 加入回傳的 JSON 中，並更新所有欄位的索引
         violations = [
             {
                 'id': row[0],           # id 現在是第 0 個欄位
@@ -194,7 +195,12 @@ def get_violations():
                 'vehicleType': '',
                 'timestamp': row[3].isoformat() if row[3] else None, # timestamp 是第 3 個
                 'location': row[4],     # violation_address 是第 4 個
-                'status': row[5]        # status 是第 5 個
+                'status': row[5],       # status 是第 5 個
+                'fine': row[6],         # fine 是第 6 個
+                'ownerName': row[7],    # owner_name 是第 7 個
+                'ownerPhone': row[8],   # owner_phone 是第 8 個
+                'ownerEmail': row[9],   # owner_email 是第 9 個
+                'ownerAddress': row[10] # owner_address 是第 10 個
             }
             for row in violations_raw
         ]
@@ -334,6 +340,96 @@ def get_confirmed_violations_count():
     except Exception as e:
         print(f"❌ Error in get_confirmed_violations_count: {e}")
         return jsonify({'error': 'Internal Server Error'}), 500
+
+
+# ==================================================
+# 【新增】車主資料查詢 API
+# ==================================================
+@app.route('/api/owners/<plate_number>', methods=['GET'])
+def get_owner_info(plate_number):
+    """
+    根據車牌號碼查詢車主資料
+    參數: plate_number - 車牌號碼 (URL 路徑參數)
+    回傳: 車主完整資訊 (基於 owners 資料表結構)
+    """
+    try:
+        if not plate_number:
+            return jsonify({'error': '車牌號碼不能為空'}), 400
+
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            # 查詢車主資料，使用精確匹配
+            cur.execute("""
+                SELECT license_plate_number, full_name, id_number, email, 
+                       phone_number, address, vehicle_type
+                FROM owners 
+                WHERE license_plate_number = %s;
+            """, (plate_number,))
+            
+            owner_data = cur.fetchone()
+        conn.close()
+
+        if not owner_data:
+            return jsonify({'error': '找不到該車牌號碼的車主資料'}), 404
+
+        # 格式化回傳資料
+        owner_info = {
+            'license_plate_number': owner_data[0],
+            'full_name': owner_data[1],
+            'id_number': owner_data[2],
+            'email': owner_data[3],
+            'phone_number': owner_data[4],
+            'address': owner_data[5],
+            'vehicle_type': owner_data[6]
+        }
+
+        return jsonify(owner_info), 200
+
+    except Exception as e:
+        print(f"❌ Error in get_owner_info: {e}")
+        return jsonify({'error': 'Internal Server Error', 'details': str(e)}), 500
+
+
+# ==================================================
+# 【新增】根據車牌號碼查詢車輛類型 API
+# ==================================================
+@app.route('/api/owners/<plate_number>/vehicle-type', methods=['GET'])
+def get_vehicle_type(plate_number):
+    """
+    根據車牌號碼查詢車輛類型
+    參數: plate_number - 車牌號碼 (URL 路徑參數)
+    回傳: 車輛類型資訊
+    """
+    try:
+        if not plate_number:
+            return jsonify({'error': '車牌號碼不能為空'}), 400
+
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            # 只查詢車輛類型，簡化回應
+            cur.execute("""
+                SELECT license_plate_number, vehicle_type
+                FROM owners 
+                WHERE license_plate_number = %s;
+            """, (plate_number,))
+            
+            owner_data = cur.fetchone()
+        conn.close()
+
+        if not owner_data:
+            return jsonify({'error': '找不到該車牌號碼的車輛類型'}), 404
+
+        # 格式化回傳資料
+        vehicle_info = {
+            'license_plate_number': owner_data[0],
+            'vehicle_type': owner_data[1]
+        }
+
+        return jsonify(vehicle_info), 200
+
+    except Exception as e:
+        print(f"❌ Error in get_vehicle_type: {e}")
+        return jsonify({'error': 'Internal Server Error', 'details': str(e)}), 500
     
 
 # ==================================================
