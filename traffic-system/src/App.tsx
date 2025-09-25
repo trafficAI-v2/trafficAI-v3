@@ -12,6 +12,10 @@ import ViolationLog from './pages/ViolationLog';
 import GenerateTickets from './components/violations/GenerateTickets';
 import Analytics from './pages/Analytics';
 import { useAuth } from './context/AuthContext'; // 引入我們自訂的 useAuth Hook
+import SystemManagement from './pages/SystemManagement'; // 引入新頁面
+
+
+
 
 // -------------------------------------------------------------------------
 // 【升級版：「路由守衛」元件】
@@ -62,6 +66,7 @@ function App() {
         <Route path="violations" element={<ViolationLog />} />
         <Route path="generate-tickets" element={<GenerateTickets />} />
         <Route path="analytics" element={<Analytics />} />
+        <Route path="system" element={<SystemManagement />} /> {/* <--- 新增這一行 */}
       </Route>
       
       {/* --- 備用路由 --- */}

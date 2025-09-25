@@ -1,22 +1,22 @@
-/* 頂部導航欄css */
+/* 頂部導航欄 CSS */
 
 .app-header {
-  /* --- 新增/修改的樣式 --- */
-  position: fixed; /* 關鍵！讓元素相對於瀏覽器視窗定位 */
-  top: 0;          /* 固定在頂部 */
-  left: 0;         /* 從左邊緣開始 */
-  right: 0;        /* 延伸到右邊緣 (等同於 width: 100%) */
-  z-index: 1000;   /* 確保 Header 在所有其他內容之上，避免被覆蓋 */
+  /* --- 固定定位 --- */
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
 
-  /* --- 以下是你原有的樣式，保持不變 --- */
+  /* --- 佈局樣式 --- */
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 24px;
-  height: 64px;
-  background-color: #fff;
-  border-bottom: 1px solid #f0f0f0;
-  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+  padding: 0 var(--spacing-lg);
+  height: var(--header-height);
+  background-color: var(--bg-primary);
+  border-bottom: 1px solid var(--border-light);
+  box-shadow: var(--shadow-light);
 }
 
 /* ----- 左側 Logo 區塊 ----- */

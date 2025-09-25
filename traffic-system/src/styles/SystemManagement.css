@@ -1,0 +1,139 @@
+/* src/styles/SystemManagement.css */
+
+/* --- 1. 頁面容器與標題 --- */
+/* 我們可以沿用許多在 dashboard.css 或 violationlog.css 中已經定義好的樣式 */
+/* 這裡假設你有一個通用的 .page-container 和 .page-header */
+/* 如果沒有，可以從 dashboard.css 複製過來 */
+.page-container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  
+/* ----- 頁面標題 ----- */
+.page-header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  .page-header-container h1 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 600;
+    color: #1f2937;
+  }
+  .page-header-container p {
+    margin: 4px 0 0;
+    color: #6b7280;
+    font-size: 16px;
+  }
+  
+  /* --- 2. 系統管理頁面的主要內容容器 --- */
+  /* 這是一個白色的卡片，用來包裹所有的設定區塊 */
+  .system-management-content {
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
+    display: flex;
+    flex-direction: column;
+    gap: 24px; /* 每個管理區塊之間的間距 */
+  }
+  
+  /* --- 3. 區塊標題與工具列 --- */
+  /* 用於「使用者管理」這樣的大標題，以及旁邊的「新增使用者」按鈕 */
+  .management-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .management-section-header h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #1f2937;
+  }
+  
+  /* --- 4. 「新增使用者」按鈕樣式 --- */
+  .add-user-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #1f2937; /* 深色背景 */
+    color: #ffffff;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .add-user-button:hover {
+    background-color: #374151; /* 滑鼠懸停時變深一點 */
+  }
+  
+  .add-user-button svg {
+    font-size: 18px;
+  }
+  
+  
+  /* --- 5. 使用者列表的表格樣式 (預留) --- */
+  /* 這些樣式會在我們下一步建立使用者列表時用到 */
+  .user-table-container {
+    width: 100%;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden; /* 確保圓角效果 */
+  }
+  
+  .user-table {
+    width: 100%;
+    border-collapse: collapse; /* 讓表格邊框合併 */
+  }
+  
+  .user-table th,
+  .user-table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .user-table th {
+    background-color: #f9fafb;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6b7280;
+  }
+  
+  .user-table td {
+    font-size: 14px;
+    color: #374151;
+  }
+  
+  /* 角色標籤的樣式 */
+  .role-tag {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    text-align: center;
+    white-space: nowrap;
+  }
+  
+  .role-tag.admin {
+    background-color: #fee2e2; /* 淡紅色 */
+    color: #991b1b;
+  }
+  
+  .role-tag.operator {
+    background-color: #e0e7ff; /* 淡藍色 */
+    color: #4338ca;
+  }
