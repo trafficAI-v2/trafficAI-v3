@@ -120,7 +120,7 @@ def recognize_plate_with_gemini(image_path, api_key):
     genai.configure(api_key=api_key)
     if not os.path.exists(image_path):
         return None
-    model = genai.GenerativeModel('gemini-1.5-flash-latest')
+    model = genai.GenerativeModel('gemini-2.5-flash-lite')
     image = Image.open(image_path)
     prompt = """
 你是一個高度專業的車牌辨識 AI。你的任務分為兩個步驟：
