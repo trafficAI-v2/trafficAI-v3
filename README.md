@@ -34,9 +34,13 @@ cd trafficAI-v2
 ### 4. 一鍵啟動系統
 
 #### 方法一：自動化啟動 (推薦)
+```bash
+# 首次部署或重大更新
+./deploy_with_features.sh
+```
 
 ```bash
-# 完整系統重啟
+# 日常重啟
 ./restart_system.sh
 ```
 
