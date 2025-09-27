@@ -397,15 +397,27 @@ def get_owner_info(plate_number):
 
         conn = get_db_connection()
         with conn.cursor() as cur:
-            # 查詢車主資料，使用精確匹配
-            cur.execute("""
-                SELECT license_plate_number, full_name, id_number, email, 
-                       phone_number, address, vehicle_type
-                FROM owners 
-                WHERE license_plate_number = %s;
-            """, (plate_number,))
-            
-            owner_data = cur.fetchone()
+            # 先嘗試查詢所有欄位，如果失敗則查詢基本欄位
+            try:
+                cur.execute("""
+                    SELECT license_plate_number, full_name, id_number, email, 
+                           phone_number, address, vehicle_type, gender, date_of_birth
+                    FROM owners 
+                    WHERE license_plate_number = %s;
+                """, (plate_number,))
+                owner_data = cur.fetchone()
+                has_extended_fields = True
+            except Exception as e:
+                print(f"⚠️ Extended fields not available, using basic fields: {e}")
+                # 回退到基本欄位
+                cur.execute("""
+                    SELECT license_plate_number, full_name, id_number, email, 
+                           phone_number, address, vehicle_type
+                    FROM owners 
+                    WHERE license_plate_number = %s;
+                """, (plate_number,))
+                owner_data = cur.fetchone()
+                has_extended_fields = False
         conn.close()
 
         if not owner_data:
@@ -419,7 +431,9 @@ def get_owner_info(plate_number):
             'email': owner_data[3],
             'phone_number': owner_data[4],
             'address': owner_data[5],
-            'vehicle_type': owner_data[6]
+            'vehicle_type': owner_data[6],
+            'gender': owner_data[7] if has_extended_fields and len(owner_data) > 7 else '',
+            'date_of_birth': owner_data[8] if has_extended_fields and len(owner_data) > 8 else ''
         }
 
         return jsonify(owner_info), 200

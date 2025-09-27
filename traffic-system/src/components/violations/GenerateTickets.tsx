@@ -5,13 +5,14 @@ import {
 } from 'react-icons/bi';
 import { FaExclamationTriangle, FaFileInvoiceDollar } from 'react-icons/fa';
 import './GenerateTickets.css';
+import TicketGenerationModal from './TicketGenerationModal';
 
 // --- API Endpoints ---
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-// 指向新的「罰單列表」專用 API
+// 使用現有的違規記錄 API 而不是專門的罰單 API
 const getViolationsByStatusURL = (status: string) => 
-  `${API_BASE_URL}/api/tickets/list?status=${encodeURIComponent(status)}`;
+  `${API_BASE_URL}/get_violations?status=${encodeURIComponent(status)}`;
 
 // 指向新的「罰單統計」專用 API
 const GET_COUNTS_URL = `${API_BASE_URL}/api/tickets/counts`;
@@ -43,6 +44,10 @@ const GenerateTickets: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // 模態視窗狀態
+  const [selectedViolation, setSelectedViolation] = useState<Violation | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // --- 資料獲取邏輯 ---
 
@@ -72,8 +77,28 @@ const GenerateTickets: React.FC = () => {
       if (!response.ok) {
         throw new Error(`無法獲取狀態為 "${status}" 的列表`);
       }
-      const data: Violation[] = await response.json();
-      setViolations(data);
+      const responseData = await response.json();
+      
+      // 處理分頁回應格式
+      let violationsData = [];
+      if (responseData.data && Array.isArray(responseData.data)) {
+        // 新的分頁格式
+        violationsData = responseData.data;
+      } else if (Array.isArray(responseData)) {
+        // 舊格式（直接陣列）
+        violationsData = responseData;
+      }
+      
+      // 轉換為符合界面需求的格式
+      const formattedViolations = violationsData.map((item: any) => ({
+        id: item.id,
+        type: item.type || item.violation_type,
+        plateNumber: item.plateNumber || item.license_plate,
+        timestamp: item.timestamp,
+        location: item.location || item.violation_address
+      }));
+      
+      setViolations(formattedViolations);
     } catch (err: any) {
       setError(err.message);
       console.error("獲取資料失敗:", err);
@@ -94,15 +119,17 @@ const GenerateTickets: React.FC = () => {
   const formatTimestamp = (isoString: string): { date: string, time: string } => {
     if (!isoString) return { date: 'N/A', time: '' };
     try {
-      const dateObj = new Date(isoString);
-      const date = `${dateObj.getFullYear()}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}`;
-      const hours = dateObj.getHours();
-      const minutes = String(dateObj.getMinutes()).padStart(2, '0');
-      const seconds = String(dateObj.getSeconds()).padStart(2, '0');
+      // 使用與 ViolationLog.tsx 相同的時間解析邏輯
+      const [datePartStr, timePartStrWithZone] = isoString.split('T');
+      const datePart = datePartStr.replace(/-/g, '/');
+      if (!timePartStrWithZone) return { date: datePart, time: '' };
+      const mainTimePart = timePartStrWithZone.split('.')[0];
+      const [hours, minutes, seconds] = mainTimePart.split(':').map(Number);
+      if ([hours, minutes, seconds].some(isNaN)) throw new Error('Invalid time');
       const ampm = hours >= 12 ? '下午' : '上午';
-      const displayHours = hours % 12 || 12;
-      const time = `${ampm} ${displayHours}:${minutes}:${seconds}`;
-      return { date, time };
+      let displayHours = hours % 12 || 12;
+      const timePart = `${ampm} ${displayHours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      return { date: datePart, time: timePart };
     } catch (e) {
       console.error("無法解析時間戳字串:", isoString, e);
       return { date: '無效日期', time: '' };
@@ -111,32 +138,21 @@ const GenerateTickets: React.FC = () => {
 
   // --- 事件處理函式 ---
   const handleGenerateTicket = async (violationToGenerate: Violation) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/violation/${violationToGenerate.id}/generate-ticket`, {
-        method: 'POST',
-      });
-
-      // 【建議修改】更強壯的錯誤處理
-      if (!response.ok) {
-        let errorMessage = `後端伺服器發生錯誤 (HTTP ${response.status})`;
-        try {
-          const errorData = await response.json();
-          if (errorData && errorData.error) {
-            errorMessage = errorData.error;
-          }
-        } catch (jsonError) {
-          console.error("無法將錯誤回應解析為 JSON:", jsonError);
-        }
-        throw new Error(errorMessage);
-      }
-      
-      fetchViolations(activeTab);
-      fetchCounts();
-
-    } catch (err: any) {
-      alert(`操作失敗: ${err.message}`);
-      console.error("生成罰單時發生錯誤:", err);
-    }
+    // 開啟模態視窗而不是直接生成罰單
+    setSelectedViolation(violationToGenerate);
+    setIsModalOpen(true);
+  };
+  
+  // 模態視窗關閉處理
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedViolation(null);
+  };
+  
+  // 模態視窗成功處理
+  const handleModalSuccess = () => {
+    fetchViolations(activeTab);
+    fetchCounts();
   };
   
   const filteredList = violations.filter(v => 
@@ -255,6 +271,14 @@ const GenerateTickets: React.FC = () => {
             </button>
         </div>
       </div>
+      
+      {/* 罰單生成模態視窗 */}
+      <TicketGenerationModal
+        violation={selectedViolation}
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        onSuccess={handleModalSuccess}
+      />
     </div>
   );
 };
