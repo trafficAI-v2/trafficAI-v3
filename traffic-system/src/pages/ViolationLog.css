@@ -678,22 +678,22 @@
     font-size: 14px;
     transition: background-color 0.2s, border-color 0.2s;
 }
-.detail-footer-actions .btn-secondary {
-  background-color: #fff;
-  color: #374151;
-}
-.detail-footer-actions .btn-secondary:hover {
-  background-color: #f9fafb;
-}
-
 .detail-footer-actions .btn-primary {
-  background-color: #2563eb;
-  color: white;
-  border-color: #2563eb;
+  background-color: #0cbd41;
+  border-color: #14a94a;
+  color: #ffffff;
 }
 .detail-footer-actions .btn-primary:hover {
-  background-color: #1d4ed8;
-  border-color: #1d4ed8;
+  background-color: #14a94a;
+}
+
+.detail-footer-actions .btn-secondary {
+  background-color: #ff0000d8;
+  color: #d1d5db;
+  border-color: #ffffff;
+}
+.detail-footer-actions .btn-secondary:hover {
+  background-color: #cf0202;
 }
 
 .detail-footer-actions .btn-success {
