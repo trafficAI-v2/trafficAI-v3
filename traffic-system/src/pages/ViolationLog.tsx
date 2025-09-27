@@ -294,6 +294,11 @@ const ViolationLog: React.FC = () => {
   const [confirmedCount, setConfirmedCount] = useState<number>(0);
   const [selectedViolation, setSelectedViolation] = useState<ViolationRecord | null>(null);
   
+  // 【新增】分頁相關狀態
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalRecords, setTotalRecords] = useState<number>(0);
+  const recordsPerPage = 10; // 每頁顯示10筆資料
+  
 
 
   // --- 輔助函式 ---
@@ -351,11 +356,25 @@ const ViolationLog: React.FC = () => {
         if (filterType !== '所有類型') params.append('type', filterType);
         if (filterLocation !== '所有地點') params.append('location', filterLocation);
         if (filterDate) params.append('date', filterDate);
+        // 【新增】分頁參數
+        params.append('page', currentPage.toString());
+        params.append('limit', recordsPerPage.toString());
+        
         const fetchUrl = `${VIOLATIONS_URL}?${params.toString()}`;
         const response = await fetch(fetchUrl);
         if (!response.ok) throw new Error(`獲取違規紀錄失敗 (HTTP ${response.status})`);
-        const data: ViolationRecord[] = await response.json();
-        setViolations(data);
+        
+        // 【修改】處理分頁回傳格式
+        const responseData = await response.json();
+        if (responseData.data && responseData.pagination) {
+          // 新格式：包含分頁資訊
+          setViolations(responseData.data);
+          setTotalRecords(responseData.pagination.total_records);
+        } else {
+          // 舊格式：直接是陣列（兼容性處理）
+          setViolations(responseData);
+          setTotalRecords(responseData.length);
+        }
       } catch (err: any) {
         setError(err.message);
         console.error("獲取違規紀錄失敗:", err);
@@ -365,7 +384,7 @@ const ViolationLog: React.FC = () => {
     };
     const handler = setTimeout(fetchViolations, 300);
     return () => clearTimeout(handler);
-  }, [activeTab, searchTerm, filterType, filterLocation, filterDate]);
+  }, [activeTab, searchTerm, filterType, filterLocation, filterDate, currentPage]);
 
   useEffect(() => {
     if (headerCheckboxRef.current) {
@@ -376,9 +395,43 @@ const ViolationLog: React.FC = () => {
     }
   }, [selectedIds, violations]);
 
+  // 【新增】當篩選條件改變時，重設到第一頁
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, searchTerm, filterType, filterLocation, filterDate]);
+
   useEffect(() => {
     fetchConfirmedCount();
   }, []);
+
+  // 【新增】分頁控制函式
+  const totalPages = Math.ceil(totalRecords / recordsPerPage);
+  
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  const getPaginationNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      const startPage = Math.max(1, currentPage - 2);
+      const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+      
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+      }
+    }
+    
+    return pages;
+  };
 
   const formatTimestamp = (isoString: string): { date: string, time: string } => {
     if (!isoString) return { date: 'N/A', time: '' };
@@ -693,7 +746,44 @@ const ViolationLog: React.FC = () => {
           </div>
 
           <div className="log-footer">
-            <span>顯示 {violations.length} 筆，共 {violations.length} 筆紀錄</span>
+            <div className="pagination-info">
+              <span>
+                顯示第 {((currentPage - 1) * recordsPerPage) + 1} - {Math.min(currentPage * recordsPerPage, totalRecords)} 筆，
+                共 {totalRecords} 筆紀錄
+              </span>
+            </div>
+            
+            {/* 分頁控件 */}
+            {totalPages > 1 && (
+              <div className="pagination-controls">
+                <button 
+                  className="pagination-btn"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  上一頁
+                </button>
+                
+                {getPaginationNumbers().map(page => (
+                  <button
+                    key={page}
+                    className={`pagination-btn ${page === currentPage ? 'active' : ''}`}
+                    onClick={() => handlePageChange(page)}
+                  >
+                    {page}
+                  </button>
+                ))}
+                
+                <button 
+                  className="pagination-btn"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  下一頁
+                </button>
+              </div>
+            )}
+            
             <button className="export-button">
               <BiDownload />
               匯出紀錄

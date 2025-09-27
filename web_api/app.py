@@ -137,6 +137,8 @@ def get_violations():
     - type: 違規類型 (精確匹配)
     - location: 違規地點 (精確匹配)
     - date: 違規日期 (YYYY-MM-DD, 精確匹配)
+    - page: 頁碼 (從 1 開始，默認為 1)
+    - limit: 每頁記錄數 (默認為 10)
     """
     try:
         # 1. 從請求的 URL 中獲取所有可能的查詢參數
@@ -145,6 +147,11 @@ def get_violations():
         v_type = request.args.get('type')
         location = request.args.get('location')
         date = request.args.get('date')
+        
+        # 【新增】分頁參數
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 10))
+        offset = (page - 1) * limit
 
         # 2. 建立基礎 SQL 查詢語句和一個空的參數列表
         # 【修改】在 SELECT 查詢中加上車主資訊和 fine 欄位
@@ -154,34 +161,52 @@ def get_violations():
             FROM violations
             WHERE 1=1
         """
+        
+        # 建立計數查詢，用於獲取總記錄數
+        count_query = """
+            SELECT COUNT(*)
+            FROM violations
+            WHERE 1=1
+        """
+        
         params = [] # 參數列表，用於安全地傳遞值，防止 SQL Injection
 
         # 3. 根據傳入的參數，動態地建立 SQL 的 WHERE 條件
         # (這部分的 if 判斷邏輯完全不需要變動)
         if status and status != '全部':
             base_query += " AND status = %s"
+            count_query += " AND status = %s"
             params.append(status)
         if search:
             base_query += " AND license_plate ILIKE %s"
+            count_query += " AND license_plate ILIKE %s"
             search_term = f"%{search}%"
             params.append(search_term)
         if v_type and v_type != '所有類型':
             base_query += " AND violation_type = %s"
+            count_query += " AND violation_type = %s"
             params.append(v_type)
         if location and location != '所有地點':
             base_query += " AND violation_address = %s"
+            count_query += " AND violation_address = %s"
             params.append(location)
         if date:
             base_query += " AND timestamp::date = %s"
+            count_query += " AND timestamp::date = %s"
             params.append(date)
 
-        # 4. 加入排序，讓最新的紀錄顯示在最上面
-        base_query += " ORDER BY timestamp DESC"
+        # 4. 加入排序和分頁，讓最新的紀錄顯示在最上面
+        base_query += " ORDER BY timestamp DESC LIMIT %s OFFSET %s"
 
         # 5. 連接資料庫並執行查詢
         conn = get_db_connection()
         with conn.cursor() as cur:
-            cur.execute(base_query, tuple(params))
+            # 先獲取總記錄數
+            cur.execute(count_query, tuple(params))
+            total_count = cur.fetchone()[0]
+            
+            # 再獲取分頁數據
+            cur.execute(base_query, tuple(params + [limit, offset]))
             violations_raw = cur.fetchall()
         conn.close()
 
@@ -205,8 +230,22 @@ def get_violations():
             for row in violations_raw
         ]
 
-        # 7. 回傳 JSON 格式的結果
-        return jsonify(violations)
+        # 7. 回傳包含分頁信息的 JSON 格式結果
+        total_pages = (total_count + limit - 1) // limit  # 計算總頁數
+        
+        response = {
+            'data': violations,
+            'pagination': {
+                'current_page': page,
+                'total_pages': total_pages,
+                'total_records': total_count,
+                'records_per_page': limit,
+                'has_next': page < total_pages,
+                'has_previous': page > 1
+            }
+        }
+        
+        return jsonify(response)
 
     except Exception as e:
         print(f"❌ Error in get_violations: {e}")
