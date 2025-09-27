@@ -589,16 +589,122 @@
 
 .violation-image-placeholder {
     width: 100%;
-    height: 200px;
-    background: #f3f4f6;
+    height: 400px; /* 增加高度從 250px 到 400px */
+    background: #f8fafc;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #9ca3af;
-    border: 1px dashed #d1d5db;
-    border-radius: 8px;
+    color: #64748b;
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
     margin-bottom: 24px;
     flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.violation-image-placeholder:hover {
+    border-color: #3b82f6;
+    background: #f1f5f9;
+}
+
+/* 載入狀態 */
+.image-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    color: #3b82f6;
+}
+
+.image-loading::before {
+    content: '';
+    width: 32px;
+    height: 32px;
+    border: 3px solid #e2e8f0;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* 錯誤狀態 */
+.image-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: #dc2626;
+    background: #fef2f2;
+    border-color: #fecaca;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+/* 圖片顯示容器 */
+.violation-image {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.violation-image img {
+    width: 100%;
+    height: 360px; /* 增加圖片高度從 200px 到 360px */
+    object-fit: contain; /* 改為 contain 以確保整張圖片都顯示 */
+    object-position: center;
+    border-radius: 8px 8px 0 0;
+    transition: transform 0.3s ease;
+    background: #f8fafc; /* 添加背景色以防圖片有透明部分 */
+}
+
+.violation-image img:hover {
+    transform: scale(1.05); /* 稍微增加懸停縮放效果 */
+}
+
+.violation-image p {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,0.8));
+    color: rgb(255, 255, 255);
+    padding: 20px 16px 16px; /* 增加內邊距 */
+    margin: 0;
+    font-size: 15px; /* 稍微增大字體 */
+    font-weight: 500;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5); /* 添加文字陰影 */
+}
+
+/* 預設佔位符樣式 */
+.image-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px; /* 增加間距 */
+    color: #9ca3af;
+    font-size: 18px; /* 增大字體 */
+}
+
+.image-placeholder p:first-child {
+    font-size: 32px; /* 增大圖標字體 */
+    margin: 0;
+}
+
+.image-placeholder p:last-child {
+    margin: 0;
+    opacity: 0.7;
+    font-size: 16px;
 }
 
 .detail-form {
@@ -618,6 +724,8 @@
     color: #374151;
     font-size: 14px;
     font-weight: 500;
+    display: flex; /* 添加 flex 布局以便對齊 */
+    align-items: center; /* 垂直居中對齊 */
 }
 .form-row input, 
 .form-row textarea, 
@@ -638,6 +746,26 @@
 .form-row textarea {
   min-height: 80px;
   resize: vertical;
+}
+
+.owner-info label{
+  width: auto; /* 讓寬度自適應文字內容 */
+  min-width: 0; /* 移除最小寬度限制 */
+  color: #e31616;
+  font-weight: 600;
+  background-color: rgb(255, 186, 186);
+  text-align: left;
+  border-radius: 20px; /* 添加圓角 */
+  padding: 4px 12px; /* 添加內邊距讓背景包覆文字 */
+  font-size: 14px; /* 與狀態標籤相同的字體大小 */
+  white-space: nowrap; /* 防止換行 */
+  display: inline-block; /* 改為 inline-block 讓寬度自適應 */
+  margin-right: 20px; /* 在標籤和輸入框之間添加間距 */
+}
+
+/* 調整 form-row 的佈局以配合新的標籤樣式 */
+.form-row.owner-info {
+    align-items: center; /* 確保垂直對齊 */
 }
 
 .confidence-display { 

@@ -59,6 +59,11 @@ const ViolationDetail: React.FC<{
   const [vehicleTypeLoading, setVehicleTypeLoading] = useState<boolean>(false);
   const [vehicleTypeError, setVehicleTypeError] = useState<string | null>(null);
 
+  // 【新增】圖片數據狀態管理
+  const [imageData, setImageData] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState<boolean>(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+
   // 使用與主列表相同的日期格式化邏輯，避免時區問題
   const formatDate = (isoString: string): string => {
     if (!isoString) return 'N/A';
@@ -97,12 +102,45 @@ const ViolationDetail: React.FC<{
     }
   };
 
-  // 當違規記錄變更時，查詢車輛類型
+  // 【新增】獲取違規圖片
+  const fetchViolationImage = async (violationId: number) => {
+    if (!API_BASE_URL || !violationId) return;
+    
+    setImageLoading(true);
+    setImageError(null);
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/violations/${violationId}/image`);
+      if (!response.ok) {
+        if (response.status === 404) {
+          setImageError('找不到該違規紀錄的圖片');
+          return;
+        }
+        throw new Error(`獲取圖片失敗 (HTTP ${response.status})`);
+      }
+      const data = await response.json();
+      if (data.success && data.image_data) {
+        setImageData(data.image_data);
+      } else {
+        setImageError('圖片數據格式錯誤');
+      }
+    } catch (err: any) {
+      console.error("獲取違規圖片失敗:", err);
+      setImageError(err.message || '獲取圖片時發生錯誤');
+    } finally {
+      setImageLoading(false);
+    }
+  };
+
+  // 當違規記錄變更時，查詢車輛類型和圖片
   useEffect(() => {
     if (violation.plateNumber) {
       fetchVehicleType(violation.plateNumber);
     }
-  }, [violation.plateNumber]);
+    if (violation.id) {
+      fetchViolationImage(violation.id);
+    }
+  }, [violation.plateNumber, violation.id]);
 
   const formattedDate = formatDate(violation.timestamp);
 
@@ -127,7 +165,37 @@ const ViolationDetail: React.FC<{
         </div>
 
         <div className="violation-image-placeholder">
-            <p>違規道路照片</p>
+            {imageLoading ? (
+                <div className="image-loading">
+                    <p>載入違規照片中...</p>
+                </div>
+            ) : imageError ? (
+                <div className="image-error">
+                    <p>❌ {imageError}</p>
+                    <p style={{ fontSize: '14px', opacity: '0.8' }}>請檢查網路連線或聯絡系統管理員</p>
+                </div>
+            ) : imageData ? (
+                <div className="violation-image">
+                    <img 
+                        src={`data:image/jpeg;base64,${imageData}`} 
+                        alt={`車牌 ${violation.plateNumber} 的違規照片`}
+                        onError={() => {
+                            console.error('圖片載入失敗');
+                            setImageError('圖片載入失敗');
+                        }}
+                        onLoad={() => {
+                            console.log('圖片載入成功');
+                        }}
+                    />
+                    <p>車牌：{violation.plateNumber} | 違規類型：{violation.type}</p>
+                </div>
+            ) : (
+                <div className="image-placeholder">
+                    <p>📷</p>
+                    <p>違規道路照片</p>
+                    <p style={{ fontSize: '14px', color: '#000000ff' }}>暫無圖片數據</p>
+                </div>
+            )}
         </div>
 
         <div className="detail-form">
@@ -167,18 +235,17 @@ const ViolationDetail: React.FC<{
                 <label>違規地點</label>
                 <input type="text" value={violation.location} readOnly />
             </div>
-            {/* 【修改】車主姓名欄位 - 直接使用 violations 資料表中的車主資訊 */}
-            <div className="form-row">
+            <div className="form-row owner-info">
                 <label>車主姓名</label>
                 <input type="text" value={violation.ownerName || '未提供'} readOnly />
             </div>
             {/* 【新增】車主聯絡電話欄位 */}
-            <div className="form-row">
+            <div className="form-row owner-info">
                 <label>車主電話</label>
                 <input type="text" value={violation.ownerPhone || '未提供'} readOnly />
             </div>
             {/* 【新增】車主地址欄位 */}
-            <div className="form-row">
+            <div className="form-row owner-info">
                 <label>車主地址</label>
                 <input type="text" value={violation.ownerAddress || '未提供'} readOnly />
             </div>

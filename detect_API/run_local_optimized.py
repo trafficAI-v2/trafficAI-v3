@@ -14,6 +14,7 @@ import psycopg2
 import threading
 import logging
 import queue
+import base64
 from datetime import datetime
 from ultralytics import YOLO
 from dotenv import load_dotenv
@@ -127,12 +128,24 @@ def save_to_database(owner_info, image_path):
         return None
         
     db_start_time = time.time()
+    
+    # 讀取圖片並轉換為base64
+    image_data = None
+    try:
+        if image_path and os.path.exists(image_path):
+            with open(image_path, 'rb') as image_file:
+                image_binary = image_file.read()
+                image_data = base64.b64encode(image_binary).decode('utf-8')
+                logging.info(f"📷 圖片已轉換為base64，大小: {len(image_data)} 字元")
+    except Exception as e:
+        logging.error(f"❌ 讀取圖片檔案失敗: {e}")
+    
     sql = """
         INSERT INTO violations (
             license_plate, owner_name, owner_phone, owner_email,
             owner_address, violation_type, violation_address,
-            image_path, timestamp, fine
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
+            image_path, image_data, timestamp, fine
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
         RETURNING id, violation_type, license_plate, timestamp, status; 
     """
     try:
@@ -153,6 +166,7 @@ def save_to_database(owner_info, image_path):
                     '未戴安全帽',
                     '高雄市燕巢區安招里安林路112號',
                     image_path,
+                    image_data,  # base64編碼的圖片數據
                     timestamp_now,
                     800
                 ))

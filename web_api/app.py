@@ -951,6 +951,71 @@ def reset_password():
 
 
 # ==================================================
+# 【新增】獲取違規圖片 API
+# ==================================================
+@app.route('/api/violations/<int:violation_id>/image', methods=['GET'])
+def get_violation_image(violation_id):
+    """
+    根據違規紀錄 ID 獲取對應的 base64 編碼圖片數據
+    參數: violation_id - 違規紀錄的 ID (URL 路徑參數)
+    回傳: base64 編碼的圖片數據
+    """
+    try:
+        if not violation_id:
+            return jsonify({'error': '違規紀錄 ID 不能為空'}), 400
+
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            # 查詢指定 ID 的違規紀錄的圖片數據
+            cur.execute("""
+                SELECT image_data, image_path, license_plate
+                FROM violations 
+                WHERE id = %s;
+            """, (violation_id,))
+            
+            violation_data = cur.fetchone()
+        conn.close()
+
+        if not violation_data:
+            return jsonify({'error': '找不到該違規紀錄'}), 404
+
+        image_data, image_path, license_plate = violation_data
+
+        # 如果有 base64 圖片數據，直接回傳
+        if image_data:
+            return jsonify({
+                'success': True,
+                'image_data': image_data,
+                'license_plate': license_plate,
+                'image_source': 'database'
+            }), 200
+        
+        # 如果沒有 base64 數據，嘗試從檔案路徑讀取
+        if image_path and os.path.exists(image_path):
+            try:
+                with open(image_path, 'rb') as image_file:
+                    import base64
+                    image_binary = image_file.read()
+                    image_data_b64 = base64.b64encode(image_binary).decode('utf-8')
+                    return jsonify({
+                        'success': True,
+                        'image_data': image_data_b64,
+                        'license_plate': license_plate,
+                        'image_source': 'file'
+                    }), 200
+            except Exception as e:
+                print(f"❌ 讀取圖片檔案失敗: {e}")
+                return jsonify({'error': '無法讀取圖片檔案'}), 500
+        
+        # 如果都沒有，回傳找不到圖片
+        return jsonify({'error': '找不到對應的圖片數據'}), 404
+
+    except Exception as e:
+        print(f"❌ Error in get_violation_image: {e}")
+        return jsonify({'error': 'Internal Server Error', 'details': str(e)}), 500
+
+
+# ==================================================
 # 【新增】使用者管理 API
 # ==================================================
 @app.route('/api/users', methods=['GET'])
