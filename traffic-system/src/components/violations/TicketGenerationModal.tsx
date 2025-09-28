@@ -228,6 +228,10 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
                     <span class="value">${ownerInfo!.phone_number}</span>
                   </div>
                   <div class="field">
+                    <span class="label">電子郵件:</span>
+                    <span class="value">${ownerInfo!.email || '未提供'}</span>
+                  </div>
+                  <div class="field">
                     <span class="label">戶籍地址:</span>
                     <span class="value">${ownerInfo!.address}</span>
                   </div>
@@ -515,6 +519,10 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
                     <div className="owner-field">
                       <label>手機號碼</label>
                       <input type="text" value={ownerInfo.phone_number} readOnly />
+                    </div>
+                    <div className="owner-field">
+                      <label>電子郵件</label>
+                      <input type="text" value={ownerInfo.email || '未提供'} readOnly />
                     </div>
                     <div className="owner-field">
                       <label>戶籍地址</label>
