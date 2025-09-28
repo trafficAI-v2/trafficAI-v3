@@ -145,141 +145,259 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
           <title>交通違規電子罰單</title>
           <style>
             body { 
-              font-family: 'Microsoft JhengHei', sans-serif; 
+              font-family: 'Microsoft JhengHei', 'SimHei', Arial, sans-serif; 
+              margin: 0;
               padding: 20px; 
-              line-height: 1.6;
+              line-height: 1.4;
+              background-color: #f5f5f5;
+            }
+            .document-container {
+              max-width: 800px;
+              margin: 0 auto;
+              background: white;
+              border: 2px solid #ddd;
+              box-shadow: 0 4px 8px rgba(0,0,0,0.1);
             }
             .header { 
+              background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+              color: white;
               text-align: center; 
-              border-bottom: 2px solid #333; 
-              padding-bottom: 10px; 
-              margin-bottom: 20px;
+              padding: 25px 20px;
+              margin: 0;
             }
-            .content { margin: 20px 0; }
-            .section { margin: 20px 0; border: 1px solid #ddd; padding: 15px; }
+            .header h1 {
+              font-size: 26px;
+              font-weight: bold;
+              margin: 0 0 8px 0;
+              letter-spacing: 1px;
+            }
+            .header .ticket-info {
+              font-size: 16px;
+              margin: 5px 0;
+              opacity: 0.95;
+            }
+            .content { 
+              padding: 30px; 
+            }
+            .section { 
+              margin: 25px 0; 
+              border: 1px solid #e0e0e0;
+              background: #fafafa;
+            }
             .section-title { 
+              background: #f0f0f0;
+              border-bottom: 2px solid #1e3a8a;
               font-size: 18px; 
               font-weight: bold; 
-              color: #333; 
-              margin-bottom: 10px;
-              border-bottom: 1px solid #eee;
-              padding-bottom: 5px;
+              color: #1e3a8a; 
+              margin: 0;
+              padding: 12px 20px;
+              letter-spacing: 0.5px;
             }
-            .field { 
-              margin: 8px 0; 
-              display: flex; 
+            .section-content {
+              padding: 20px;
+              background: white;
+            }
+            .field-row { 
+              display: flex;
               align-items: center;
+              margin: 12px 0; 
+              min-height: 28px;
+              border-bottom: 1px solid #f0f0f0;
+              padding-bottom: 8px;
+            }
+            .field-row:last-child {
+              border-bottom: none;
             }
             .label { 
-              font-weight: bold; 
-              color: #333; 
-              min-width: 120px;
-              display: inline-block;
+              font-weight: 600; 
+              color: #374151; 
+              min-width: 140px;
+              font-size: 14px;
             }
-            .value { margin-left: 10px; }
-            .violation-image {
-              max-width: 300px;
-              max-height: 200px;
-              border: 1px solid #ddd;
-              border-radius: 4px;
-              margin: 10px 0;
+            .value { 
+              color: #1f2937;
+              font-size: 14px;
+              font-weight: 500;
             }
             .two-column {
               display: flex;
-              gap: 20px;
+              gap: 30px;
             }
             .column {
               flex: 1;
             }
+            .violation-details-section {
+              background: #fff3cd;
+              border: 1px solid #ffeaa7;
+            }
+            .violation-details-section .section-title {
+              background: #fff3cd;
+              color: #856404;
+              border-bottom: 2px solid #856404;
+            }
+            .violation-image {
+              max-width: 280px;
+              max-height: 200px;
+              border: 2px solid #ddd;
+              border-radius: 6px;
+              margin: 10px 0;
+              object-fit: contain;
+            }
+            .image-container {
+              text-align: center;
+              padding: 15px;
+              background: #f8f9fa;
+              border-radius: 6px;
+              border: 1px solid #dee2e6;
+            }
+            .image-placeholder {
+              color: #666;
+              font-style: italic;
+              padding: 20px;
+            }
+            .notice-section {
+              background: #f8d7da;
+              border: 1px solid #f5c6cb;
+            }
+            .notice-section .section-title {
+              background: #f8d7da;
+              color: #721c24;
+              border-bottom: 2px solid #721c24;
+            }
+            .notice-content {
+              color: #721c24;
+              font-size: 13px;
+              line-height: 1.6;
+            }
+            .notice-content p {
+              margin: 12px 0;
+            }
+            .footer {
+              text-align: center;
+              margin-top: 30px;
+              padding-top: 20px;
+              border-top: 2px solid #e0e0e0;
+              color: #666;
+              font-size: 13px;
+            }
+            .footer-highlight {
+              color: #dc2626;
+              font-weight: bold;
+              margin-top: 10px;
+            }
+            .violation-type-highlight {
+              color: #dc2626;
+              font-weight: bold;
+            }
           </style>
         </head>
         <body>
-          <div class="header">
-            <h1>交通違規電子罰單</h1>
-            <p>罰單編號: VIO-${violation!.id}</p>
-            <p>開立日期: ${new Date().toLocaleDateString('zh-TW')}</p>
-          </div>
-          
-          <div class="content">
-            <div class="section">
-              <div class="section-title">車主基本資料</div>
-              <div class="two-column">
-                <div class="column">
-                  <div class="field">
-                    <span class="label">車主姓名:</span>
-                    <span class="value">${ownerInfo!.full_name}</span>
-                  </div>
-                  <div class="field">
-                    <span class="label">身分證字號:</span>
-                    <span class="value">${ownerInfo!.id_number}</span>
-                  </div>
-                  <div class="field">
-                    <span class="label">性別:</span>
-                    <span class="value">${ownerInfo!.gender || '未提供'}</span>
-                  </div>
-                  <div class="field">
-                    <span class="label">出生年月日（YYYY/MM/DD ）:</span>
-                    <span class="value">${formatDateOfBirth(ownerInfo!.date_of_birth)}</span>
+          <div class="document-container">
+            <div class="header">
+              <h1>交通違規電子罰單</h1>
+              <div class="ticket-info">罰單編號: VIO-${violation!.id}</div>
+              <div class="ticket-info">開立日期: ${new Date().toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '/')}</div>
+            </div>
+            
+            <div class="content">
+              <div class="section">
+                <div class="section-title">車主基本資料</div>
+                <div class="section-content">
+                  <div class="two-column">
+                    <div class="column">
+                      <div class="field-row">
+                        <span class="label">車主姓名:</span>
+                        <span class="value">${ownerInfo!.full_name}</span>
+                      </div>
+                      <div class="field-row">
+                        <span class="label">身分證字號:</span>
+                        <span class="value">${ownerInfo!.id_number}</span>
+                      </div>
+                      <div class="field-row">
+                        <span class="label">性別:</span>
+                        <span class="value">${ownerInfo!.gender || '未提供'}</span>
+                      </div>
+                      <div class="field-row">
+                        <span class="label">出生年月日（YYYY/MM/DD）:</span>
+                        <span class="value">${formatDateOfBirth(ownerInfo!.date_of_birth)}</span>
+                      </div>
+                    </div>
+                    <div class="column">
+                      <div class="field-row">
+                        <span class="label">聯絡電話:</span>
+                        <span class="value">${ownerInfo!.phone_number}</span>
+                      </div>
+                      <div class="field-row">
+                        <span class="label">電子郵件:</span>
+                        <span class="value">${ownerInfo!.email || '未提供'}</span>
+                      </div>
+                      <div class="field-row">
+                        <span class="label">戶籍地址:</span>
+                        <span class="value">${ownerInfo!.address}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div class="column">
-                  <div class="field">
-                    <span class="label">聯絡電話:</span>
-                    <span class="value">${ownerInfo!.phone_number}</span>
+              </div>
+
+              <div class="section violation-details-section">
+                <div class="section-title">違規詳細資訊</div>
+                <div class="section-content">
+                  <div class="two-column">
+                    <div class="column">
+                      <div class="field-row">
+                        <span class="label">車牌號碼:</span>
+                        <span class="value">${violation!.plateNumber}</span>
+                      </div>
+                      <div class="field-row">
+                        <span class="label">車輛類型:</span>
+                        <span class="value">${ownerInfo!.vehicle_type}</span>
+                      </div>
+                      <div class="field-row">
+                        <span class="label">違規類型:</span>
+                        <span class="value violation-type-highlight">${violation!.type}</span>
+                      </div>
+                      <div class="field-row">
+                        <span class="label">違規時間:</span>
+                        <span class="value">${date} ${time}</span>
+                      </div>
+                      <div class="field-row">
+                        <span class="label">違規地點:</span>
+                        <span class="value">${violation!.location}</span>
+                      </div>
+                    </div>
+                    <div class="column">
+                      <div class="field-row">
+                        <span class="label" style="width: 100%; text-align: center; margin-bottom: 10px;">違規照片</span>
+                      </div>
+                      <div class="image-container">
+                        ${violationImage ? 
+                          `<img src="data:image/jpeg;base64,${violationImage}" alt="違規照片" class="violation-image" />` : 
+                          '<div class="image-placeholder">違規照片請參考系統內紀錄</div>'
+                        }
+                      </div>
+                    </div>
                   </div>
-                  <div class="field">
-                    <span class="label">電子郵件:</span>
-                    <span class="value">${ownerInfo!.email || '未提供'}</span>
-                  </div>
-                  <div class="field">
-                    <span class="label">戶籍地址:</span>
-                    <span class="value">${ownerInfo!.address}</span>
-                  </div>
-                  <div class="field">
-                    <span class="label">車輛類型:</span>
-                    <span class="value">${ownerInfo!.vehicle_type}</span>
+                </div>
+              </div>
+
+              <div class="section notice-section">
+                <div class="section-title">注意事項</div>
+                <div class="section-content">
+                  <div class="notice-content">
+                    <p>接獲違反道路交通管理事件電子通知單後，依所記載「應到案日期」前往監理所、站接受裁處或以郵繳即時銷案、電話語音轉帳、網路方式繳納罰鍰。並請於「應到案日期」前，以電話查詢該交通違規案件是否已由舉發單位移送至應到案處所，避免徒勞往返。</p>
+                    
+                    <p>如發現接獲之違反道路交通管理事件通知單上所填載之車牌號碼或被通知人姓名有疑問，請於應到案日期前向原舉發單位或監理所、站提出書面申請要求更正，以免逾越繳納期限，受加重處罰。</p>
                   </div>
                 </div>
               </div>
             </div>
-
-            <div class="section">
-              <div class="section-title">違規詳細資訊</div>
-              <div class="two-column">
-                <div class="column">
-                  <div class="field">
-                    <span class="label">車牌號碼:</span>
-                    <span class="value">${violation!.plateNumber}</span>
-                  </div>
-                  <div class="field">
-                    <span class="label">違規類型:</span>
-                    <span class="value">${violation!.type}</span>
-                  </div>
-                  <div class="field">
-                    <span class="label">違規時間:</span>
-                    <span class="value">${date} ${time}</span>
-                  </div>
-                  <div class="field">
-                    <span class="label">違規地點:</span>
-                    <span class="value">${violation!.location}</span>
-                  </div>
-                </div>
-                <div class="column">
-                  <div class="section-title">違規照片</div>
-                  ${violationImage ? 
-                    `<img src="data:image/jpeg;base64,${violationImage}" alt="違規照片" class="violation-image" />` : 
-                    '<p style="color: #666; font-style: italic;">無法載入違規照片</p>'
-                  }
-                </div>
-              </div>
-            </div>
-
-            <div class="section">
-              <div class="section-title">注意事項</div>
-              <p>接獲違反道路交通管理事件電子通知單後，依所記載「應到案日期」前往監理所、站接受裁處或以郵繳即時銷案、電話語音轉帳、網路方式繳納罰鍰。並請於「應到案日期」前，以電話查詢該交通違規案件是否已由舉發單位移送至應到案處所，避免徒勞往返。
-
-如發現接獲之違反道路交通管理事件通知單上所填載之車牌號碼或被通知人姓名有疑問，請於應到案日期前向原舉發單位或監理所、站提出書面申請要求更正，以免逾越繳納期限，受加重處罰。</p>
-              
+            
+            <div class="footer">
+              <p><strong>智慧交通監控系統</strong></p>
+              <p>自動發送時間: ${new Date().toLocaleDateString('zh-TW')} ${new Date().toLocaleTimeString('zh-TW', { hour12: false })}</p>
+              <div class="footer-highlight">本郵件為系統自動發送，請勿直接回覆</div>
             </div>
           </div>
         </body>
