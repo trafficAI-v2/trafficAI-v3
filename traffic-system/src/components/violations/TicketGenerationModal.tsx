@@ -371,6 +371,12 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
         throw new Error('罰單生成失敗');
       }
 
+      const result = await response.json();
+      
+      // 顯示成功訊息，包含email發送結果
+      console.log('罰單生成結果:', result);
+      alert(result.message); // 顯示包含email發送狀態的訊息
+
       onSuccess();
       onClose();
     } catch (err: any) {
