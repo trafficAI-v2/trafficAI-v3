@@ -125,6 +125,31 @@ def send_violation_ticket_email(recipient_email, owner_name, violation_data, sms
         conn = get_db_connection()
         cur = conn.cursor()
         
+        # 格式化當前時間，使用與前端一致的格式
+        def format_current_time():
+            """
+            格式化當前時間為與前端一致的 12 小時制格式，使用台灣時區
+            輸出: "2025/09/29 上午 12:02:30" 格式
+            """
+            from datetime import timezone, timedelta
+            
+            # 設定台灣時區 (UTC+8)
+            taiwan_tz = timezone(timedelta(hours=8))
+            now = datetime.now(taiwan_tz)
+            
+            date_part = now.strftime('%Y/%m/%d')
+            hours = now.hour
+            minutes = now.minute
+            seconds = now.second
+            
+            ampm = '下午' if hours >= 12 else '上午'
+            display_hours = hours % 12 or 12
+            time_part = f"{ampm} {display_hours}:{minutes:02d}:{seconds:02d}"
+            
+            return f"{date_part} {time_part}"
+        
+        formatted_current_time = format_current_time()
+        
         image_query = "SELECT image_data FROM violations WHERE id = %s"
         cur.execute(image_query, (violation_data['id'],))
         image_result = cur.fetchone()
@@ -329,7 +354,7 @@ def send_violation_ticket_email(recipient_email, owner_name, violation_data, sms
                 </div>
                 <div class="footer">
                     <p><strong>智慧交通監控系統</strong></p>
-                    <p>自動發送時間: {datetime.now().strftime('%Y/%m/%d %H:%M:%S')}</p>
+                    <p>自動發送時間: {formatted_current_time}</p>
                     <p style="color: #dc3545; font-weight: bold;">本郵件為系統自動發送，請勿直接回覆</p>
                 </div>
             </div>
@@ -354,7 +379,7 @@ def send_violation_ticket_email(recipient_email, owner_name, violation_data, sms
         如有疑問，請洽詢服務專線或至監理站辦理。
 
         智慧交通監控系統
-        發送時間: {datetime.now().strftime('%Y/%m/%d %H:%M:%S')}
+        發送時間: {formatted_current_time}
         """
         
         msg = MIMEMultipart('related')
