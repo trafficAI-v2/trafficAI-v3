@@ -44,7 +44,7 @@ const Header: React.FC<HeaderProps> = ({ isAdmin }) => {
       {/* --- 左側 Logo --- */}
       <div className="header-left">
         <BiShield className="logo-icon" />
-        <span className="logo-text">交通監控系統</span>
+        <span className="logo-text">交通違規自動檢測與罰單系統</span>
       </div>
 
       {/* --- 右側內容群組 (包含中間導覽和最右側使用者區塊) --- */}
