@@ -309,7 +309,15 @@ def run_detection_logic():
 
                 if violations_to_report:
                     logging.info(f"🚨 [機車關聯] 偵測到違規! 觸發處理...")
-                    crop_img = local_frame_copy[my1:my2, mx1:mx2]
+                    # 大幅擴大截圖範圍，確保包含車牌區域
+                    h, w, _ = local_frame_copy.shape
+                    moto_height = my2 - my1
+                    moto_width = mx2 - mx1
+                    expanded_y1 = max(0, my1 - moto_height * 2)      # 向上擴展2倍高度
+                    expanded_y2 = min(h, my2 + moto_height * 8)      # 向下擴展8倍高度（車牌在下方）
+                    expanded_x1 = max(0, mx1 - moto_width * 3)       # 向左擴展3倍寬度  
+                    expanded_x2 = min(w, mx2 + moto_width * 3)       # 向右擴展3倍寬度
+                    crop_img = local_frame_copy[expanded_y1:expanded_y2, expanded_x1:expanded_x2]
                     if crop_img.size > 0:
                         threading.Thread(target=process_multiple_violations, args=(
                             crop_img, violations_to_report
@@ -328,12 +336,14 @@ def run_detection_logic():
                     
                     # 截取該騎士的圖像 (由於沒有機車，我們只能截取騎士本身)
                     px1, py1, px2, py2 = map(int, person['box'])
-                    # 稍微擴大截圖範圍，希望能拍到車牌的一部分
+                    # 大幅擴大截圖範圍，確保能拍到車牌
                     h, w, _ = local_frame_copy.shape
-                    crop_y1 = max(0, py1 - (py2-py1))
-                    crop_y2 = min(h, py2 + (py2-py1)*2)
-                    crop_x1 = max(0, px1 - (px2-px1))
-                    crop_x2 = min(w, px2 + (px2-px1))
+                    person_height = py2 - py1
+                    person_width = px2 - px1
+                    crop_y1 = max(0, py1 - person_height * 2)      # 向上擴展2倍高度
+                    crop_y2 = min(h, py2 + person_height * 8)      # 向下擴展8倍高度（車牌在下方）
+                    crop_x1 = max(0, px1 - person_width * 3)       # 向左擴展3倍寬度
+                    crop_x2 = min(w, px2 + person_width * 3)       # 向右擴展3倍寬度
                     crop_img = local_frame_copy[crop_y1:crop_y2, crop_x1:crop_x2]
 
                     if crop_img.size > 0:

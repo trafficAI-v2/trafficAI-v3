@@ -45,8 +45,8 @@ NO_HELMET_CLASS_NAME = 'no-helmet'
 CONFIDENCE_THRESHOLD = 0.65 # 用於判斷違規的信心度
 VISUAL_CONFIDENCE = 0.4 # 用於畫面上顯示的信心度
 SCREENSHOT_PATH = "successful_detections"
-EXPAND_DOWN_FACTOR = 5.0
-EXPAND_SIDES_FACTOR = 1.5
+EXPAND_DOWN_FACTOR = 15.0  # 大幅增加向下擴展，確保包含車牌
+EXPAND_SIDES_FACTOR = 8.0   # 增加左右擴展，確保完整車輛
 
 if not os.path.exists(SCREENSHOT_PATH):
     os.makedirs(SCREENSHOT_PATH)
