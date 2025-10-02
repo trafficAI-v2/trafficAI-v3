@@ -1,5 +1,25 @@
-/* 頂部導航欄 CSS */
+/* === CSS 變數定義 === */
+:root {
+  --spacing-lg: 24px;
+  --header-height: 64px;
+  --bg-primary: #ffffff;
+  --border-light: #e5e7eb;
+  --shadow-light: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
 
+/* === 動畫效果 === */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 頂部導航欄 CSS */
 .app-header {
   /* --- 固定定位 --- */
   position: fixed;
@@ -114,41 +134,16 @@
   border: 1px solid white;
 }
 
-.user-profile {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-color: #f0f0f0; /* 模擬頭像的背景色 */
-  cursor: pointer;
-  border: 1px solid #ddd;
-}
-
 /* 全域 main-content 樣式 */
 .main-content {
   margin-top: 64px; /* 關鍵！為固定的 Header 留出 64px 的空間 */
   padding: 24px;    /* 內容本身的內邊距 */
 }
 
-.user-profile {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  overflow: hidden; /* 超出部分裁掉，保持圓形 */
-  border: 1px solid #ddd;
-  cursor: pointer;
-}
-
-.user-admin {
-  width: 100%;
-  height: 100%;
-  object-fit: cover; /* 確保圖片不變形，填滿整個圓形 */
-}
-
-/* src/styles/layout.css (在檔案底部新增) */
-
-/* --- 使用者頭像區域 --- */
+/* === 使用者頭像區域 === */
 .user-profile {
   position: relative; /* 讓下拉選單可以相對它定位 */
+  cursor: pointer;
 }
 
 .user-profile-button {
