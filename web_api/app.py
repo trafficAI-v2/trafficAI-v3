@@ -1563,6 +1563,67 @@ def get_users_list():
         print(f"❌ Error in get_users_list: {e}")
         return jsonify({'error': 'Internal Server Error'}), 500
 
+# ==================================================
+# 【新增】個人資料 - 修改密碼 API
+# ==================================================
+@app.route('/api/profile/change-password', methods=['PUT'])
+@jwt_required() # 確保使用者必須是登入狀態
+def change_password():
+    """
+    讓已登入的使用者修改自己的密碼。
+    """
+    # 從 JWT Token 中獲取當前登入者的身分 (username)
+    current_username = get_jwt_identity()
+    
+    data = request.get_json()
+    old_password = data.get('old_password')
+    new_password = data.get('new_password')
+
+    if not old_password or not new_password:
+        return jsonify({"error": "必須提供舊密碼和新密碼"}), 400
+
+    # 【新增】可以在此加入新密碼的強度驗證
+    if len(new_password) < 8:
+        return jsonify({"error": "新密碼長度至少需要 8 個字元"}), 400
+    
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # 1. 根據 username 獲取使用者目前的密碼雜湊值
+        cur.execute("SELECT password FROM users WHERE username = %s", (current_username,))
+        user = cur.fetchone()
+
+        if not user:
+            return jsonify({"error": "找不到使用者"}), 404
+
+        current_password_hash = user[0]
+
+        # 2. 驗證使用者提供的「舊密碼」是否正確
+        if not check_password_hash(current_password_hash, old_password):
+            return jsonify({"error": "舊密碼不正確"}), 401 # 401 Unauthorized
+
+        # 3. 如果舊密碼正確，就將「新密碼」雜湊後更新到資料庫
+        new_password_hash = generate_password_hash(new_password)
+        cur.execute(
+            "UPDATE users SET password = %s WHERE username = %s",
+            (new_password_hash, current_username)
+        )
+        conn.commit()
+        
+        return jsonify({"message": "密碼已成功更新"}), 200
+
+    except Exception as e:
+        if conn:
+            conn.rollback() # 如果出錯，回滾資料庫操作
+        print(f"❌ 修改密碼時發生錯誤: {e}")
+        return jsonify({"error": "伺服器內部錯誤"}), 500
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
     
 
 # ==================================================
