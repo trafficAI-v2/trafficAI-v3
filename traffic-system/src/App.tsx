@@ -13,6 +13,7 @@ import GenerateTickets from './components/violations/GenerateTickets';
 import Analytics from './pages/Analytics';
 import { useAuth } from './context/AuthContext'; // 引入我們自訂的 useAuth Hook
 import SystemManagement from './pages/SystemManagement'; // 引入新頁面
+import Profile from './pages/Profile'; // 引入個人資料頁面
 
 
 
@@ -67,6 +68,7 @@ function App() {
         <Route path="generate-tickets" element={<GenerateTickets />} />
         <Route path="analytics" element={<Analytics />} />
         <Route path="system" element={<SystemManagement />} /> {/* <--- 新增這一行 */}
+        <Route path="profile" element={<Profile />} /> {/* <--- 新增這一行 */}
       </Route>
       
       {/* --- 備用路由 --- */}
