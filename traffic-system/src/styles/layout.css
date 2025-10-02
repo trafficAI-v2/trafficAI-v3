@@ -1,14 +1,31 @@
-/* 頂部導航欄 CSS */
+/* === CSS 變數定義 === */
+:root {
+  --spacing-lg: 24px;
+  --header-height: 64px;
+  --bg-primary: #ffffff;
+  --border-light: #e5e7eb;
+  --shadow-light: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
 
+/* === 動畫效果 === */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* === 頂部導航欄 === */
 .app-header {
-  /* --- 固定定位 --- */
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 1000;
-
-  /* --- 佈局樣式 --- */
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -19,7 +36,7 @@
   box-shadow: var(--shadow-light);
 }
 
-/* ----- 左側 Logo 區塊 ----- */
+/* === 左側 Logo 區塊 === */
 .header-left {
   display: flex;
   align-items: center;
@@ -28,8 +45,8 @@
 }
 
 .logo-icon {
-  font-size: 35px; /* 調整 Logo 圖示大小 */
-  color: #1890ff; /* 設定 Logo 圖示顏色 */
+  font-size: 35px;
+  color: #1890ff;
 }
 
 .logo-text {
@@ -38,58 +55,61 @@
   color: #333;
 }
 
-/* ----- 中間導覽列區塊 ----- */
-
-
-.main-nav {
-  display: flex;
-  gap: 8px; /* 調整導覽連結之間的距離 */
-}
-
+/* === 中間導覽列區塊 === */
 .header-right-group {
   display: flex;
   align-items: center;
-  gap: 24px; /* 這個 gap 會控制導覽列和使用者區塊之間的距離 */
+  gap: 24px;
+}
+
+.header-center {
+  display: flex;
+  align-items: center;
+}
+
+.main-nav {
+  display: flex;
+  gap: 8px;
 }
 
 .nav-link {
-  display: flex; /* 讓內部的圖示和文字水平排列 */
+  display: flex;
   align-items: center;
-  gap: 5px; /* 圖示和文字之間的距離 */
+  gap: 5px;
   padding: 8px 16px;
   border-radius: 4px;
   text-decoration: none;
   color: #555;
-  border-bottom: 2px solid transparent; /* 移除原本的底線樣式 */
+  border-bottom: 2px solid transparent;
   transition: background-color 0.2s;
 }
 
 .nav-link:hover {
   background-color: #f5f5f5;
-  border-radius: 40px; /* 增加圓角效果 */
+  border-radius: 40px;
 }
 
 .nav-link.active {
   color: #565a8e;
   font-weight: 500;
-  background-color: #eaeaea; /* 給當前選中的連結一個背景色 */
+  background-color: #eaeaea;
   border-radius: 40px;
 }
 
 .nav-icon {
-  font-size:20px; /* 調整導覽圖示的大小 */
+  font-size: 20px;
 }
 
-
-/* ----- 右側使用者資訊區塊 ----- */
+/* === 右側使用者資訊區塊 === */
 .header-right {
   display: flex;
   align-items: center;
   gap: 24px;
 }
 
+/* === 通知區域 === */
 .notifications {
-  position: relative; /* 為了讓徽章可以相對於它定位 */
+  position: relative;
   cursor: pointer;
 }
 
@@ -99,10 +119,10 @@
 }
 
 .notification-badge {
-  position: absolute; /* 絕對定位，相對於 .notifications */
+  position: absolute;
   top: -4px;
   right: -6px;
-  background-color: #ff4d4f; /* 紅色 */
+  background-color: #ff4d4f;
   color: white;
   border-radius: 50%;
   width: 18px;
@@ -114,41 +134,9 @@
   border: 1px solid white;
 }
 
+/* === 使用者頭像區域 === */
 .user-profile {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-color: #f0f0f0; /* 模擬頭像的背景色 */
-  cursor: pointer;
-  border: 1px solid #ddd;
-}
-
-/* 全域 main-content 樣式 */
-.main-content {
-  margin-top: 64px; /* 關鍵！為固定的 Header 留出 64px 的空間 */
-  padding: 24px;    /* 內容本身的內邊距 */
-}
-
-.user-profile {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  overflow: hidden; /* 超出部分裁掉，保持圓形 */
-  border: 1px solid #ddd;
-  cursor: pointer;
-}
-
-.user-admin {
-  width: 100%;
-  height: 100%;
-  object-fit: cover; /* 確保圖片不變形，填滿整個圓形 */
-}
-
-/* src/styles/layout.css (在檔案底部新增) */
-
-/* --- 使用者頭像區域 --- */
-.user-profile {
-  position: relative; /* 讓下拉選單可以相對它定位 */
+  position: relative;
 }
 
 .user-profile-button {
@@ -160,26 +148,30 @@
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 8px;
-}
-.user-profile-button:hover {
-    background-color: #f3f4f6;
+  transition: background-color 0.2s;
 }
 
-.user-avatar { /* 取代之前的 user-admin */
+.user-profile-button:hover {
+  background-color: #f3f4f6;
+}
+
+.user-avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;
   object-fit: cover;
-}
-.user-name {
-    font-weight: 500;
-    color: #374151;
+  border: 1px solid #ddd;
 }
 
-/* --- 下拉式選單 --- */
+.user-name {
+  font-weight: 500;
+  color: #374151;
+}
+
+/* === 下拉式選單 === */
 .profile-dropdown {
   position: absolute;
-  top: calc(100% + 8px); /* 顯示在頭像按鈕正下方，並留有 8px 間距 */
+  top: calc(100% + 8px);
   right: 0;
   background-color: #ffffff;
   border-radius: 8px;
@@ -190,17 +182,20 @@
   overflow: hidden;
   animation: fadeIn 0.2s ease-out;
 }
+
 .dropdown-header {
   padding: 12px 16px;
   border-bottom: 1px solid #f0f0f0;
 }
+
 .dropdown-header strong {
-    display: block;
-    color: #1f2937;
+  display: block;
+  color: #1f2937;
 }
+
 .dropdown-header small {
-    color: #6b7280;
-    text-transform: capitalize;
+  color: #6b7280;
+  text-transform: capitalize;
 }
 
 .dropdown-menu {
@@ -208,6 +203,7 @@
   padding: 8px 0;
   margin: 0;
 }
+
 .dropdown-menu li {
   display: flex;
   align-items: center;
@@ -215,10 +211,19 @@
   padding: 10px 16px;
   font-size: 14px;
   cursor: pointer;
+  transition: background-color 0.2s;
 }
+
 .dropdown-menu li:hover {
   background-color: #f3f4f6;
 }
+
 .dropdown-menu .logout-item {
-  color: #ef4444; /* 登出選項用紅色 */
+  color: #ef4444;
+}
+
+/* === 全域 main-content 樣式 === */
+.main-content {
+  margin-top: 64px;
+  padding: 24px;
 }
