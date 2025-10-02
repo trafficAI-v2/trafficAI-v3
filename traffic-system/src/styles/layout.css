@@ -110,7 +110,20 @@
 /* === 通知區域 === */
 .notifications {
   position: relative;
+}
+
+.notification-button {
+  background: none;
+  border: none;
   cursor: pointer;
+  position: relative;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+
+.notification-button:hover {
+  background-color: #f3f4f6;
 }
 
 .notification-icon {
@@ -120,8 +133,8 @@
 
 .notification-badge {
   position: absolute;
-  top: -4px;
-  right: -6px;
+  top: 2px;
+  right: 2px;
   background-color: #ff4d4f;
   color: white;
   border-radius: 50%;
@@ -132,6 +145,130 @@
   justify-content: center;
   align-items: center;
   border: 1px solid white;
+}
+
+/* === 通知下拉選單 === */
+.notification-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  width: 360px;
+  max-height: 480px;
+  z-index: 1100;
+  border: 1px solid #f0f0f0;
+  overflow: hidden;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  background-color: #fafafa;
+}
+
+.notification-header strong {
+  font-size: 16px;
+  color: #1f2937;
+}
+
+.mark-all-read {
+  background: none;
+  border: none;
+  color: #3b82f6;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.mark-all-read:hover {
+  background-color: #e5f3ff;
+}
+
+.notification-list {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.notification-item {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f5f5f5;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  position: relative;
+}
+
+.notification-item:hover {
+  background-color: #f9fafb;
+}
+
+.notification-item.unread {
+  background-color: #eff6ff;
+}
+
+.notification-item.unread::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  background-color: #3b82f6;
+  border-radius: 50%;
+}
+
+.notification-item.unread .notification-content {
+  margin-left: 12px;
+}
+
+.notification-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.notification-text {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.notification-time {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.notification-footer {
+  padding: 12px 20px;
+  border-top: 1px solid #f0f0f0;
+  background-color: #fafafa;
+}
+
+.view-all-notifications {
+  width: 100%;
+  background: none;
+  border: none;
+  color: #3b82f6;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.view-all-notifications:hover {
+  background-color: #e5f3ff;
 }
 
 /* === 使用者頭像區域 === */

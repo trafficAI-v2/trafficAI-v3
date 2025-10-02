@@ -99,7 +99,16 @@ const SystemManagement: React.FC = () => {
                   </span>
                 </td>
                 <td>{user.status}</td>
-                <td>{user.lastLogin ? new Date(user.lastLogin).toLocaleString('zh-TW') : '從未登入'}</td>
+                <td className="last-login-cell">
+                  {user.lastLogin ? (
+                    <div className="login-time">
+                      <span className="date">{new Date(user.lastLogin).toLocaleDateString('zh-TW')}</span>
+                      <span className="time">{new Date(user.lastLogin).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                  ) : (
+                    <span className="never-login">從未登入</span>
+                  )}
+                </td>
                 <td style={{ textAlign: 'center' }}>
                   <button className="action-button edit-button" title="編輯使用者"><BiEdit /></button>
                   <button className="action-button delete-button" title="刪除使用者"><BiTrash /></button>
@@ -118,29 +127,72 @@ const SystemManagement: React.FC = () => {
         <h1>系統管理</h1>
         <span>管理使用者帳號與系統相關設定</span>
       </div>
-      
+
+      {/* 系統管理功能卡片 */}
+      <div className="management-cards">
+        <div className="management-card">
+          <h3>使用者管理</h3>
+          <p>管理系統使用者帳號、權限與狀態</p>
+          <div className="card-stats">
+            <span>總使用者: {users.length}</span>
+            <span>線上: {users.filter(u => u.status === '線上').length}</span>
+          </div>
+        </div>
+
+        <div className="management-card">
+          <h3>系統監控</h3>
+          <p>監控系統效能與健康狀態</p>
+          <div className="card-stats">
+            <span>CPU: 45%</span>
+            <span>記憶體: 62%</span>
+          </div>
+        </div>
+
+        <div className="management-card">
+          <h3>資料備份</h3>
+          <p>管理系統資料備份與還原</p>
+          <div className="card-stats">
+            <span>上次備份: 今日 02:00</span>
+            <span>狀態: 正常</span>
+          </div>
+        </div>
+
+        <div className="management-card">
+          <h3>系統設定</h3>
+          <p>調整系統參數與偏好設定</p>
+          <div className="card-stats">
+            <span>檢測閾值: 0.65</span>
+            <span>自動處理: 開啟</span>
+          </div>
+        </div>
+      </div>
+
       <div className="system-management-content content-card">
         <div className="management-section-header">
           <h2>使用者列表</h2>
-          {/* 為按鈕加上 onClick 事件，點擊時將 isModalOpen 設為 true */}
-          <button className="add-user-button" onClick={() => setIsModalOpen(true)}>
-            <BiPlus />
-            新增使用者
-          </button>
+          <div className="header-actions">
+            <button className="action-btn secondary" onClick={() => fetchUsers()}>
+              重新整理
+            </button>
+            <button className="action-btn primary" onClick={() => setIsModalOpen(true)}>
+              <BiPlus />
+              新增使用者
+            </button>
+          </div>
         </div>
-        
+
         {renderUserTable()}
       </div>
 
       {/* 將 Modal 和 AddUserForm 渲染到頁面上 */}
       {/* 它的顯示與否，由 isModalOpen 這個 state 決定 */}
-      <Modal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
         title="新增使用者"
       >
-        <AddUserForm 
-          onSuccess={handleAddUserSuccess} 
+        <AddUserForm
+          onSuccess={handleAddUserSuccess}
           onCancel={() => setIsModalOpen(false)}
         />
       </Modal>

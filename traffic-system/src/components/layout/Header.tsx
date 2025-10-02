@@ -1,7 +1,7 @@
 // src/components/layout/Header.tsx (完整最終版)
 
 import React, { useState, useEffect, useRef } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import userAdmin from '../../assets/user-admin.png';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -23,10 +23,16 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ isAdmin }) => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
+
+  const handleProfileClick = () => {
+    navigate('/profile');
+    setIsDropdownOpen(false);
+  };
 
   // 這個 effect 用來處理「點擊外部關閉選單」的功能
   useEffect(() => {
@@ -83,9 +89,49 @@ const Header: React.FC<HeaderProps> = ({ isAdmin }) => {
 
         {/* --- 最右側的使用者資訊與通知 --- */}
         <div className="header-right">
-          <div className="notifications">
-            <BiBell className="notification-icon" />
-            <span className="notification-badge">5</span>
+          <div className="notifications" ref={notificationRef}>
+            <button
+              className="notification-button"
+              onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+            >
+              <BiBell className="notification-icon" />
+              <span className="notification-badge">5</span>
+            </button>
+
+            {isNotificationOpen && (
+              <div className="notification-dropdown">
+                <div className="notification-header">
+                  <strong>通知中心</strong>
+                  <button className="mark-all-read">全部標記為已讀</button>
+                </div>
+                <div className="notification-list">
+                  <div className="notification-item unread">
+                    <div className="notification-content">
+                      <div className="notification-title">新違規記錄</div>
+                      <div className="notification-text">檢測到未戴安全帽違規</div>
+                      <div className="notification-time">2 分鐘前</div>
+                    </div>
+                  </div>
+                  <div className="notification-item">
+                    <div className="notification-content">
+                      <div className="notification-title">系統更新</div>
+                      <div className="notification-text">車牌識別準確率提升至 95%</div>
+                      <div className="notification-time">1 小時前</div>
+                    </div>
+                  </div>
+                  <div className="notification-item">
+                    <div className="notification-content">
+                      <div className="notification-title">每日統計</div>
+                      <div className="notification-text">今日已處理 124 個違規案件</div>
+                      <div className="notification-time">3 小時前</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="notification-footer">
+                  <button className="view-all-notifications">查看所有通知</button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 使用者頭像與下拉式選單 */}
@@ -102,7 +148,9 @@ const Header: React.FC<HeaderProps> = ({ isAdmin }) => {
                   <small>{user?.role}</small>
                 </div>
                 <ul className="dropdown-menu">
-                  <li><BiUser /> 個人資料</li>
+                  <li onClick={handleProfileClick}>
+                    <BiUser /> 個人資料
+                  </li>
                   <li onClick={logout} className="logout-item">
                     <BiLogOut /> 登出
                   </li>

@@ -215,3 +215,163 @@
       background-color: #e5e7eb;
       cursor: not-allowed;
   }
+
+/* === 系統管理功能卡片 === */
+.management-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.management-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  transition: box-shadow 0.2s, transform 0.2s;
+  cursor: pointer;
+}
+
+.management-card:hover {
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.management-card h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 8px 0;
+}
+
+.management-card p {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+.card-stats {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.card-stats span {
+  font-size: 12px;
+  color: #374151;
+  background-color: #f3f4f6;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+/* === 表格標題區域更新 === */
+.management-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.action-btn.primary {
+  background-color: #3b82f6;
+  color: #ffffff;
+  border-color: #3b82f6;
+}
+
+.action-btn.primary:hover {
+  background-color: #2563eb;
+  border-color: #2563eb;
+}
+
+.action-btn.secondary {
+  background-color: #ffffff;
+  color: #374151;
+  border-color: #d1d5db;
+}
+
+.action-btn.secondary:hover {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+}
+
+/* === 上次登入時間樣式 === */
+.last-login-cell {
+  font-size: 13px;
+  min-width: 120px;
+}
+
+.login-time {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.login-time .date {
+  font-weight: 500;
+  color: #374151;
+}
+
+.login-time .time {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.never-login {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+/* === 操作按鈕改進 === */
+.action-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+  margin: 0 2px;
+}
+
+.action-button:hover {
+  background-color: #f3f4f6;
+}
+
+.action-button.edit-button {
+  color: #3b82f6;
+}
+
+.action-button.edit-button:hover {
+  background-color: #eff6ff;
+}
+
+.action-button.delete-button {
+  color: #ef4444;
+}
+
+.action-button.delete-button:hover {
+  background-color: #fef2f2;
+}
