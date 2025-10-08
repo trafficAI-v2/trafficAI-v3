@@ -540,15 +540,13 @@
 /* 【最終版】主從式介面佈局 (高度自適應)                              */
 /* ================================================================== */
 
-/* 外層 wrapper 使用 Flexbox 佈局，並讓子元素從頂部對齊 */
 .violation-log-page-wrapper {
   display: flex;
   background-color: #f9fafb;
   min-height: 100vh;
-  align-items: flex-start; /* 關鍵：讓子元素頂部對齊，而不是拉伸 */
+  align-items: flex-start;
 }
 
-/* 左側列表區塊 */
 .violation-log-page {
   padding: 24px;
   width: 100%;
@@ -556,20 +554,17 @@
   box-sizing: border-box;
 }
 
-/* 右側詳情區塊 */
 .violation-detail-view {
   width: 0;
   opacity: 0;
   overflow: hidden;
   transition: width 0.35s ease-in-out, opacity 0.2s ease-in-out;
   flex-shrink: 0;
-  /* 給右側一個與左側對齊的上邊距 */
   margin-top: 24px;
-  padding-right: 24px; /* 與左側的 padding 對稱 */
-  box-sizing: content-box; /* 確保 padding 不會影響寬度計算 */
+  padding-right: 24px;
+  box-sizing: content-box;
 }
 
-/* 當右側詳情頁出現時的佈局變化 */
 .violation-log-page-wrapper.detail-view-active .violation-log-page {
   width: 60%;
 }
@@ -579,7 +574,6 @@
   opacity: 1;
 }
 
-/* 被選中的項目高亮效果 */
 .violation-card.detail-active {
   background-color: #eef2ff !important;
   border-left: 4px solid #4f46e5;
@@ -592,12 +586,10 @@
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  /* 卡片本身的外觀 */
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
-  /* 移除 height: 100%，讓高度由內容決定 */
   width: 100%;
 }
 
@@ -620,7 +612,6 @@
   font-size: 14px;
 }
 
-/* 關閉按鈕樣式 */
 .close-detail-btn {
   background: #f3f4f6;
   border: none;
@@ -645,7 +636,7 @@
 
 .violation-image-placeholder {
     width: 100%;
-    height: 400px; /* 增加高度從 250px 到 400px */
+    height: 400px;
     background: #f8fafc;
     display: flex;
     align-items: center;
@@ -665,7 +656,6 @@
     background: #f1f5f9;
 }
 
-/* 載入狀態 */
 .image-loading {
     display: flex;
     flex-direction: column;
@@ -688,7 +678,6 @@
     to { transform: rotate(360deg); }
 }
 
-/* 錯誤狀態 */
 .image-error {
     display: flex;
     flex-direction: column;
@@ -701,7 +690,6 @@
     border-radius: 8px;
 }
 
-/* 圖片顯示容器 */
 .violation-image {
     position: relative;
     width: 100%;
@@ -716,16 +704,16 @@
 
 .violation-image img {
     width: 100%;
-    height: 360px; /* 增加圖片高度從 200px 到 360px */
-    object-fit: contain; /* 改為 contain 以確保整張圖片都顯示 */
+    height: 360px;
+    object-fit: contain;
     object-position: center;
     border-radius: 8px 8px 0 0;
     transition: transform 0.3s ease;
-    background: #f8fafc; /* 添加背景色以防圖片有透明部分 */
+    background: #f8fafc;
 }
 
 .violation-image img:hover {
-    transform: scale(1.05); /* 稍微增加懸停縮放效果 */
+    transform: scale(1.05);
 }
 
 .violation-image p {
@@ -735,25 +723,24 @@
     right: 0;
     background: linear-gradient(transparent, rgba(0,0,0,0.8));
     color: rgb(255, 255, 255);
-    padding: 20px 16px 16px; /* 增加內邊距 */
+    padding: 20px 16px 16px;
     margin: 0;
-    font-size: 15px; /* 稍微增大字體 */
+    font-size: 15px;
     font-weight: 500;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.5); /* 添加文字陰影 */
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
 
-/* 預設佔位符樣式 */
 .image-placeholder {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px; /* 增加間距 */
+    gap: 12px;
     color: #9ca3af;
-    font-size: 18px; /* 增大字體 */
+    font-size: 18px;
 }
 
 .image-placeholder p:first-child {
-    font-size: 32px; /* 增大圖標字體 */
+    font-size: 32px;
     margin: 0;
 }
 
@@ -764,8 +751,7 @@
 }
 
 .detail-form {
-    /* 移除 flex-grow: 1，讓表單高度由內容決定 */
-    overflow-y: auto; /* 如果內容過多，內部可以滾動 */
+    overflow-y: auto;
     padding-right: 12px;
 }
 
@@ -780,8 +766,8 @@
     color: #374151;
     font-size: 14px;
     font-weight: 500;
-    display: flex; /* 添加 flex 布局以便對齊 */
-    align-items: center; /* 垂直居中對齊 */
+    display: flex;
+    align-items: center;
 }
 .form-row input, 
 .form-row textarea, 
@@ -805,23 +791,22 @@
 }
 
 .owner-info label{
-  width: auto; /* 讓寬度自適應文字內容 */
-  min-width: 0; /* 移除最小寬度限制 */
+  width: auto;
+  min-width: 0;
   color: #e31616;
   font-weight: 600;
   background-color: rgb(255, 186, 186);
   text-align: left;
-  border-radius: 20px; /* 添加圓角 */
-  padding: 4px 12px; /* 添加內邊距讓背景包覆文字 */
-  font-size: 14px; /* 與狀態標籤相同的字體大小 */
-  white-space: nowrap; /* 防止換行 */
-  display: inline-block; /* 改為 inline-block 讓寬度自適應 */
-  margin-right: 20px; /* 在標籤和輸入框之間添加間距 */
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 14px;
+  white-space: nowrap;
+  display: inline-block;
+  margin-right: 20px;
 }
 
-/* 調整 form-row 的佈局以配合新的標籤樣式 */
 .form-row.owner-info {
-    align-items: center; /* 確保垂直對齊 */
+    align-items: center;
 }
 
 .confidence-display { 
@@ -831,21 +816,57 @@
   display: flex;
   align-items: center;
 }
+
+/* 【修改】移除這裡的舊樣式，讓下面的新樣式完全控制 */
+/* .confidence-level { ... } */
+
+/* ======================================== */
+/* 【新增】信心度等級的動態樣式             */
+/* ======================================== */
 .confidence-level {
-    margin-left: 8px;
-    padding: 2px 8px;
-    background-color: #d1fae5;
-    color: #065f46;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 500;
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: 10px;
 }
+
+/* 高信心度 - 綠色 */
+.confidence-level.level-high {
+  background-color: #d1fae5; /* 淺綠背景 */
+  color: #065f46; /* 深綠文字 */
+}
+
+/* 中高信心度 - 藍色 */
+.confidence-level.level-medium-high {
+  background-color: #e0f2fe; /* 淺藍背景 */
+  color: #0c4a6e; /* 深藍文字 */
+}
+
+/* 中等信心度 - 橘色 */
+.confidence-level.level-medium {
+  background-color: #fff7ed; /* 淺橘背景 */
+  color: #9a3412; /* 深橘文字 */
+}
+
+/* 低信心度 - 紅色 */
+.confidence-level.level-low {
+  background-color: #fee2e2; /* 淺紅背景 */
+  color: #991b1b; /* 深紅文字 */
+}
+
+/* 未知信心度 - 灰色 */
+.confidence-level.level-unknown {
+  background-color: #f3f4f6; /* 淺灰背景 */
+  color: #4b5563; /* 深灰文字 */
+}
+
 
 .detail-footer-actions {
   padding-top: 16px;
   border-top: 1px solid #e5e7eb;
-  /* 移除 margin-top: auto，讓 footer 緊跟內容 */
-  margin-top: 16px; /* 給一個固定的上邊距 */
+  margin-top: 16px;
   display: flex;
   justify-content: flex-end;
   gap: 12px;
@@ -873,8 +894,8 @@
 
 .detail-footer-actions .btn-secondary {
   background-color: #ff0000d8;
-  color: #d1d5db;
-  border-color: #ffffff;
+  color: #ffffff; /* 修改文字顏色為白色以提高可讀性 */
+  border-color: transparent; /* 移除邊框 */
 }
 .detail-footer-actions .btn-secondary:hover {
   background-color: #cf0202;

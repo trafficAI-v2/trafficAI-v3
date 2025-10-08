@@ -9,10 +9,7 @@ const VIOLATION_TYPES_URL = import.meta.env.VITE_VIOLATION_TYPES_URL;
 const CAMERAS_LIST_URL = import.meta.env.VITE_CAMERA_LIST_URL;
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-// 【新增】定義獲取已確認數量的 API URL
 const CONFIRMED_COUNT_URL = `${API_BASE_URL}/api/violations/confirmed-count`;
-
-// 【新增】定義車輛類型查詢 API URL
 const VEHICLE_TYPE_URL = `${API_BASE_URL}/api/owners`;
 
 // --- TypeScript 型別定義 ---
@@ -24,7 +21,6 @@ interface Camera {
   camera_name: string;
 }
 
-// 【新增】車輛類型資訊型別定義
 interface VehicleTypeInfo {
   license_plate_number: string;
   vehicle_type: string;
@@ -38,11 +34,13 @@ interface ViolationRecord {
   timestamp: string;
   location: string;
   status: '待審核' | '已確認' | '已駁回' | '已開罰';
-  fine?: number; // 新增罰款金額欄位
-  ownerName?: string; // 車主姓名
-  ownerPhone?: string; // 車主電話
-  ownerEmail?: string; // 車主Email
-  ownerAddress?: string; // 車主地址
+  fine?: number;
+  ownerName?: string;
+  ownerPhone?: string;
+  ownerEmail?: string;
+  ownerAddress?: string;
+  // 【修改】新增 confidence 欄位，型別為 number 或 null
+  confidence?: number | null;
 }
 
 const TABS = ['全部', '待審核', '已確認', '已駁回', '已開罰'];
@@ -54,35 +52,55 @@ const ViolationDetail: React.FC<{
   onClose: () => void;
   onUpdateStatus: (id: number, status: '已確認' | '已駁回' | '已開罰') => void;
 }> = ({ violation, onClose, onUpdateStatus }) => {
-  // 車輛類型查詢狀態管理
   const [vehicleTypeInfo, setVehicleTypeInfo] = useState<VehicleTypeInfo | null>(null);
   const [vehicleTypeLoading, setVehicleTypeLoading] = useState<boolean>(false);
   const [vehicleTypeError, setVehicleTypeError] = useState<string | null>(null);
-
-  // 【新增】圖片數據狀態管理
   const [imageData, setImageData] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState<boolean>(false);
   const [imageError, setImageError] = useState<string | null>(null);
 
-  // 使用與主列表相同的日期格式化邏輯，避免時區問題
+  // 【新增】格式化信心度函式
+  // 將小數（例如 0.8756）轉換為百分比字串（"88%"）
+  const formatConfidence = (value?: number | null): string => {
+    if (value === null || typeof value === 'undefined') {
+      return 'N/A'; // 如果沒有信心度資料，顯示 N/A
+    }
+    // 將小數乘以 100 並四捨五入到整數
+    return `${Math.round(value * 100)}%`;
+  };
+
+  // 【新增】根據信心度決定等級的函式
+  const getConfidenceLevel = (value?: number | null): { text: string; className: string } => {
+    if (value === null || typeof value === 'undefined') {
+      return { text: '未知', className: 'level-unknown' };
+    }
+    if (value >= 0.90) {
+      return { text: '高', className: 'level-high' };
+    }
+    if (value >= 0.75) {
+      return { text: '中高', className: 'level-medium-high' };
+    }
+    if (value >= 0.50) {
+      return { text: '中等', className: 'level-medium' };
+    }
+    return { text: '低', className: 'level-low' };
+  };
+
   const formatDate = (isoString: string): string => {
     if (!isoString) return 'N/A';
     try {
       const [datePartStr] = isoString.split('T');
-      return datePartStr; // 返回 YYYY-MM-DD 格式
+      return datePartStr;
     } catch (e) {
       console.error("無法解析時間戳字串:", isoString, e);
       return '無效日期';
     }
   };
 
-  // 查詢車輛類型
   const fetchVehicleType = async (plateNumber: string) => {
     if (!VEHICLE_TYPE_URL || !plateNumber) return;
-    
     setVehicleTypeLoading(true);
     setVehicleTypeError(null);
-    
     try {
       const response = await fetch(`${VEHICLE_TYPE_URL}/${encodeURIComponent(plateNumber)}/vehicle-type`);
       if (!response.ok) {
@@ -102,13 +120,10 @@ const ViolationDetail: React.FC<{
     }
   };
 
-  // 【新增】獲取違規圖片
   const fetchViolationImage = async (violationId: number) => {
     if (!API_BASE_URL || !violationId) return;
-    
     setImageLoading(true);
     setImageError(null);
-    
     try {
       const response = await fetch(`${API_BASE_URL}/api/violations/${violationId}/image`);
       if (!response.ok) {
@@ -132,7 +147,6 @@ const ViolationDetail: React.FC<{
     }
   };
 
-  // 當違規記錄變更時，查詢車輛類型和圖片
   useEffect(() => {
     if (violation.plateNumber) {
       fetchVehicleType(violation.plateNumber);
@@ -143,14 +157,13 @@ const ViolationDetail: React.FC<{
   }, [violation.plateNumber, violation.id]);
 
   const formattedDate = formatDate(violation.timestamp);
+  // 【新增】呼叫函式來獲取格式化後的信心度資訊
+  const confidenceText = formatConfidence(violation.confidence);
+  const confidenceLevel = getConfidenceLevel(violation.confidence);
 
-  const handleReject = () => {
-    onUpdateStatus(violation.id, '已駁回');
-  };
 
-  const handleConfirm = () => {
-    onUpdateStatus(violation.id, '已確認');
-  };
+  const handleReject = () => onUpdateStatus(violation.id, '已駁回');
+  const handleConfirm = () => onUpdateStatus(violation.id, '已確認');
 
   return (
     <div className="violation-detail-card">
@@ -166,9 +179,7 @@ const ViolationDetail: React.FC<{
 
         <div className="violation-image-placeholder">
             {imageLoading ? (
-                <div className="image-loading">
-                    <p>載入違規照片中...</p>
-                </div>
+                <div className="image-loading"><p>載入違規照片中...</p></div>
             ) : imageError ? (
                 <div className="image-error">
                     <p>❌ {imageError}</p>
@@ -176,23 +187,12 @@ const ViolationDetail: React.FC<{
                 </div>
             ) : imageData ? (
                 <div className="violation-image">
-                    <img 
-                        src={`data:image/jpeg;base64,${imageData}`} 
-                        alt={`車牌 ${violation.plateNumber} 的違規照片`}
-                        onError={() => {
-                            console.error('圖片載入失敗');
-                            setImageError('圖片載入失敗');
-                        }}
-                        onLoad={() => {
-                            console.log('圖片載入成功');
-                        }}
-                    />
+                    <img src={`data:image/jpeg;base64,${imageData}`} alt={`車牌 ${violation.plateNumber} 的違規照片`} />
                     <p>車牌：{violation.plateNumber} | 違規類型：{violation.type}</p>
                 </div>
             ) : (
                 <div className="image-placeholder">
-                    <p>📷</p>
-                    <p>違規道路照片</p>
+                    <p>📷</p><p>違規道路照片</p>
                     <p style={{ fontSize: '14px', color: '#000000ff' }}>暫無圖片數據</p>
                 </div>
             )}
@@ -211,9 +211,15 @@ const ViolationDetail: React.FC<{
                 <label>違規類型</label>
                 <input type="text" value={violation.type} readOnly />
             </div>
+            {/* 【修改】偵測信心度欄位，使用動態數據 */}
             <div className="form-row">
                 <label>偵測信心度</label>
-                <div className="confidence-display">87% <span className="confidence-level">中高</span></div>
+                <div className="confidence-display">
+                  {confidenceText}
+                  <span className={`confidence-level ${confidenceLevel.className}`}>
+                    {confidenceLevel.text}
+                  </span>
+                </div>
             </div>
             <div className="form-row">
                 <label>車牌號碼</label>
@@ -239,23 +245,17 @@ const ViolationDetail: React.FC<{
                 <label>車主姓名</label>
                 <input type="text" value={violation.ownerName || '未提供'} readOnly />
             </div>
-            {/* 【新增】車主聯絡電話欄位 */}
             <div className="form-row owner-info">
                 <label>車主電話</label>
                 <input type="text" value={violation.ownerPhone || '未提供'} readOnly />
             </div>
-            {/* 【新增】車主地址欄位 */}
             <div className="form-row owner-info">
                 <label>車主地址</label>
                 <input type="text" value={violation.ownerAddress || '未提供'} readOnly />
             </div>
              <div className="form-row">
                 <label>罰單金額 (NT$)</label>
-                <input 
-                    type="text" 
-                    value={violation.fine ? `NT$ ${violation.fine.toLocaleString()}` : 'NT$ 未設定'} 
-                    readOnly 
-                />
+                <input type="text" value={violation.fine ? `NT$ ${violation.fine.toLocaleString()}` : 'NT$ 未設定'} readOnly />
             </div>
             <div className="form-row">
                 <label>開立人員</label>
@@ -278,7 +278,6 @@ const ViolationDetail: React.FC<{
 
 // --- React 元件主體 ---
 const ViolationLog: React.FC = () => {
-  // --- 狀態管理 (State) ---
   const [activeTab, setActiveTab] = useState<string>('全部');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [violations, setViolations] = useState<ViolationRecord[]>([]);
@@ -293,15 +292,10 @@ const ViolationLog: React.FC = () => {
   const headerCheckboxRef = useRef<HTMLInputElement>(null);
   const [confirmedCount, setConfirmedCount] = useState<number>(0);
   const [selectedViolation, setSelectedViolation] = useState<ViolationRecord | null>(null);
-  
-  // 【新增】分頁相關狀態
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalRecords, setTotalRecords] = useState<number>(0);
-  const recordsPerPage = 10; // 每頁顯示10筆資料
+  const recordsPerPage = 10;
   
-
-
-  // --- 輔助函式 ---
   const fetchConfirmedCount = async () => {
     try {
         if (!CONFIRMED_COUNT_URL) return;
@@ -314,7 +308,6 @@ const ViolationLog: React.FC = () => {
     }
   };
 
-  // --- Effects ---
   useEffect(() => {
     if (!VIOLATION_TYPES_URL || !CAMERAS_LIST_URL) {
       setError('前端設定錯誤：未找到篩選器 API 位址。');
@@ -356,7 +349,6 @@ const ViolationLog: React.FC = () => {
         if (filterType !== '所有類型') params.append('type', filterType);
         if (filterLocation !== '所有地點') params.append('location', filterLocation);
         if (filterDate) params.append('date', filterDate);
-        // 【新增】分頁參數
         params.append('page', currentPage.toString());
         params.append('limit', recordsPerPage.toString());
         
@@ -364,14 +356,11 @@ const ViolationLog: React.FC = () => {
         const response = await fetch(fetchUrl);
         if (!response.ok) throw new Error(`獲取違規紀錄失敗 (HTTP ${response.status})`);
         
-        // 【修改】處理分頁回傳格式
         const responseData = await response.json();
         if (responseData.data && responseData.pagination) {
-          // 新格式：包含分頁資訊
           setViolations(responseData.data);
           setTotalRecords(responseData.pagination.total_records);
         } else {
-          // 舊格式：直接是陣列（兼容性處理）
           setViolations(responseData);
           setTotalRecords(responseData.length);
         }
@@ -395,7 +384,6 @@ const ViolationLog: React.FC = () => {
     }
   }, [selectedIds, violations]);
 
-  // 【新增】當篩選條件改變時，重設到第一頁
   useEffect(() => {
     setCurrentPage(1);
   }, [activeTab, searchTerm, filterType, filterLocation, filterDate]);
@@ -404,7 +392,6 @@ const ViolationLog: React.FC = () => {
     fetchConfirmedCount();
   }, []);
 
-  // 【新增】分頁控制函式
   const totalPages = Math.ceil(totalRecords / recordsPerPage);
   
   const handlePageChange = (page: number) => {
@@ -452,7 +439,6 @@ const ViolationLog: React.FC = () => {
     }
   };
 
-  // --- 事件處理函式 ---
   const handleRowSelect = (id: number) => {
     setSelectedIds(prev =>
       prev.includes(id) ? prev.filter(selectedId => selectedId !== id) : [...prev, id]
@@ -488,14 +474,11 @@ const ViolationLog: React.FC = () => {
         throw new Error(errorData.error || `API 請求失敗`);
       }
       
-      // 根據當前篩選標籤決定處理方式
       if (activeTab === '全部') {
-        // 在「全部」標籤下，更新選中項目的狀態，不移除
         setViolations(prev => prev.map(v => 
           selectedIds.includes(v.id) ? { ...v, status: newStatus } : v
         ));
       } else {
-        // 在特定狀態標籤下，移除選中項目（因為它們不再符合當前篩選條件）
         setViolations(prev => prev.filter(v => !selectedIds.includes(v.id)));
       }
       
@@ -508,7 +491,6 @@ const ViolationLog: React.FC = () => {
     }
   };
 
-  // 【新增】處理單筆違規紀錄狀態更新
   const handleSingleUpdate = async (id: number, newStatus: '已確認' | '已駁回' | '已開罰') => {
     if (!API_BASE_URL) {
       alert('錯誤：未在 .env.local 中設定 VITE_API_BASE_URL');
@@ -529,20 +511,15 @@ const ViolationLog: React.FC = () => {
         throw new Error(errorData.error || `API 請求失敗`);
       }
       
-      // 根據當前篩選標籤決定處理方式
       if (activeTab === '全部') {
-        // 在「全部」標籤下，更新該項目的狀態，不移除
         setViolations(prev => prev.map(v => 
           v.id === id ? { ...v, status: newStatus } : v
         ));
       } else {
-        // 在特定狀態標籤下，移除該項目（因為它不再符合當前篩選條件）
         setViolations(prev => prev.filter(v => v.id !== id));
       }
       
-      // 關閉詳情頁面
       setSelectedViolation(null);
-      // 重新獲取已確認數量
       fetchConfirmedCount();
     } catch (err: any) {
       console.error("狀態更新失敗:", err);
@@ -550,7 +527,6 @@ const ViolationLog: React.FC = () => {
     }
   };
   
-  // 【還原】handleRowClick 函式，不再需要 event 參數
   const handleRowClick = (violation: ViolationRecord) => {
     if (selectedViolation && selectedViolation.id === violation.id) {
       setSelectedViolation(null);
@@ -559,10 +535,8 @@ const ViolationLog: React.FC = () => {
     }
   };
 
-  // --- JSX 渲染 ---
   return (
     <div className={`violation-log-page-wrapper ${selectedViolation ? 'detail-view-active' : ''}`}>
-      {/* 左側列表區塊 */}
       <div className="violation-log-page">
         <div className="page-header-container">
           <div>
@@ -677,11 +651,7 @@ const ViolationLog: React.FC = () => {
           <div className="violation-list-container">
             <div className="list-header">
               <div className="header-cell checkbox">
-                <input
-                  type="checkbox"
-                  ref={headerCheckboxRef}
-                  onChange={handleSelectAll}
-                /> 違規類型
+                <input type="checkbox" ref={headerCheckboxRef} onChange={handleSelectAll} /> 違規類型
               </div>
               <div className="header-cell plate">車牌號碼</div>
               <div className="header-cell time">時間</div>
@@ -712,10 +682,7 @@ const ViolationLog: React.FC = () => {
                         <input
                           type="checkbox"
                           checked={isSelected}
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            handleRowSelect(v.id);
-                          }}
+                          onChange={(e) => { e.stopPropagation(); handleRowSelect(v.id); }}
                         />
                         <div className="cell-content-vertical">
                           <span className="type-main">{v.type}</span>
@@ -747,52 +714,24 @@ const ViolationLog: React.FC = () => {
 
           <div className="log-footer">
             <div className="pagination-info">
-              <span>
-                顯示第 {((currentPage - 1) * recordsPerPage) + 1} - {Math.min(currentPage * recordsPerPage, totalRecords)} 筆，
-                共 {totalRecords} 筆紀錄
-              </span>
+              <span>顯示第 {((currentPage - 1) * recordsPerPage) + 1} - {Math.min(currentPage * recordsPerPage, totalRecords)} 筆，共 {totalRecords} 筆紀錄</span>
             </div>
             
-            {/* 分頁控件 */}
             {totalPages > 1 && (
               <div className="pagination-controls">
-                <button 
-                  className="pagination-btn"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                >
-                  上一頁
-                </button>
-                
+                <button className="pagination-btn" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>上一頁</button>
                 {getPaginationNumbers().map(page => (
-                  <button
-                    key={page}
-                    className={`pagination-btn ${page === currentPage ? 'active' : ''}`}
-                    onClick={() => handlePageChange(page)}
-                  >
-                    {page}
-                  </button>
+                  <button key={page} className={`pagination-btn ${page === currentPage ? 'active' : ''}`} onClick={() => handlePageChange(page)}>{page}</button>
                 ))}
-                
-                <button 
-                  className="pagination-btn"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                >
-                  下一頁
-                </button>
+                <button className="pagination-btn" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>下一頁</button>
               </div>
             )}
             
-            <button className="export-button">
-              <BiDownload />
-              匯出紀錄
-            </button>
+            <button className="export-button"><BiDownload />匯出紀錄</button>
           </div>
         </div>
       </div>
       
-      {/* 右側詳情區塊 */}
       <div className="violation-detail-view">
         {selectedViolation && (
             <ViolationDetail 
