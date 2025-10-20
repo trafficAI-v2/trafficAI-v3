@@ -15,6 +15,8 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 from datetime import datetime, timedelta, timezone
+from flask_jwt_extended import get_jwt_identity
+
 
 
 # --- 應用程式設定 ---
