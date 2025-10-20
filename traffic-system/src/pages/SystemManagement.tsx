@@ -1,13 +1,14 @@
-// src/pages/SystemManagement.tsx (最終版 - 整合「新增使用者」彈出視窗)
+// src/pages/SystemManagement.tsx (完整最終版 - 整合彈出式設定視窗)
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { BiPlus, BiEdit, BiTrash } from 'react-icons/bi';
+import { BiPlus, BiEdit, BiTrash, BiRefresh } from 'react-icons/bi';
 import { useAuth } from '../context/AuthContext';
-import Modal from '../components/common/Modal'; // 引入我們建立的 Modal 元件
-import AddUserForm from '../components/system/AddUserForm'; // 引入我們建立的 AddUserForm 元件
+import Modal from '../components/common/Modal';
+import AddUserForm from '../components/system/AddUserForm';
+import SystemSettings from '../components/system/SystemSettings'; // 引入我們建立的 SystemSettings 元件
 import '../styles/SystemManagement.css'; 
 
-// 定義使用者資料的 TypeScript 型別
+// --- 型別定義 ---
 interface User {
   id: number;
   username: string;
@@ -23,18 +24,20 @@ const SystemManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false); // 新增 state 來控制 Modal 的開關
+  
+  // 為兩個不同的 Modal 建立獨立的 state
+  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  
   const { token } = useAuth();
 
   // --- 資料獲取 ---
-  // 使用 useCallback 將 fetchUsers 函式包裹起來，避免在 re-render 時重複建立
   const fetchUsers = useCallback(async () => {
     if (!token) {
       setError("驗證失敗，請重新登入。");
       setIsLoading(false);
       return;
     }
-
     setIsLoading(true);
     setError(null);
     try {
@@ -42,7 +45,6 @@ const SystemManagement: React.FC = () => {
       const response = await fetch(`${API_BASE_URL}/api/users`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-
       if (!response.ok) {
         throw new Error('無法獲取使用者列表，請確認您是否擁有管理員權限。');
       }
@@ -53,26 +55,24 @@ const SystemManagement: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [token]); // 這個函式的依賴是 token
+  }, [token]);
 
-  // 在元件初次載入時，呼叫 fetchUsers
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
 
   // --- 事件處理 ---
-  // 當 AddUserForm 成功新增使用者後，要執行的回呼函式
   const handleAddUserSuccess = () => {
-    setIsModalOpen(false); // 關閉 Modal
-    fetchUsers(); // 重新整理使用者列表以顯示新成員
+    setIsAddUserModalOpen(false); // 關閉「新增使用者」的 Modal
+    fetchUsers(); // 重新整理使用者列表
   };
 
   // --- 渲染邏輯 ---
   const renderUserTable = () => {
     if (isLoading) return <p>正在載入使用者資料...</p>;
-    if (error) return <p style={{ color: 'red' }}>錯誤: {error}</p>;
+    if (error) return <p className="error-message">{error}</p>;
     if (users.length === 0) return <p>目前系統中沒有任何使用者。</p>;
-
+    
     return (
       <div className="user-table-container">
         <table className="user-table">
@@ -100,14 +100,7 @@ const SystemManagement: React.FC = () => {
                 </td>
                 <td>{user.status}</td>
                 <td className="last-login-cell">
-                  {user.lastLogin ? (
-                    <div className="login-time">
-                      <span className="date">{new Date(user.lastLogin).toLocaleDateString('zh-TW')}</span>
-                      <span className="time">{new Date(user.lastLogin).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}</span>
-                    </div>
-                  ) : (
-                    <span className="never-login">從未登入</span>
-                  )}
+                  {user.lastLogin ? new Date(user.lastLogin).toLocaleString('zh-TW') : '從未登入'}
                 </td>
                 <td style={{ textAlign: 'center' }}>
                   <button className="action-button edit-button" title="編輯使用者"><BiEdit /></button>
@@ -128,73 +121,94 @@ const SystemManagement: React.FC = () => {
         <span>管理使用者帳號與系統相關設定</span>
       </div>
 
-      {/* 系統管理功能卡片 */}
+      {/* --- 頂部功能卡片網格 --- */}
       <div className="management-cards">
-        <div className="management-card">
-          <h3>使用者管理</h3>
-          <p>管理系統使用者帳號、權限與狀態</p>
-          <div className="card-stats">
-            <span>總使用者: {users.length}</span>
-            <span>線上: {users.filter(u => u.status === '線上').length}</span>
-          </div>
+        {/* 卡片 1: 系統參數設定 (加上 onClick 事件) */}
+        <div 
+          className="management-card placeholder clickable" 
+          onClick={() => setIsSettingsModalOpen(true)}
+          role="button"
+          tabIndex={0}
+        >
+          <h3>系統參數設定</h3>
+          <p>調整系統名稱、時區、語言等基本參數。</p>
+          <span className="dev-status-badge">開發中</span>
         </div>
 
-        <div className="management-card">
-          <h3>系統監控</h3>
-          <p>監控系統效能與健康狀態</p>
-          <div className="card-stats">
-            <span>CPU: 45%</span>
-            <span>記憶體: 62%</span>
-          </div>
+        {/* 卡片 2: 系統日誌查詢 */}
+        <div className="management-card placeholder">
+          <h3>系統日誌查詢</h3>
+          <p>查詢、篩選並匯出系統所有操作日誌。</p>
+          <span className="dev-status-badge">開發中</span>
         </div>
 
-        <div className="management-card">
-          <h3>資料備份</h3>
-          <p>管理系統資料備份與還原</p>
-          <div className="card-stats">
-            <span>上次備份: 今日 02:00</span>
-            <span>狀態: 正常</span>
-          </div>
+        {/* 卡片 3: 系統效能監控 */}
+        <div className="management-card placeholder">
+          <h3>系統效能監控</h3>
+          <p>監控 CPU、記憶體、網路等即時效能狀況。</p>
+          <span className="dev-status-badge">開發中</span>
+        </div>
+        
+        {/* 卡片 4: 資料庫管理 */}
+        <div className="management-card placeholder">
+          <h3>資料庫管理</h3>
+          <p>管理資料備份、還原與效能最佳化。</p>
+          <span className="dev-status-badge">開發中</span>
         </div>
 
-        <div className="management-card">
-          <h3>系統設定</h3>
-          <p>調整系統參數與偏好設定</p>
-          <div className="card-stats">
-            <span>檢測閾值: 0.65</span>
-            <span>自動處理: 開啟</span>
-          </div>
+        {/* 卡片 5: 系統更新管理 */}
+        <div className="management-card placeholder">
+          <h3>系統更新管理</h3>
+          <p>檢查、排程並管理系統的版本更新。</p>
+          <span className="dev-status-badge">開發中</span>
+        </div>
+
+        {/* 卡片 6: 系統整合設定 */}
+        <div className="management-card placeholder">
+          <h3>系統整合設定</h3>
+          <p>設定與外部系統 (金流、簡訊) 的 API 整合。</p>
+          <span className="dev-status-badge">開發中</span>
         </div>
       </div>
-
+      
+      {/* --- 使用者管理區塊 --- */}
       <div className="system-management-content content-card">
         <div className="management-section-header">
           <h2>使用者列表</h2>
           <div className="header-actions">
-            <button className="action-btn secondary" onClick={() => fetchUsers()}>
+            <button className="btn btn-secondary" onClick={fetchUsers}>
+              <BiRefresh />
               重新整理
             </button>
-            <button className="action-btn primary" onClick={() => setIsModalOpen(true)}>
+            <button className="btn btn-primary" onClick={() => setIsAddUserModalOpen(true)}>
               <BiPlus />
               新增使用者
             </button>
           </div>
         </div>
-
         {renderUserTable()}
       </div>
 
-      {/* 將 Modal 和 AddUserForm 渲染到頁面上 */}
-      {/* 它的顯示與否，由 isModalOpen 這個 state 決定 */}
+      {/* --- 彈出視窗 --- */}
+      {/* 「新增使用者」的 Modal */}
       <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isAddUserModalOpen}
+        onClose={() => setIsAddUserModalOpen(false)}
         title="新增使用者"
       >
         <AddUserForm
           onSuccess={handleAddUserSuccess}
-          onCancel={() => setIsModalOpen(false)}
+          onCancel={() => setIsAddUserModalOpen(false)}
         />
+      </Modal>
+
+      {/* 新增的「系統設定」Modal */}
+      <Modal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        title="系統參數設定"
+      >
+        <SystemSettings />
       </Modal>
     </div>
   );
