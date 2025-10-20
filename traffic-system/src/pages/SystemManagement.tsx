@@ -1,11 +1,22 @@
-// src/pages/SystemManagement.tsx (完整最終版 - 整合彈出式設定視窗)
+// src/pages/SystemManagement.tsx (完整最終版 - 整合所有 Modal)
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { BiPlus, BiEdit, BiTrash, BiRefresh } from 'react-icons/bi';
+import { 
+  BiUser, BiCog, BiHistory, BiBarChartAlt2, BiData, BiCloudUpload, BiNetworkChart, 
+  BiPlus, BiEdit, BiTrash, BiRefresh 
+} from 'react-icons/bi';
 import { useAuth } from '../context/AuthContext';
 import Modal from '../components/common/Modal';
 import AddUserForm from '../components/system/AddUserForm';
-import SystemSettings from '../components/system/SystemSettings'; // 引入我們建立的 SystemSettings 元件
+
+// --- 引入我們所有的新元件 ---
+import SystemSettings from '../components/system/SystemSettings';
+import SystemLogs from '../components/system/SystemLogs';
+import SystemPerformance from '../components/system/SystemPerformance';
+import DatabaseManagement from '../components/system/DatabaseManagement';
+import UpdateManagement from '../components/system/UpdateManagement';
+import IntegrationSettings from '../components/system/IntegrationSettings';
+
 import '../styles/SystemManagement.css'; 
 
 // --- 型別定義 ---
@@ -21,24 +32,21 @@ interface User {
 
 const SystemManagement: React.FC = () => {
   // --- 狀態管理 ---
+  const [modalContent, setModalContent] = useState<React.ReactNode | null>(null);
+  const [modalTitle, setModalTitle] = useState('');
   const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // 為兩個不同的 Modal 建立獨立的 state
-  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
-  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  
   const { token } = useAuth();
-
-  // --- 資料獲取 ---
+  
+  // --- 資料獲取 (使用者列表) ---
   const fetchUsers = useCallback(async () => {
     if (!token) {
       setError("驗證失敗，請重新登入。");
-      setIsLoading(false);
+      setIsLoadingUsers(false);
       return;
     }
-    setIsLoading(true);
+    setIsLoadingUsers(true);
     setError(null);
     try {
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -53,23 +61,51 @@ const SystemManagement: React.FC = () => {
     } catch (err: any) {
       setError(err.message);
     } finally {
-      setIsLoading(false);
+      setIsLoadingUsers(false);
     }
   }, [token]);
 
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
-
+  
   // --- 事件處理 ---
-  const handleAddUserSuccess = () => {
-    setIsAddUserModalOpen(false); // 關閉「新增使用者」的 Modal
-    fetchUsers(); // 重新整理使用者列表
+  const openModal = (type: string) => {
+    switch (type) {
+      case 'addUser':
+        setModalTitle('新增使用者');
+        setModalContent(<AddUserForm onSuccess={() => { setModalContent(null); fetchUsers(); }} onCancel={() => setModalContent(null)} />);
+        break;
+      case 'settings':
+        setModalTitle('系統參數設定');
+        setModalContent(<SystemSettings />);
+        break;
+      case 'logs':
+        setModalTitle('系統日誌查詢');
+        setModalContent(<SystemLogs />);
+        break;
+      case 'performance':
+        setModalTitle('系統效能監控');
+        setModalContent(<SystemPerformance />);
+        break;
+      case 'database':
+        setModalTitle('資料庫管理');
+        setModalContent(<DatabaseManagement />);
+        break;
+      case 'update':
+        setModalTitle('系統更新管理');
+        setModalContent(<UpdateManagement />);
+        break;
+      case 'integration':
+        setModalTitle('系統整合設定');
+        setModalContent(<IntegrationSettings />);
+        break;
+    }
   };
 
   // --- 渲染邏輯 ---
   const renderUserTable = () => {
-    if (isLoading) return <p>正在載入使用者資料...</p>;
+    if (isLoadingUsers) return <p>正在載入使用者資料...</p>;
     if (error) return <p className="error-message">{error}</p>;
     if (users.length === 0) return <p>目前系統中沒有任何使用者。</p>;
     
@@ -118,97 +154,50 @@ const SystemManagement: React.FC = () => {
     <div className="page-container">
       <div className="page-header">
         <h1>系統管理</h1>
-        <span>管理使用者帳號與系統相關設定</span>
+        <span>點選下方卡片以開啟各項管理功能</span>
       </div>
 
-      {/* --- 頂部功能卡片網格 --- */}
+      {/* --- 功能總覽卡片 --- */}
       <div className="management-cards">
-        {/* 卡片 1: 系統參數設定 (加上 onClick 事件) */}
-        <div 
-          className="management-card placeholder clickable" 
-          onClick={() => setIsSettingsModalOpen(true)}
-          role="button"
-          tabIndex={0}
-        >
-          <h3>系統參數設定</h3>
-          <p>調整系統名稱、時區、語言等基本參數。</p>
-          <span className="dev-status-badge">開發中</span>
+        <div className="management-card clickable" onClick={() => openModal('settings')}>
+          <BiCog /><h3>系統參數設定</h3><p>調整系統名稱、時區、語言等基本參數。</p>
         </div>
-
-        {/* 卡片 2: 系統日誌查詢 */}
-        <div className="management-card placeholder">
-          <h3>系統日誌查詢</h3>
-          <p>查詢、篩選並匯出系統所有操作日誌。</p>
-          <span className="dev-status-badge">開發中</span>
+        <div className="management-card clickable" onClick={() => openModal('logs')}>
+          <BiHistory /><h3>系統日誌查詢</h3><p>查詢、篩選並匯出系統所有操作日誌。</p>
         </div>
-
-        {/* 卡片 3: 系統效能監控 */}
-        <div className="management-card placeholder">
-          <h3>系統效能監控</h3>
-          <p>監控 CPU、記憶體、網路等即時效能狀況。</p>
-          <span className="dev-status-badge">開發中</span>
+        <div className="management-card clickable" onClick={() => openModal('performance')}>
+          <BiBarChartAlt2 /><h3>系統效能監控</h3><p>監控 CPU、記憶體、網路等即時效能狀況。</p>
         </div>
-        
-        {/* 卡片 4: 資料庫管理 */}
-        <div className="management-card placeholder">
-          <h3>資料庫管理</h3>
-          <p>管理資料備份、還原與效能最佳化。</p>
-          <span className="dev-status-badge">開發中</span>
+        <div className="management-card clickable" onClick={() => openModal('database')}>
+          <BiData /><h3>資料庫管理</h3><p>管理資料備份、還原與效能最佳化。</p>
         </div>
-
-        {/* 卡片 5: 系統更新管理 */}
-        <div className="management-card placeholder">
-          <h3>系統更新管理</h3>
-          <p>檢查、排程並管理系統的版本更新。</p>
-          <span className="dev-status-badge">開發中</span>
+        <div className="management-card clickable" onClick={() => openModal('update')}>
+          <BiCloudUpload /><h3>系統更新管理</h3><p>檢查、排程並管理系統版本更新。</p>
         </div>
-
-        {/* 卡片 6: 系統整合設定 */}
-        <div className="management-card placeholder">
-          <h3>系統整合設定</h3>
-          <p>設定與外部系統 (金流、簡訊) 的 API 整合。</p>
-          <span className="dev-status-badge">開發中</span>
+        <div className="management-card clickable" onClick={() => openModal('integration')}>
+          <BiNetworkChart /><h3>系統整合設定</h3><p>設定與外部系統的 API 整合。</p>
         </div>
       </div>
       
-      {/* --- 使用者管理區塊 --- */}
+      {/* --- 使用者列表 --- */}
       <div className="system-management-content content-card">
         <div className="management-section-header">
           <h2>使用者列表</h2>
           <div className="header-actions">
-            <button className="btn btn-secondary" onClick={fetchUsers}>
-              <BiRefresh />
-              重新整理
-            </button>
-            <button className="btn btn-primary" onClick={() => setIsAddUserModalOpen(true)}>
-              <BiPlus />
-              新增使用者
-            </button>
+            <button className="btn btn-secondary" onClick={fetchUsers}><BiRefresh /> 重新整理</button>
+            <button className="btn btn-primary" onClick={() => openModal('addUser')}><BiPlus /> 新增使用者</button>
           </div>
         </div>
         {renderUserTable()}
       </div>
 
-      {/* --- 彈出視窗 --- */}
-      {/* 「新增使用者」的 Modal */}
+      {/* --- 單一、動態內容的 Modal --- */}
       <Modal
-        isOpen={isAddUserModalOpen}
-        onClose={() => setIsAddUserModalOpen(false)}
-        title="新增使用者"
+        isOpen={!!modalContent}
+        onClose={() => setModalContent(null)}
+        title={modalTitle}
       >
-        <AddUserForm
-          onSuccess={handleAddUserSuccess}
-          onCancel={() => setIsAddUserModalOpen(false)}
-        />
-      </Modal>
-
-      {/* 新增的「系統設定」Modal */}
-      <Modal
-        isOpen={isSettingsModalOpen}
-        onClose={() => setIsSettingsModalOpen(false)}
-        title="系統參數設定"
-      >
-        <SystemSettings />
+        {modalContent}
       </Modal>
     </div>
   );
