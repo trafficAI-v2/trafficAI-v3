@@ -2,6 +2,7 @@ import os
 import psycopg2
 import secrets
 import base64
+import psutil
 import io
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
@@ -865,6 +866,46 @@ def change_password():
     finally:
         if 'cur' in locals() and cur: cur.close()
         if 'conn' in locals() and conn: conn.close()
+
+
+# ==================================================
+# 【新增】系統效能監控 API
+# ==================================================
+@app.route('/api/system/performance', methods=['GET'])
+@admin_required()
+def get_system_performance():
+    """
+    獲取 web_api 容器自身的系統資源使用狀況。
+    """
+    try:
+        # 獲取 CPU 使用率 (%), interval=1 表示比較 1 秒內的變化
+        cpu_percent = psutil.cpu_percent(interval=1)
+        
+        # 獲取記憶體資訊
+        memory_info = psutil.virtual_memory()
+        memory_percent = memory_info.percent
+        
+        # 獲取磁碟資訊 (根目錄 '/')
+        disk_info = psutil.disk_usage('/')
+        disk_percent = disk_info.percent
+        
+        # 獲取網路 I/O
+        net_io = psutil.net_io_counters()
+        # 這裡只回傳總量，即時速率計算較複雜，可在前端實現
+        net_sent_gb = round(net_io.bytes_sent / (1024**3), 2)
+        net_recv_gb = round(net_io.bytes_recv / (1024**3), 2)
+
+        performance_data = {
+            "cpu": { "percent": cpu_percent },
+            "memory": { "percent": memory_percent, "total_gb": round(memory_info.total / (1024**3), 2) },
+            "disk": { "percent": disk_percent, "total_gb": round(disk_info.total / (1024**3), 2) },
+            "network": { "sent_gb": net_sent_gb, "recv_gb": net_recv_gb }
+        }
+        return jsonify(performance_data)
+
+    except Exception as e:
+        print(f"❌ 獲取系統效能時發生錯誤: {e}")
+        return jsonify({'error': '無法獲取系統效能數據'}), 500
 
 # ==================================================
 # 主程式啟動
