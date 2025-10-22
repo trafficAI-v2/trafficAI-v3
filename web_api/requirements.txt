@@ -11,9 +11,7 @@ Werkzeug==3.0.3
 flask-socketio==5.3.6
 Flask-JWT-Extended
 Flask-Mail
-
-
-
+psutil==5.9.8
 redis
 eventlet
 gunicorn

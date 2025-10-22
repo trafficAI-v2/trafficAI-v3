@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import userAdmin from '../../assets/user-admin.png';
 import { useAuth } from '../../context/AuthContext';
+import { apiService } from '../../services/api';
 import {
   BiShield, 
   BiHomeAlt,
@@ -16,6 +17,15 @@ import {
 } from 'react-icons/bi';
 import '../../styles/layout.css';
 
+// 定義通知的介面
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  createdAt: string;
+  read: boolean;
+}
+
 // 定義 Header 元件將接收的 props 型別
 interface HeaderProps {
   isAdmin: boolean;
@@ -26,6 +36,9 @@ const Header: React.FC<HeaderProps> = ({ isAdmin }) => {
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isLoadingNtf, setIsLoadingNtf] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
 
@@ -35,6 +48,52 @@ const Header: React.FC<HeaderProps> = ({ isAdmin }) => {
   };
 
   // 這個 effect 用來處理「點擊外部關閉選單」的功能
+  // 獲取通知列表
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (!isNotificationOpen) return;
+      setIsLoadingNtf(true);
+      try {
+        const data = await apiService.get<Notification[]>('/api/notifications/list');
+        setNotifications(data);
+      } catch (error) {
+        console.error("獲取通知列表失敗:", error);
+      } finally {
+        setIsLoadingNtf(false);
+      }
+    };
+    fetchNotifications();
+  }, [isNotificationOpen]);
+
+  // 獲取未讀通知數量
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const data = await apiService.get<{ count: number }>('/api/notifications/unread-count');
+        setUnreadCount(data.count);
+      } catch (error) {
+        console.error("獲取未讀通知數量失敗:", error);
+      }
+    };
+
+    fetchUnreadCount();
+    // 設定定時更新
+    const intervalId = setInterval(fetchUnreadCount, 60000); // 每分鐘更新一次
+    return () => clearInterval(intervalId);
+  }, []);
+
+  // 標記通知為已讀
+  const handleMarkAllAsRead = async (notificationIds: string[]) => {
+    try {
+      await apiService.post('/api/notifications/mark-read', { ids: notificationIds });
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setUnreadCount(0);
+    } catch (error) {
+      console.error("標記通知為已讀失敗:", error);
+    }
+  };
+
+  // 處理點擊外部關閉選單
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -95,37 +154,48 @@ const Header: React.FC<HeaderProps> = ({ isAdmin }) => {
               onClick={() => setIsNotificationOpen(!isNotificationOpen)}
             >
               <BiBell className="notification-icon" />
-              <span className="notification-badge">5</span>
+              <span className="notification-badge">{unreadCount}</span>
             </button>
 
             {isNotificationOpen && (
               <div className="notification-dropdown">
                 <div className="notification-header">
                   <strong>通知中心</strong>
-                  <button className="mark-all-read">全部標記為已讀</button>
+                  <button 
+                    className="mark-all-read"
+                    onClick={() => {
+                      const unreadIds = notifications
+                        .filter(n => !n.read)
+                        .map(n => n.id);
+                      if (unreadIds.length > 0) {
+                        handleMarkAllAsRead(unreadIds);
+                      }
+                    }}
+                  >
+                    全部標記為已讀
+                  </button>
                 </div>
                 <div className="notification-list">
-                  <div className="notification-item unread">
-                    <div className="notification-content">
-                      <div className="notification-title">新違規記錄</div>
-                      <div className="notification-text">檢測到未戴安全帽違規</div>
-                      <div className="notification-time">2 分鐘前</div>
-                    </div>
-                  </div>
-                  <div className="notification-item">
-                    <div className="notification-content">
-                      <div className="notification-title">系統更新</div>
-                      <div className="notification-text">車牌識別準確率提升至 95%</div>
-                      <div className="notification-time">1 小時前</div>
-                    </div>
-                  </div>
-                  <div className="notification-item">
-                    <div className="notification-content">
-                      <div className="notification-title">每日統計</div>
-                      <div className="notification-text">今日已處理 124 個違規案件</div>
-                      <div className="notification-time">3 小時前</div>
-                    </div>
-                  </div>
+                  {isLoadingNtf ? (
+                    <div className="notification-loading">載入中...</div>
+                  ) : notifications.length === 0 ? (
+                    <div className="no-notifications">目前沒有通知</div>
+                  ) : (
+                    notifications.map(notification => (
+                      <div 
+                        key={notification.id} 
+                        className={`notification-item ${notification.read ? '' : 'unread'}`}
+                      >
+                        <div className="notification-content">
+                          <div className="notification-title">{notification.title}</div>
+                          <div className="notification-text">{notification.message}</div>
+                          <div className="notification-time">
+                            {new Date(notification.createdAt).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
                 <div className="notification-footer">
                   <button className="view-all-notifications">查看所有通知</button>

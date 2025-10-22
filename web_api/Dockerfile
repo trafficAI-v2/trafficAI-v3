@@ -17,6 +17,8 @@ ENV PYTHONUNBUFFERED=1
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1 \
     libglib2.0-0 \
+    gcc \
+    python3-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
