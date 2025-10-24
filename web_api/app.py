@@ -25,8 +25,15 @@ load_dotenv()
 app = Flask(__name__)
 
 # 允許的前端來源，.env 裡可設定 CORS_ALLOWED_ORIGINS=http://localhost:8080
-allowed_origins = os.getenv('CORS_ALLOWED_ORIGINS', '*')
-CORS(app)
+allowed_origins = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:8080')
+CORS(app, resources={
+    r"/*": {  # 匹配所有路徑
+        "origins": allowed_origins,
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "expose_headers": ["Content-Type", "Authorization"]
+    }
+})
 socketio = SocketIO(app, cors_allowed_origins=allowed_origins)
 
 # JWT 設定
@@ -259,7 +266,7 @@ def admin_required():
 # ==================================================
 # 攝影機相關 API
 # ==================================================
-@app.route('/cameras_status', methods=['GET'])
+@app.route('/api/cameras/status', methods=['GET'])
 def get_cameras():
     try:
         conn = get_db_connection()
@@ -273,7 +280,7 @@ def get_cameras():
         print("❌ Error in get_cameras:", e)
         return jsonify({'error': 'Internal Server Error'}), 500
 
-@app.route('/cameras_list', methods=['GET'])
+@app.route('/api/cameras/list', methods=['GET'])
 def get_cameras_list():
     try:
         conn = get_db_connection()
@@ -290,7 +297,7 @@ def get_cameras_list():
 # ==================================================
 # 違規類型 API
 # ==================================================
-@app.route('/violation-types', methods=['GET'])
+@app.route('/api/violations/types', methods=['GET'])
 def get_violation_types():
     try:
         conn = get_db_connection()
@@ -307,7 +314,7 @@ def get_violation_types():
 # ==================================================
 # 違規紀錄 API (已修正)
 # ==================================================
-@app.route('/get_violations', methods=['GET'])
+@app.route('/api/violations', methods=['GET'])
 def get_violations():
     try:
         status = request.args.get('status')
@@ -437,7 +444,7 @@ def get_latest_violations():
 
 ## ==================================================
 # 違規狀態更新 API
-@app.route('/violations/status', methods=['PUT', 'OPTIONS'])
+@app.route('/api/violations/status', methods=['PUT', 'OPTIONS'])
 def update_violations_status():
     if request.method == 'OPTIONS':
         response = jsonify({'message': 'CORS preflight OK'})
@@ -476,7 +483,7 @@ def update_violations_status():
 # ==================================================
 # WebSocket 廣播
 # ==================================================
-@app.route('/notify/new-violation', methods=['POST'])
+@app.route('/api/notify/new-violation', methods=['POST'])
 def notify_new_violation():
     new_violation_data = request.json
     if not isinstance(new_violation_data, dict):
@@ -867,6 +874,113 @@ def change_password():
         if 'cur' in locals() and cur: cur.close()
         if 'conn' in locals() and conn: conn.close()
 
+
+# ==================================================
+# 通知相關 API
+# ==================================================
+@app.route('/api/notifications/list', methods=['GET'])
+@jwt_required()
+def get_notifications():
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            # 從 JWT 中獲取用戶名，然後獲取用戶 ID
+            username = get_jwt_identity()
+            cur.execute("SELECT id FROM users WHERE username = %s", (username,))
+            user_result = cur.fetchone()
+            if not user_result:
+                return jsonify({'error': '找不到用戶'}), 404
+            
+            user_id = str(user_result[0])  # 轉換為字符串，因為 notifications 表中的 userId 是 text 類型
+            
+            # 獲取該用戶的通知
+            cur.execute("""
+                SELECT id, title, message, type, priority, "isRead", "createdAt"
+                FROM notifications
+                WHERE "userId" = %s
+                ORDER BY "createdAt" DESC
+                LIMIT 50;
+            """, (user_id,))
+            notifications_raw = cur.fetchall()
+        conn.close()
+
+        notifications = [{
+            'id': row[0],
+            'title': row[1],
+            'message': row[2],
+            'type': row[3],
+            'priority': row[4],
+            'read': row[5],
+            'createdAt': row[6].isoformat() if row[6] else None
+        } for row in notifications_raw]
+
+        return jsonify(notifications)
+    except Exception as e:
+        print(f"❌ Error in get_notifications: {e}")
+        return jsonify({'error': 'Internal Server Error'}), 500
+
+@app.route('/api/notifications/unread-count', methods=['GET'])
+@jwt_required()
+def get_unread_notifications_count():
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            # 從 JWT 中獲取用戶名，然後獲取用戶 ID
+            username = get_jwt_identity()
+            cur.execute("SELECT id FROM users WHERE username = %s", (username,))
+            user_result = cur.fetchone()
+            if not user_result:
+                return jsonify({'error': '找不到用戶'}), 404
+            
+            user_id = str(user_result[0])  # 轉換為字符串
+            
+            # 獲取未讀通知數量
+            cur.execute("""
+                SELECT COUNT(*)
+                FROM notifications
+                WHERE "userId" = %s AND "isRead" = false;
+            """, (user_id,))
+            count = cur.fetchone()[0]
+        conn.close()
+        return jsonify({'count': count})
+    except Exception as e:
+        print(f"❌ Error in get_unread_notifications_count: {e}")
+        return jsonify({'error': 'Internal Server Error'}), 500
+
+@app.route('/api/notifications/mark-read', methods=['POST'])
+@jwt_required()
+def mark_notifications_as_read():
+    try:
+        data = request.get_json()
+        notification_ids = data.get('ids', [])
+        
+        if not notification_ids:
+            return jsonify({'error': '需要提供通知 ID'}), 400
+
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            # 從 JWT 中獲取用戶名，然後獲取用戶 ID
+            username = get_jwt_identity()
+            cur.execute("SELECT id FROM users WHERE username = %s", (username,))
+            user_result = cur.fetchone()
+            if not user_result:
+                return jsonify({'error': '找不到用戶'}), 404
+            
+            user_id = str(user_result[0])  # 轉換為字符串
+            
+            # 更新通知狀態
+            cur.execute("""
+                UPDATE notifications
+                SET "isRead" = true, "updatedAt" = CURRENT_TIMESTAMP
+                WHERE id = ANY(%s) AND "userId" = %s;
+            """, (notification_ids, user_id))
+        conn.commit()
+        conn.close()
+
+        return jsonify({'message': '通知已標記為已讀'}), 200
+    except Exception as e:
+        print(f"❌ Error in mark_notifications_as_read: {e}")
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 # ==================================================
 # 【新增】系統效能監控 API

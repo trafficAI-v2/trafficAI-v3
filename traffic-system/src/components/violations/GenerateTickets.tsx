@@ -12,7 +12,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // 使用現有的違規記錄 API 而不是專門的罰單 API
 const getViolationsByStatusURL = (status: string) => 
-  `${API_BASE_URL}/get_violations?status=${encodeURIComponent(status)}`;
+  `${API_BASE_URL}/api/violations?status=${encodeURIComponent(status)}`;
 
 // 指向新的「罰單統計」專用 API
 const GET_COUNTS_URL = `${API_BASE_URL}/api/tickets/counts`;

@@ -4,11 +4,11 @@ import { BiSearch, BiTag, BiMapPin, BiX, BiCalendar, BiDownload, BiReceipt, BiCh
 import './ViolationLog.css'; 
 
 // --- 從環境變數讀取後端 API 的 URL ---
-const VIOLATIONS_URL = import.meta.env.VITE_GET_VIOLATIONS_URL;
-const VIOLATION_TYPES_URL = import.meta.env.VITE_VIOLATION_TYPES_URL;
-const CAMERAS_LIST_URL = import.meta.env.VITE_CAMERA_LIST_URL;
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+const VIOLATIONS_URL = `${API_BASE_URL}/api/violations`;
+const VIOLATION_TYPES_URL = `${API_BASE_URL}/api/violations/types`;
+const CAMERAS_LIST_URL = `${API_BASE_URL}/api/cameras/list`;
 const CONFIRMED_COUNT_URL = `${API_BASE_URL}/api/violations/confirmed-count`;
 const VEHICLE_TYPE_URL = `${API_BASE_URL}/api/owners`;
 
@@ -459,7 +459,7 @@ const ViolationLog: React.FC = () => {
       alert('錯誤：未在 .env.local 中設定 VITE_API_BASE_URL');
       return;
     }
-    const updateUrl = `${API_BASE_URL}/violations/status`;
+    const updateUrl = `${API_BASE_URL}/api/violations/status`;
     try {
       const response = await fetch(updateUrl, {
         method: 'PUT',
@@ -496,7 +496,7 @@ const ViolationLog: React.FC = () => {
       alert('錯誤：未在 .env.local 中設定 VITE_API_BASE_URL');
       return;
     }
-    const updateUrl = `${API_BASE_URL}/violations/status`;
+    const updateUrl = `${API_BASE_URL}/api/violations/status`;
     try {
       const response = await fetch(updateUrl, {
         method: 'PUT',
