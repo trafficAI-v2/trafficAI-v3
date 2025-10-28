@@ -50,7 +50,7 @@ const SystemPerformance: React.FC = () => {
   return (
     <div className="settings-container">
       <div className="settings-section">
-        <h3 className="section-title">即時效能監控 (web_api 容器)</h3>
+        <h3 className="section-title">即時效能監控</h3>
         <div className="performance-grid">
           {/* CPU */}
           <div className="performance-item">

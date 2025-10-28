@@ -3,6 +3,7 @@ import psycopg2
 import secrets
 import base64
 import psutil
+import traceback
 import io
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
@@ -246,6 +247,56 @@ def send_violation_ticket_email(recipient_email, owner_name, violation_data, sms
         print(f"❌ Failed to send email to {recipient_email}: {str(e)}")
         print(f"❌ 完整追蹤: {traceback.format_exc()}")
         return False
+# ==================================================
+# 【建立日誌記錄器 (log_action)】
+# ==================================================
+def log_action(module: str, level: str, action: str, details: str = "", user_identity=None, client_ip=None):
+    """
+    將一個操作記錄寫入 system_logs 資料表。
+    :param module: 功能模組名稱
+    :param level: 日誌等級 ('INFO', 'WARNING', 'ERROR')
+    :param action: 執行的操作
+    :param details: 詳細描述
+    :param user_identity: 來自 get_jwt_identity() 的使用者身分
+    :param client_ip: 請求的 IP 位址
+    """
+    username = "系統" # 預設為系統操作
+    user_id = None
+    if user_identity:
+        # 從 JWT 的 identity 中解析使用者資訊
+        # 假設 identity 可能是字串或字典
+        if isinstance(user_identity, dict):
+            username = user_identity.get('username', '未知使用者')
+        else:
+            username = str(user_identity)
+        
+        # (可選但建議) 查詢 user_id
+        try:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute("SELECT id FROM users WHERE username = %s", (username,))
+            result = cur.fetchone()
+            if result:
+                user_id = result[0]
+            cur.close()
+            conn.close()
+        except Exception as e:
+            print(f"❌ 日誌記錄器中查詢 user_id 失敗: {e}")
+
+    sql = """
+        INSERT INTO system_logs (user_id, username, module, level, action, details, client_ip)
+        VALUES (%s, %s, %s, %s, %s, %s, %s);
+    """
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(sql, (user_id, username, module, level, action, details, client_ip))
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        # 如果日誌記錄失敗，我們不應該讓主操作失敗，所以只印出錯誤
+        print(f"❌❌❌ 嚴重警告：寫入系統日誌失敗！錯誤: {e}")
 
 # ==================================================
 # 【權限控制裝飾器】
@@ -472,6 +523,21 @@ def update_violations_status():
             updated_rows = cur.rowcount
         conn.commit()
         conn.close()
+        # --- 【新增日誌記錄】---
+        try:
+            # 將 ID 列表轉換為字串，方便記錄
+            ids_str = ", ".join(map(str, violation_ids))
+            log_action(
+                module="違規管理",
+                level="INFO",
+                action="更新違規狀態",
+                details=f"將 {updated_rows} 筆違規紀錄 (IDs: {ids_str}) 的狀態更新為 '{new_status}'",
+                user_identity=get_jwt_identity(),
+                client_ip=request.remote_addr
+            )
+        except Exception as log_error:
+            print(f"⚠️ 警告：記錄 '更新違規狀態' 日誌時發生錯誤: {log_error}")
+        # -----------------------
 
         return jsonify({'message': f'成功更新 {updated_rows} 筆紀錄的狀態'}), 200
 
@@ -682,6 +748,23 @@ def register():
         cur.execute(sql, (username, email, hashed_password, name, role))
         new_user_id = cur.fetchone()[0]
         conn.commit()
+        # --- 【核心修改】在这里呼叫 log_action() ---
+        try:
+            # 从 JWT Token 中获取执行此操作的管理员身分
+            admin_identity = get_jwt_identity()
+            
+            log_action(
+                module="使用者管理",
+                level="INFO",
+                action="建立新使用者",
+                details=f"成功建立了新使用者 '{username}' (角色: {role}, ID: {new_user_id})",
+                user_identity=admin_identity,
+                client_ip=request.remote_addr # 获取请求的来源 IP
+            )
+        except Exception as log_error:
+            # 如果出现错误,记录警告日志
+            print(f"⚠️ 警告：紀錄 '建立新使用者' 日誌時發生錯誤: {log_error}")
+        # ---------------------------------------------
         cur.close()
         conn.close()
         return jsonify({"message": f"使用者 '{username}' 註冊成功", "userId": new_user_id}), 201
@@ -865,6 +948,19 @@ def change_password():
         new_password_hash = generate_password_hash(new_password)
         cur.execute("UPDATE users SET password = %s WHERE username = %s", (new_password_hash, current_username))
         conn.commit()
+        # --- 【新增日誌記錄】---
+        try:
+            log_action(
+                module="個人資料",
+                level="WARNING", # 修改密碼是較敏感的操作，使用 WARNING 等級
+                action="修改密碼",
+                details=f"使用者 '{current_username}' 成功修改了自己的密碼",
+                user_identity=current_username,
+                client_ip=request.remote_addr
+            )
+        except Exception as log_error:
+            print(f"⚠️ 警告：記錄 '修改密碼' 日誌時發生錯誤: {log_error}")
+        # -----------------------
         return jsonify({"message": "密碼已成功更新"}), 200
     except Exception as e:
         if conn: conn.rollback()
@@ -1020,6 +1116,101 @@ def get_system_performance():
     except Exception as e:
         print(f"❌ 獲取系統效能時發生錯誤: {e}")
         return jsonify({'error': '無法獲取系統效能數據'}), 500
+    
+# web_api/app.py -> 4. API 路由定義 (API Endpoints)
+
+# ==================================================
+# 【新增】系統日誌查詢 API
+# ==================================================
+@app.route('/api/logs', methods=['GET'])
+@admin_required() # 只有管理員可以查詢系統日誌
+def get_system_logs():
+    """
+    獲取系統日誌，並支援多種條件篩選與分頁。
+    """
+    try:
+        # --- 1. 獲取篩選參數 ---
+        search_term = request.args.get('search')
+        level = request.args.get('level')
+        module = request.args.get('module')
+        username = request.args.get('user')
+        start_date = request.args.get('start_date') # 預期格式: YYYY-MM-DD
+        end_date = request.args.get('end_date')     # 預期格式: YYYY-MM-DD
+        
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 20)) # 日誌頁面預設顯示 20 筆
+        offset = (page - 1) * limit
+
+        # --- 2. 動態建立 SQL 查詢 ---
+        base_query = "FROM system_logs WHERE 1=1"
+        params = []
+
+        if search_term:
+            base_query += " AND (CAST(id AS TEXT) ILIKE %s OR username ILIKE %s OR action ILIKE %s OR details ILIKE %s)"
+            params.extend([f"%{search_term}%"] * 4)
+        if level:
+            base_query += " AND level = %s"
+            params.append(level)
+        if module:
+            base_query += " AND module = %s"
+            params.append(module)
+        if username:
+            base_query += " AND username = %s"
+            params.append(username)
+        if start_date:
+            base_query += " AND timestamp >= %s"
+            params.append(start_date)
+        if end_date:
+            # 為了包含結束當天，我們需要將日期加一天
+            end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date() + timedelta(days=1)
+            base_query += " AND timestamp < %s"
+            params.append(end_date_obj.strftime('%Y-%m-%d'))
+            
+        count_query = f"SELECT COUNT(*) {base_query}"
+        data_query = f"SELECT id, timestamp, username, module, level, action, details {base_query} ORDER BY timestamp DESC LIMIT %s OFFSET %s"
+
+        # --- 3. 執行查詢 ---
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        cur.execute(count_query, tuple(params))
+        total_count = cur.fetchone()[0]
+
+        cur.execute(data_query, tuple(params + [limit, offset]))
+        logs_raw = cur.fetchall()
+        
+        cur.close()
+        conn.close()
+
+        # --- 4. 格式化回傳資料 ---
+        logs = [
+            {
+                "id": row[0],
+                "timestamp": row[1].isoformat(),
+                "username": row[2],
+                "module": row[3],
+                "level": row[4],
+                "action": row[5],
+                "details": row[6],
+            }
+            for row in logs_raw
+        ]
+        
+        total_pages = (total_count + limit - 1) // limit
+        
+        return jsonify({
+            'data': logs,
+            'pagination': {
+                'current_page': page,
+                'total_pages': total_pages,
+                'total_records': total_count,
+            }
+        })
+
+    except Exception as e:
+        print(f"❌ 獲取系統日誌時發生錯誤: {e}")
+        traceback.print_exc()
+        return jsonify({'error': '伺服器內部錯誤'}), 500
 
 # ==================================================
 # 主程式啟動
