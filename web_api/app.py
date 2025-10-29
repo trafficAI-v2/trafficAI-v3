@@ -68,83 +68,78 @@ def get_db_connection():
     conn = psycopg2.connect(db_url)
     return conn
 
-# Email發送函數
-def send_violation_ticket_email(recipient_email, owner_name, violation_data, sms_content):
-    """
-    發送交通違規罰單電子郵件（包含內嵌的違規照片）
-    """
-    def format_timestamp_for_email(timestamp_input):
-        if not timestamp_input:
-            return 'N/A'
+# ==================================================
+# Email 輔助函數
+# ==================================================
+def format_timestamp_for_email(timestamp_input):
+    """格式化時間戳為電子郵件顯示格式"""
+    if not timestamp_input:
+        return 'N/A'
+    
+    timestamp_str = timestamp_input.isoformat() if hasattr(timestamp_input, 'isoformat') else str(timestamp_input)
+    
+    try:
+        date_part_str, time_part_str_with_zone = timestamp_str.split('T') if 'T' in timestamp_str else timestamp_str.split(' ', 1)
+        date_part = date_part_str.replace('-', '/')
         
-        if hasattr(timestamp_input, 'isoformat'):
-            timestamp_str = timestamp_input.isoformat()
-        else:
-            timestamp_str = str(timestamp_input)
+        if not time_part_str_with_zone:
+            return date_part
         
-        try:
-            if 'T' in timestamp_str:
-                date_part_str, time_part_str_with_zone = timestamp_str.split('T')
-            else:
-                date_part_str, time_part_str_with_zone = timestamp_str.split(' ', 1)
-            
-            date_part = date_part_str.replace('-', '/')
-            
-            if not time_part_str_with_zone:
-                return date_part
-            
-            if '+' in time_part_str_with_zone:
-                time_part_clean = time_part_str_with_zone.split('+')[0]
-            elif time_part_str_with_zone.endswith('Z'):
-                time_part_clean = time_part_str_with_zone.rstrip('Z')
-            else:
-                time_part_clean = time_part_str_with_zone
-            
-            main_time_part = time_part_clean.split('.')[0]
-            hours, minutes, seconds = map(int, main_time_part.split(':'))
-            
-            ampm = '下午' if hours >= 12 else '上午'
-            display_hours = hours % 12 or 12
-            time_part = f"{ampm} {display_hours}:{minutes:02d}:{seconds:02d}"
-            
-            return f"{date_part} {time_part}"
+        # 清理時區信息
+        time_part_clean = time_part_str_with_zone.split('+')[0] if '+' in time_part_str_with_zone else time_part_str_with_zone.rstrip('Z')
+        main_time_part = time_part_clean.split('.')[0]
+        hours, minutes, seconds = map(int, main_time_part.split(':'))
         
-        except Exception as e:
-            print(f"❌ 時間格式化失敗: {timestamp_input}, 錯誤: {e}")
-            return str(timestamp_input)
+        ampm = '下午' if hours >= 12 else '上午'
+        display_hours = hours % 12 or 12
+        time_part = f"{ampm} {display_hours}:{minutes:02d}:{seconds:02d}"
+        
+        return f"{date_part} {time_part}"
+        
+    except Exception as e:
+        print(f"❌ 時間格式化失敗: {timestamp_input}, 錯誤: {e}")
+        return str(timestamp_input)
 
+def format_current_time():
+    """格式化當前時間為台灣時區"""
+    taiwan_tz = timezone(timedelta(hours=8))
+    now = datetime.now(taiwan_tz)
+    date_part = now.strftime('%Y/%m/%d')
+    hours, minutes, seconds = now.hour, now.minute, now.second
+    ampm = '下午' if hours >= 12 else '上午'
+    display_hours = hours % 12 or 12
+    time_part = f"{ampm} {display_hours}:{minutes:02d}:{seconds:02d}"
+    return f"{date_part} {time_part}"
+
+def get_violation_image_data(violation_id):
+    """獲取違規照片數據"""
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        
-        def format_current_time():
-            from datetime import timezone, timedelta
-            taiwan_tz = timezone(timedelta(hours=8))
-            now = datetime.now(taiwan_tz)
-            date_part = now.strftime('%Y/%m/%d')
-            hours = now.hour
-            minutes = now.minute
-            seconds = now.second
-            ampm = '下午' if hours >= 12 else '上午'
-            display_hours = hours % 12 or 12
-            time_part = f"{ampm} {display_hours}:{minutes:02d}:{seconds:02d}"
-            return f"{date_part} {time_part}"
-        
-        formatted_current_time = format_current_time()
-        
         image_query = "SELECT image_data FROM violations WHERE id = %s"
-        cur.execute(image_query, (violation_data['id'],))
+        cur.execute(image_query, (violation_id,))
         image_result = cur.fetchone()
+        cur.close()
+        conn.close()
+        
         image_data_base64 = image_result[0] if image_result and image_result[0] else None
-        
-        print(f"🔍 DEBUG: Fetching image for violation ID {violation_data['id']}. Found: {'Yes' if image_data_base64 else 'No'}")
-        
+        print(f"🔍 DEBUG: Fetching image for violation ID {violation_id}. Found: {'Yes' if image_data_base64 else 'No'}")
+        return image_data_base64
+    except Exception as e:
+        print(f"❌ 獲取違規照片失敗: {e}")
+        return None
+
+def get_owner_information(plate_number):
+    """獲取車主資訊"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
         owner_query = """
             SELECT full_name, id_number, gender, date_of_birth, phone_number, email, address, vehicle_type
             FROM owners 
             WHERE license_plate_number = %s
         """
-        cur.execute(owner_query, (violation_data['plateNumber'],))
+        cur.execute(owner_query, (plate_number,))
         owner_info = cur.fetchone()
         cur.close()
         conn.close()
@@ -152,95 +147,221 @@ def send_violation_ticket_email(recipient_email, owner_name, violation_data, sms
         if owner_info:
             _, id_number, gender, birth_date, phone, owner_email, address, vehicle_type = owner_info
             formatted_birth_date = birth_date.strftime('%Y/%m/%d') if birth_date else 'N/A'
+            return {
+                'id_number': id_number,
+                'gender': gender,
+                'birth_date': formatted_birth_date,
+                'phone': phone,
+                'email': owner_email,
+                'address': address,
+                'vehicle_type': vehicle_type
+            }
         else:
-            print(f"❌ DEBUG: No owner info found for {violation_data['plateNumber']}")
-            id_number, gender, formatted_birth_date, phone, owner_email, address, vehicle_type = ('N/A',) * 7
+            print(f"❌ DEBUG: No owner info found for {plate_number}")
+            return {
+                'id_number': 'N/A', 'gender': 'N/A', 'birth_date': 'N/A',
+                'phone': 'N/A', 'email': 'N/A', 'address': 'N/A', 'vehicle_type': 'N/A'
+            }
+    except Exception as e:
+        print(f"❌ 獲取車主資訊失敗: {e}")
+        return None
+
+def create_email_html_body(violation_data, owner_name, owner_info, formatted_violation_time, formatted_current_time, image_data_base64):
+    """創建HTML郵件內容"""
+    image_section = ('<img src="cid:violation_photo" alt="違規照片" class="violation-image">' 
+                    if image_data_base64 else 
+                    '<div style="border: 2px dashed #ccc; padding: 20px; background-color: #f8f9fa; border-radius: 8px; margin-top: 10px;">'
+                    '<p style="color: #666; margin: 0; font-size: 14px;">無違規照片</p></div>')
+    
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            body {{ font-family: 'Microsoft JhengHei', 'SimHei', Arial, sans-serif; margin: 0; padding: 20px; line-height: 1.6; background-color: #f5f5f5; }}
+            .container {{ max-width: 800px; margin: 0 auto; background: white; border: 2px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }}
+            .header {{ background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: white; text-align: center; padding: 30px 20px; border-radius: 6px 6px 0 0; }}
+            .header h1 {{ font-size: 28px; font-weight: bold; margin: 0 0 10px 0; letter-spacing: 1px; }}
+            .header p {{ margin: 5px 0; font-size: 16px; }}
+            .content {{ padding: 30px; }}
+            .section {{ margin: 20px 0; padding: 25px; background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; }}
+            .section-title {{ font-size: 18px; font-weight: bold; color: #333; margin-bottom: 20px; border-bottom: 2px solid #2563eb; padding-bottom: 10px; }}
+            .two-column {{ display: flex; gap: 40px; justify-content: space-between; flex-wrap: wrap; }}
+            .column {{ flex: 1; min-width: 280px; padding: 0 10px; }}
+            .field {{ margin: 8px 0; display: flex; align-items: flex-start; min-height: 24px; }}
+            .label {{ font-weight: bold; color: #495057; min-width: 80px; flex-shrink: 0; margin-right: 8px; text-align: left; }}
+            .value {{ color: #212529; flex: 1; word-wrap: break-word; line-height: 1.4; }}
+            .violation-details {{ background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 25px; border-radius: 8px; margin: 20px 0; }}
+            .violation-image {{ max-width: 100%; height: auto; border: 2px solid #ddd; border-radius: 8px; margin-top: 10px; display: block; }}
+            .notice-section {{ background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 25px; border-radius: 5px; margin: 25px 0; }}
+            .notice-title {{ font-size: 18px; font-weight: bold; margin-bottom: 15px; color: #721c24; }}
+            .footer {{ text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6; font-size: 14px; color: #6c757d; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>交通違規電子罰單</h1>
+                <p>罰單編號: VIO-{violation_data['id']}</p>
+                <p>開立日期: {datetime.now().strftime('%Y/%m/%d')}</p>
+            </div>
+            <div class="content">
+                <div class="section">
+                    <div class="section-title">車主基本資料</div>
+                    <div class="two-column">
+                        <div class="column">
+                            <div class="field"><span class="label">車主姓名:</span><span class="value">{owner_name}</span></div>
+                            <div class="field"><span class="label">身分證字號:</span><span class="value">{owner_info['id_number']}</span></div>
+                            <div class="field"><span class="label">性別:</span><span class="value">{owner_info['gender']}</span></div>
+                            <div class="field"><span class="label">出生年月日:</span><span class="value">{owner_info['birth_date']}</span></div>
+                        </div>
+                        <div class="column">
+                            <div class="field"><span class="label">聯絡電話:</span><span class="value">{owner_info['phone']}</span></div>
+                            <div class="field"><span class="label">電子郵件:</span><span class="value">{owner_info['email']}</span></div>
+                            <div class="field"><span class="label">戶籍地址:</span><span class="value">{owner_info['address']}</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="violation-details">
+                    <div class="section-title">違規詳細資訊</div>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 20px;">
+                        <div style="flex-grow: 1; min-width: 320px;">
+                            <div class="field"><span class="label">車牌號碼:</span><span class="value">{violation_data['plateNumber']}</span></div>
+                            <div class="field"><span class="label">車輛類型:</span><span class="value">{owner_info['vehicle_type']}</span></div>
+                            <div class="field"><span class="label">違規類型:</span><span class="value" style="color: #dc3545; font-weight: bold;">{violation_data['type']}</span></div>
+                            <div class="field"><span class="label">違規時間:</span><span class="value">{formatted_violation_time}</span></div>
+                            <div class="field"><span class="label">違規地點:</span><span class="value">{violation_data['location']}</span></div>
+                        </div>
+                        <div style="flex-shrink: 0; width: 300px; text-align: center;">
+                            <div class="label" style="width: 100%; margin-bottom: 10px;">違規照片</div>
+                            {image_section}
+                        </div>
+                    </div>
+                </div>
+                <div class="notice-section">
+                    <div class="notice-title">注意事項</div>
+                    <p>接獲違反道路交通管理事件電子通知單後，依所記載「應到案日期」前往監理所、站接受裁處或以郵繳即時銷案、電話語音轉帳、網路方式繳納罰鍰。</p>
+                    <p>如發現通知單上所填載之車牌號碼或被通知人姓名有疑問，請於應到案日期前向原舉發單位或監理所、站提出書面申請要求更正。</p>
+                </div>
+            </div>
+            <div class="footer">
+                <p><strong>智慧交通監控系統</strong></p>
+                <p>自動發送時間: {formatted_current_time}</p>
+                <p style="color: #dc3545; font-weight: bold;">本郵件為系統自動發送，請勿直接回覆</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+def create_email_text_body(violation_data, owner_name, formatted_violation_time, formatted_current_time):
+    """創建純文字郵件內容"""
+    return f"""交通違規電子罰單通知
+
+罰單編號: VIO-{violation_data['id']}
+車主姓名: {owner_name}
+車牌號碼: {violation_data['plateNumber']}
+
+違規詳細資訊:
+違規類型: {violation_data['type']}
+違規時間: {formatted_violation_time}
+違規地點: {violation_data['location']}
+
+注意事項:
+請依所記載「應到案日期」前往監理所、站接受裁處或以多元方式繳納罰鍰。
+如有疑問，請洽詢服務專線或至監理站辦理。
+
+智慧交通監控系統
+發送時間: {formatted_current_time}"""
+
+def attach_violation_image(msg, image_data_base64, violation_id):
+    """附加違規照片到郵件"""
+    if not image_data_base64:
+        return False
         
-        subject = f"交通違規電子罰單通知 - 車牌: {violation_data['plateNumber']}"
+    try:
+        if image_data_base64.startswith('data:image'):
+            image_data_base64 = image_data_base64.split(',')[1]
+        
+        image_data = base64.b64decode(image_data_base64)
+        image = MIMEImage(image_data)
+        image.add_header('Content-Disposition', 'inline', filename=f"violation_{violation_id}.jpg")
+        image.add_header('Content-ID', '<violation_photo>')
+        msg.attach(image)
+        print(f"✅ DEBUG: 違規照片已作為內嵌圖片添加 (大小: {len(image_data)} bytes)")
+        return True
+    except Exception as img_error:
+        print(f"❌ 處理違規照片失敗: {img_error}")
+        return False
+
+def send_email_via_smtp(msg, recipient_email):
+    """透過 SMTP 發送郵件"""
+    try:
+        smtp_server = smtplib.SMTP(app.config['MAIL_SERVER'], app.config['MAIL_PORT'])
+        if app.config.get('MAIL_USE_TLS'):
+            smtp_server.starttls()
+        smtp_server.login(app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
+        smtp_server.send_message(msg)
+        smtp_server.quit()
+        print(f"✅ Email sent successfully to {recipient_email}")
+        return True
+    except Exception as smtp_error:
+        print(f"❌ SMTP發送失敗: {smtp_error}")
+        return False
+
+def send_email_via_fallback(subject, recipient_email, html_body, text_body):
+    """備用郵件發送方式"""
+    try:
+        mail_msg = Message(subject=subject, recipients=[recipient_email], html=html_body, body=text_body)
+        mail.send(mail_msg)
+        print(f"✅ 備用郵件發送成功 to {recipient_email} (可能無內嵌圖片)")
+        return True
+    except Exception as fallback_error:
+        print(f"❌ 備用郵件發送也失敗: {fallback_error}")
+        return False
+
+# Email發送函數 (重構後的主函數)
+def send_violation_ticket_email(recipient_email, owner_name, violation_data, sms_content):
+    """
+    發送交通違規罰單電子郵件（包含內嵌的違規照片）
+    """
+    try:
+        # 1. 獲取基本數據
+        formatted_current_time = format_current_time()
         formatted_violation_time = format_timestamp_for_email(violation_data['timestamp'])
         
-        html_body = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <style>
-                body {{ font-family: 'Microsoft JhengHei', 'SimHei', Arial, sans-serif; margin: 0; padding: 20px; line-height: 1.6; background-color: #f5f5f5; }}
-                .container {{ max-width: 800px; margin: 0 auto; background: white; border: 2px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }}
-                .header {{ background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: white; text-align: center; padding: 30px 20px; border-radius: 6px 6px 0 0; }}
-                .header h1 {{ font-size: 28px; font-weight: bold; margin: 0 0 10px 0; letter-spacing: 1px; }}
-                .header p {{ margin: 5px 0; font-size: 16px; }}
-                .content {{ padding: 30px; }}
-                .section {{ margin: 20px 0; padding: 25px; background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; }}
-                .section-title {{ font-size: 18px; font-weight: bold; color: #333; margin-bottom: 20px; border-bottom: 2px solid #2563eb; padding-bottom: 10px; }}
-                .two-column {{ display: flex; gap: 40px; justify-content: space-between; flex-wrap: wrap; }}
-                .column {{ flex: 1; min-width: 280px; padding: 0 10px; }}
-                .field {{ margin: 8px 0; display: flex; align-items: flex-start; min-height: 24px; }}
-                .label {{ font-weight: bold; color: #495057; min-width: 80px; flex-shrink: 0; margin-right: 8px; text-align: left; }}
-                .value {{ color: #212529; flex: 1; word-wrap: break-word; line-height: 1.4; }}
-                .violation-details {{ background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 25px; border-radius: 8px; margin: 20px 0; }}
-                .violation-image {{ max-width: 100%; height: auto; border: 2px solid #ddd; border-radius: 8px; margin-top: 10px; display: block; }}
-                .notice-section {{ background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 25px; border-radius: 5px; margin: 25px 0; }}
-                .notice-title {{ font-size: 18px; font-weight: bold; margin-bottom: 15px; color: #721c24; }}
-                .footer {{ text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6; font-size: 14px; color: #6c757d; }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="header"><h1>交通違規電子罰單</h1><p>罰單編號: VIO-{violation_data['id']}</p><p>開立日期: {datetime.now().strftime('%Y/%m/%d')}</p></div>
-                <div class="content">
-                    <div class="section"><div class="section-title">車主基本資料</div><div class="two-column"><div class="column"><div class="field"><span class="label">車主姓名:</span><span class="value">{owner_name}</span></div><div class="field"><span class="label">身分證字號:</span><span class="value">{id_number}</span></div><div class="field"><span class="label">性別:</span><span class="value">{gender}</span></div><div class="field"><span class="label">出生年月日:</span><span class="value">{formatted_birth_date}</span></div></div><div class="column"><div class="field"><span class="label">聯絡電話:</span><span class="value">{phone}</span></div><div class="field"><span class="label">電子郵件:</span><span class="value">{owner_email}</span></div><div class="field"><span class="label">戶籍地址:</span><span class="value">{address}</span></div></div></div></div>
-                    <div class="violation-details"><div class="section-title">違規詳細資訊</div><div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 20px;"><div style="flex-grow: 1; min-width: 320px;"><div class="field"><span class="label">車牌號碼:</span><span class="value">{violation_data['plateNumber']}</span></div><div class="field"><span class="label">車輛類型:</span><span class="value">{vehicle_type}</span></div><div class="field"><span class="label">違規類型:</span><span class="value" style="color: #dc3545; font-weight: bold;">{violation_data['type']}</span></div><div class="field"><span class="label">違規時間:</span><span class="value">{formatted_violation_time}</span></div><div class="field"><span class="label">違規地點:</span><span class="value">{violation_data['location']}</span></div></div><div style="flex-shrink: 0; width: 300px; text-align: center;"><div class="label" style="width: 100%; margin-bottom: 10px;">違規照片</div>{'<img src="cid:violation_photo" alt="違規照片" class="violation-image">' if image_data_base64 else '<div style="border: 2px dashed #ccc; padding: 20px; background-color: #f8f9fa; border-radius: 8px; margin-top: 10px;"><p style="color: #666; margin: 0; font-size: 14px;">無違規照片</p></div>'}</div></div></div>
-                    <div class="notice-section"><div class="notice-title">注意事項</div><p>接獲違反道路交通管理事件電子通知單後，依所記載「應到案日期」前往監理所、站接受裁處或以郵繳即時銷案、電話語音轉帳、網路方式繳納罰鍰。</p><p>如發現通知單上所填載之車牌號碼或被通知人姓名有疑問，請於應到案日期前向原舉發單位或監理所、站提出書面申請要求更正。</p></div>
-                </div>
-                <div class="footer"><p><strong>智慧交通監控系統</strong></p><p>自動發送時間: {formatted_current_time}</p><p style="color: #dc3545; font-weight: bold;">本郵件為系統自動發送，請勿直接回覆</p></div>
-            </div>
-        </body></html>
-        """
+        # 2. 獲取違規照片和車主資訊
+        image_data_base64 = get_violation_image_data(violation_data['id'])
+        owner_info = get_owner_information(violation_data['plateNumber'])
         
-        text_body = f"""交通違規電子罰單通知\n\n罰單編號: VIO-{violation_data['id']}\n車主姓名: {owner_name}\n車牌號碼: {violation_data['plateNumber']}\n\n違規詳細資訊:\n違規類型: {violation_data['type']}\n違規時間: {formatted_violation_time}\n違規地點: {violation_data['location']}\n\n注意事項:\n請依所記載「應到案日期」前往監理所、站接受裁處或以多元方式繳納罰鍰。\n如有疑問，請洽詢服務專線或至監理站辦理。\n\n智慧交通監控系統\n發送時間: {formatted_current_time}"""
+        if not owner_info:
+            return False
         
+        # 3. 創建郵件內容
+        subject = f"交通違規電子罰單通知 - 車牌: {violation_data['plateNumber']}"
+        html_body = create_email_html_body(violation_data, owner_name, owner_info, formatted_violation_time, formatted_current_time, image_data_base64)
+        text_body = create_email_text_body(violation_data, owner_name, formatted_violation_time, formatted_current_time)
+        
+        # 4. 組裝郵件
         msg = MIMEMultipart('related')
         msg['Subject'] = subject
         msg['From'] = app.config['MAIL_DEFAULT_SENDER']
         msg['To'] = recipient_email
+        
         msg_alternative = MIMEMultipart('alternative')
         msg.attach(msg_alternative)
         msg_alternative.attach(MIMEText(text_body, 'plain', 'utf-8'))
         msg_alternative.attach(MIMEText(html_body, 'html', 'utf-8'))
         
-        if image_data_base64:
-            try:
-                if image_data_base64.startswith('data:image'):
-                    image_data_base64 = image_data_base64.split(',')[1]
-                image_data = base64.b64decode(image_data_base64)
-                image = MIMEImage(image_data)
-                image.add_header('Content-Disposition', 'inline', filename=f"violation_{violation_data['id']}.jpg")
-                image.add_header('Content-ID', '<violation_photo>')
-                msg.attach(image)
-                print(f"✅ DEBUG: 違規照片已作為內嵌圖片添加 (大小: {len(image_data)} bytes)")
-            except Exception as img_error:
-                print(f"❌ 處理違規照片失敗: {img_error}")
+        # 5. 附加圖片
+        attach_violation_image(msg, image_data_base64, violation_data['id'])
         
-        try:
-            smtp_server = smtplib.SMTP(app.config['MAIL_SERVER'], app.config['MAIL_PORT'])
-            if app.config.get('MAIL_USE_TLS'):
-                smtp_server.starttls()
-            smtp_server.login(app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
-            smtp_server.send_message(msg)
-            smtp_server.quit()
-            print(f"✅ Email sent successfully to {recipient_email}")
+        # 6. 發送郵件 (嘗試 SMTP，失敗則使用備用方式)
+        if send_email_via_smtp(msg, recipient_email):
             return True
-        except Exception as smtp_error:
-            print(f"❌ SMTP發送失敗: {smtp_error}")
-            try:
-                mail_msg = Message(subject=subject, recipients=[recipient_email], html=html_body, body=text_body)
-                mail.send(mail_msg)
-                print(f"✅ 備用郵件發送成功 to {recipient_email} (可能無內嵌圖片)")
-                return True
-            except Exception as fallback_error:
-                print(f"❌ 備用郵件發送也失敗: {fallback_error}")
-                return False
+        else:
+            return send_email_via_fallback(subject, recipient_email, html_body, text_body)
         
     except Exception as e:
         import traceback
