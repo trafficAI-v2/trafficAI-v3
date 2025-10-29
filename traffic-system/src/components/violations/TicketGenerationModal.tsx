@@ -297,7 +297,7 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
             <div class="header">
               <h1>交通違規電子罰單</h1>
               <div class="ticket-info">罰單編號: VIO-${violation!.id}</div>
-              <div class="ticket-info">開立日期: ${new Date().toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '/')}</div>
+              <div class="ticket-info">開立日期: ${new Date().toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }).replaceAll('/', '/')}</div>
             </div>
             
             <div class="content">
@@ -436,7 +436,7 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
     if (!dateString) return '未提供';
     try {
       const date = new Date(dateString);
-      if (isNaN(date.getTime())) return '未提供';
+      if (Number.isNaN(date.getTime())) return '未提供';
       
       const year = date.getFullYear();
       const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -574,36 +574,36 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
           <h4>車主查詢結果</h4>
           <div className="owner-details">
             <div className="owner-field">
-              <label>姓名</label>
-              <input type="text" value={ownerInfo.full_name} readOnly />
+              <label htmlFor="owner-name">姓名</label>
+              <input id="owner-name" type="text" value={ownerInfo.full_name} readOnly />
             </div>
             <div className="owner-field">
-              <label>身分證字號</label>
-              <input type="text" value={ownerInfo.id_number} readOnly />
+              <label htmlFor="owner-id">身分證字號</label>
+              <input id="owner-id" type="text" value={ownerInfo.id_number} readOnly />
             </div>
             <div className="owner-field">
-              <label>性別</label>
-              <input type="text" value={ownerInfo.gender || '未提供'} readOnly />
+              <label htmlFor="owner-gender">性別</label>
+              <input id="owner-gender" type="text" value={ownerInfo.gender || '未提供'} readOnly />
             </div>
             <div className="owner-field">
-              <label>出生年月日（YYYY/MM/DD ）</label>
-              <input type="text" value={formatDateOfBirth(ownerInfo.date_of_birth)} readOnly />
+              <label htmlFor="owner-dob">出生年月日（YYYY/MM/DD ）</label>
+              <input id="owner-dob" type="text" value={formatDateOfBirth(ownerInfo.date_of_birth)} readOnly />
             </div>
             <div className="owner-field">
-              <label>手機號碼</label>
-              <input type="text" value={ownerInfo.phone_number} readOnly />
+              <label htmlFor="owner-phone">手機號碼</label>
+              <input id="owner-phone" type="text" value={ownerInfo.phone_number} readOnly />
             </div>
             <div className="owner-field">
-              <label>電子郵件</label>
-              <input type="text" value={ownerInfo.email || '未提供'} readOnly />
+              <label htmlFor="owner-email">電子郵件</label>
+              <input id="owner-email" type="text" value={ownerInfo.email || '未提供'} readOnly />
             </div>
             <div className="owner-field">
-              <label>戶籍地址</label>
-              <input type="text" value={ownerInfo.address} readOnly />
+              <label htmlFor="owner-address">戶籍地址</label>
+              <input id="owner-address" type="text" value={ownerInfo.address} readOnly />
             </div>
             <div className="owner-field">
-              <label>車輛類型</label>
-              <input type="text" value={ownerInfo.vehicle_type} readOnly />
+              <label htmlFor="owner-vehicle-type">車輛類型</label>
+              <input id="owner-vehicle-type" type="text" value={ownerInfo.vehicle_type} readOnly />
             </div>
           </div>
         </div>
@@ -677,10 +677,31 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
   const { date, time } = formatTimestamp(violation.timestamp);
 
   return (
-    <div className="ticket-modal-overlay" onClick={onClose}>
-      <div className="ticket-modal" onClick={(e) => e.stopPropagation()}>
+    <div 
+      className="ticket-modal-overlay" 
+      onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          onClose();
+        }
+      }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="ticket-modal-title"
+      tabIndex={-1}
+    >
+      <div 
+        className="ticket-modal" 
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          // 阻止鍵盤事件冒泡，避免觸發overlay的ESC關閉
+          e.stopPropagation();
+        }}
+        role="document"
+        tabIndex={0}
+      >
         <div className="ticket-modal-header">
-          <h2>罰單開立作業 - 違規編號：VIO-{violation.id} | 車牌：{violation.plateNumber}</h2>
+          <h2 id="ticket-modal-title">罰單開立作業 - 違規編號：VIO-{violation.id} | 車牌：{violation.plateNumber}</h2>
           <button className="close-btn" onClick={onClose}>
             <BiX />
           </button>
@@ -769,7 +790,20 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
                 
                 <div className="preview-section">
                   <h4>罰單附件預覽 (PDF)</h4>
-                  <div className="pdf-preview" onClick={generatePdfPreview} style={{ cursor: 'pointer' }}>
+                  <div 
+                    className="pdf-preview" 
+                    onClick={generatePdfPreview} 
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        generatePdfPreview();
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label="點擊查看PDF預覽"
+                    style={{ cursor: 'pointer' }}
+                  >
                     <div className="pdf-icon">
                       <BiReceipt />
                     </div>
@@ -794,10 +828,31 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
       
       {/* PDF預覽模態 */}
       {showPdfPreview && ownerInfo && violation && (
-        <div className="pdf-preview-overlay" onClick={closePdfPreview}>
-          <div className="pdf-preview-modal" onClick={(e) => e.stopPropagation()}>
+        <div 
+          className="pdf-preview-overlay" 
+          onClick={closePdfPreview}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              closePdfPreview();
+            }
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="pdf-preview-title"
+          tabIndex={-1}
+        >
+          <div 
+            className="pdf-preview-modal" 
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              // 阻止鍵盤事件冒泡，避免觸發overlay的ESC關閉
+              e.stopPropagation();
+            }}
+            role="document"
+            tabIndex={0}
+          >
             <div className="pdf-preview-header">
-              <h3>電子罰單PDF預覽</h3>
+              <h3 id="pdf-preview-title">電子罰單PDF預覽</h3>
               <button className="close-pdf-btn" onClick={closePdfPreview}>
                 <BiX />
               </button>
