@@ -322,7 +322,7 @@ def send_email_via_fallback(subject, recipient_email, html_body, text_body):
         return False
 
 # Email發送函數 (重構後的主函數)
-def send_violation_ticket_email(recipient_email, owner_name, violation_data, sms_content):
+def send_violation_ticket_email(recipient_email, owner_name, violation_data):
     """
     發送交通違規罰單電子郵件（包含內嵌的違規照片）
     """
@@ -781,7 +781,6 @@ def generate_ticket(violation_id):
     try:
         data = request.get_json()
         owner_info = data.get('ownerInfo', {})
-        sms_content = data.get('smsContent', '')
         recipient_email = data.get('recipient_email')
         print(f"🔍 DEBUG generate_ticket: recipient_email = {recipient_email}")
         conn = get_db_connection()
@@ -797,7 +796,7 @@ def generate_ticket(violation_id):
         email_sent = False
         email_address = recipient_email or (owner_info.get('email') if owner_info else None)
         if email_address:
-            email_sent = send_violation_ticket_email(recipient_email=email_address, owner_name=owner_info.get('full_name', '') if owner_info else '', violation_data=violation_info, sms_content=sms_content)
+            email_sent = send_violation_ticket_email(recipient_email=email_address, owner_name=owner_info.get('full_name', '') if owner_info else '', violation_data=violation_info)
         response_message = f'罰單 (ID: {violation_id}) 已成功生成。'
         if email_sent: response_message += f' 電子罰單已發送至 {email_address}'
         elif email_address: response_message += ' 但電子郵件發送失敗。'
