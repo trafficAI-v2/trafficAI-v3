@@ -416,11 +416,11 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
     try {
       // 使用與 ViolationLog.tsx 和 GenerateTickets.tsx 相同的時間解析邏輯
       const [datePartStr, timePartStrWithZone] = isoString.split('T');
-      const datePart = datePartStr.replace(/-/g, '/');
+      const datePart = datePartStr.replaceAll('-', '/');
       if (!timePartStrWithZone) return { date: datePart, time: '' };
       const mainTimePart = timePartStrWithZone.split('.')[0];
       const [hours, minutes, seconds] = mainTimePart.split(':').map(Number);
-      if ([hours, minutes, seconds].some(isNaN)) throw new Error('Invalid time');
+      if ([hours, minutes, seconds].some(Number.isNaN)) throw new Error('Invalid time');
       const ampm = hours >= 12 ? '下午' : '上午';
       let displayHours = hours % 12 || 12;
       const timePart = `${ampm} ${displayHours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
@@ -504,6 +504,174 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
     }
   };
 
+  // 渲染圖片組件
+  const renderViolationImage = () => {
+    if (imageLoading) {
+      return (
+        <div className="image-placeholder">
+          <BiCamera />
+          <span>載入中...</span>
+        </div>
+      );
+    }
+    
+    if (imageError) {
+      return (
+        <div className="image-placeholder">
+          <BiCamera />
+          <span>❌ {imageError}</span>
+        </div>
+      );
+    }
+    
+    if (violationImage) {
+      return (
+        <img 
+          src={`data:image/jpeg;base64,${violationImage}`} 
+          alt={`車牌 ${violation?.plateNumber} 的違規照片`}
+          onError={() => {
+            console.error('圖片載入失敗');
+            setImageError('圖片載入失敗');
+          }}
+        />
+      );
+    }
+    
+    return (
+      <div className="image-placeholder">
+        <BiCamera />
+        <span>無圖片</span>
+      </div>
+    );
+  };
+
+  // 渲染車主查詢狀態
+  const renderOwnerQueryStatus = () => {
+    if (loading) {
+      return (
+        <div className="loading-state">
+          <div className="spinner"></div>
+          <p>正在查詢車主資料...</p>
+        </div>
+      );
+    }
+    
+    if (error) {
+      return (
+        <div className="error-state">
+          <BiX className="error-icon" />
+          <p>{error}</p>
+          <button className="retry-btn" onClick={fetchOwnerInfo}>
+            重新查詢
+          </button>
+        </div>
+      );
+    }
+    
+    if (ownerInfo) {
+      return (
+        <div className="owner-info">
+          <h4>車主查詢結果</h4>
+          <div className="owner-details">
+            <div className="owner-field">
+              <label>姓名</label>
+              <input type="text" value={ownerInfo.full_name} readOnly />
+            </div>
+            <div className="owner-field">
+              <label>身分證字號</label>
+              <input type="text" value={ownerInfo.id_number} readOnly />
+            </div>
+            <div className="owner-field">
+              <label>性別</label>
+              <input type="text" value={ownerInfo.gender || '未提供'} readOnly />
+            </div>
+            <div className="owner-field">
+              <label>出生年月日（YYYY/MM/DD ）</label>
+              <input type="text" value={formatDateOfBirth(ownerInfo.date_of_birth)} readOnly />
+            </div>
+            <div className="owner-field">
+              <label>手機號碼</label>
+              <input type="text" value={ownerInfo.phone_number} readOnly />
+            </div>
+            <div className="owner-field">
+              <label>電子郵件</label>
+              <input type="text" value={ownerInfo.email || '未提供'} readOnly />
+            </div>
+            <div className="owner-field">
+              <label>戶籍地址</label>
+              <input type="text" value={ownerInfo.address} readOnly />
+            </div>
+            <div className="owner-field">
+              <label>車輛類型</label>
+              <input type="text" value={ownerInfo.vehicle_type} readOnly />
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="query-prompt">
+        <BiUser className="prompt-icon" />
+        <p>點擊下方按鈕查詢車牌 <strong>{violation?.plateNumber}</strong> 的車主資料</p>
+        <button className="query-btn" onClick={fetchOwnerInfo}>
+          開始查詢
+        </button>
+      </div>
+    );
+  };
+
+  // 渲染步驟按鈕
+  const renderStepButtons = () => {
+    if (currentStep === 1) {
+      return (
+        <>
+          <button className="btn-secondary" onClick={onClose}>
+            取消
+          </button>
+          <button className="btn-primary" onClick={() => setCurrentStep(2)}>
+            下一步
+          </button>
+        </>
+      );
+    }
+    
+    if (currentStep === 2) {
+      return (
+        <>
+          <button className="btn-secondary" onClick={() => setCurrentStep(1)}>
+            上一步
+          </button>
+          {ownerInfo && (
+            <button className="btn-primary" onClick={() => setCurrentStep(3)}>
+              下一步
+            </button>
+          )}
+        </>
+      );
+    }
+    
+    if (currentStep === 3) {
+      return (
+        <>
+          <button className="btn-secondary" onClick={() => setCurrentStep(2)}>
+            上一步
+          </button>
+          <button 
+            className="btn-success" 
+            onClick={handleConfirmSend}
+            disabled={loading}
+          >
+            <BiCheck />
+            {loading ? '發送中...' : '確認發送'}
+          </button>
+        </>
+      );
+    }
+    
+    return null;
+  };
+
   if (!isOpen || !violation) return null;
 
   const { date, time } = formatTimestamp(violation.timestamp);
@@ -550,31 +718,7 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
                 <div className="image-section">
                   <h4>違規照片</h4>
                   <div className="image-container">
-                    {imageLoading ? (
-                      <div className="image-placeholder">
-                        <BiCamera />
-                        <span>載入中...</span>
-                      </div>
-                    ) : imageError ? (
-                      <div className="image-placeholder">
-                        <BiCamera />
-                        <span>❌ {imageError}</span>
-                      </div>
-                    ) : violationImage ? (
-                      <img 
-                        src={`data:image/jpeg;base64,${violationImage}`} 
-                        alt={`車牌 ${violation.plateNumber} 的違規照片`}
-                        onError={() => {
-                          console.error('圖片載入失敗');
-                          setImageError('圖片載入失敗');
-                        }}
-                      />
-                    ) : (
-                      <div className="image-placeholder">
-                        <BiCamera />
-                        <span>無圖片</span>
-                      </div>
-                    )}
+                    {renderViolationImage()}
                   </div>
                 </div>
               </div>
@@ -606,67 +750,7 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
           {currentStep === 2 && (
             <div className="step-content">
               <h3>2. 車主資料</h3>
-              
-              {loading ? (
-                <div className="loading-state">
-                  <div className="spinner"></div>
-                  <p>正在查詢車主資料...</p>
-                </div>
-              ) : error ? (
-                <div className="error-state">
-                  <BiX className="error-icon" />
-                  <p>{error}</p>
-                  <button className="retry-btn" onClick={fetchOwnerInfo}>
-                    重新查詢
-                  </button>
-                </div>
-              ) : ownerInfo ? (
-                <div className="owner-info">
-                  <h4>車主查詢結果</h4>
-                  <div className="owner-details">
-                    <div className="owner-field">
-                      <label>姓名</label>
-                      <input type="text" value={ownerInfo.full_name} readOnly />
-                    </div>
-                    <div className="owner-field">
-                      <label>身分證字號</label>
-                      <input type="text" value={ownerInfo.id_number} readOnly />
-                    </div>
-                    <div className="owner-field">
-                      <label>性別</label>
-                      <input type="text" value={ownerInfo.gender || '未提供'} readOnly />
-                    </div>
-                    <div className="owner-field">
-                      <label>出生年月日（YYYY/MM/DD ）</label>
-                      <input type="text" value={formatDateOfBirth(ownerInfo.date_of_birth)} readOnly />
-                    </div>
-                    <div className="owner-field">
-                      <label>手機號碼</label>
-                      <input type="text" value={ownerInfo.phone_number} readOnly />
-                    </div>
-                    <div className="owner-field">
-                      <label>電子郵件</label>
-                      <input type="text" value={ownerInfo.email || '未提供'} readOnly />
-                    </div>
-                    <div className="owner-field">
-                      <label>戶籍地址</label>
-                      <input type="text" value={ownerInfo.address} readOnly />
-                    </div>
-                    <div className="owner-field">
-                      <label>車輛類型</label>
-                      <input type="text" value={ownerInfo.vehicle_type} readOnly />
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="query-prompt">
-                  <BiUser className="prompt-icon" />
-                  <p>點擊下方按鈕查詢車牌 <strong>{violation.plateNumber}</strong> 的車主資料</p>
-                  <button className="query-btn" onClick={fetchOwnerInfo}>
-                    開始查詢
-                  </button>
-                </div>
-              )}
+              {renderOwnerQueryStatus()}
             </div>
           )}
 
@@ -704,45 +788,7 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
 
         {/* 模態底部按鈕 */}
         <div className="ticket-modal-footer">
-          {currentStep === 1 && (
-            <>
-              <button className="btn-secondary" onClick={onClose}>
-                取消
-              </button>
-              <button className="btn-primary" onClick={() => setCurrentStep(2)}>
-                下一步
-              </button>
-            </>
-          )}
-          
-          {currentStep === 2 && (
-            <>
-              <button className="btn-secondary" onClick={() => setCurrentStep(1)}>
-                上一步
-              </button>
-              {ownerInfo && (
-                <button className="btn-primary" onClick={() => setCurrentStep(3)}>
-                  下一步
-                </button>
-              )}
-            </>
-          )}
-          
-          {currentStep === 3 && (
-            <>
-              <button className="btn-secondary" onClick={() => setCurrentStep(2)}>
-                上一步
-              </button>
-              <button 
-                className="btn-success" 
-                onClick={handleConfirmSend}
-                disabled={loading}
-              >
-                <BiCheck />
-                {loading ? '發送中...' : '確認發送'}
-              </button>
-            </>
-          )}
+          {renderStepButtons()}
         </div>
       </div>
       
