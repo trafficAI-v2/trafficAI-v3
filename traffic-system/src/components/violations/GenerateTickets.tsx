@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  BiArrowBack, BiSearch, BiDownload, BiReceipt, BiErrorCircle, BiCheckCircle 
+  BiArrowBack, BiSearch, BiDownload, BiReceipt, BiCheckCircle 
 } from 'react-icons/bi';
 import { FaExclamationTriangle, FaFileInvoiceDollar } from 'react-icons/fa';
 import './GenerateTickets.css';
@@ -121,11 +121,11 @@ const GenerateTickets: React.FC = () => {
     try {
       // 使用與 ViolationLog.tsx 相同的時間解析邏輯
       const [datePartStr, timePartStrWithZone] = isoString.split('T');
-      const datePart = datePartStr.replace(/-/g, '/');
+      const datePart = datePartStr.replaceAll('-', '/');
       if (!timePartStrWithZone) return { date: datePart, time: '' };
       const mainTimePart = timePartStrWithZone.split('.')[0];
       const [hours, minutes, seconds] = mainTimePart.split(':').map(Number);
-      if ([hours, minutes, seconds].some(isNaN)) throw new Error('Invalid time');
+      if ([hours, minutes, seconds].some(Number.isNaN)) throw new Error('Invalid time');
       const ampm = hours >= 12 ? '下午' : '上午';
       let displayHours = hours % 12 || 12;
       const timePart = `${ampm} ${displayHours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
@@ -134,6 +134,43 @@ const GenerateTickets: React.FC = () => {
       console.error("無法解析時間戳字串:", isoString, e);
       return { date: '無效日期', time: '' };
     }
+  };
+
+  const renderViolationList = () => {
+    if (loading) {
+      return <div className="table-message">正在載入...</div>;
+    }
+    
+    if (error) {
+      return <div className="table-message error">{error}</div>;
+    }
+    
+    if (filteredList.length === 0) {
+      return <div className="table-message">沒有符合條件的紀錄</div>;
+    }
+    
+    return filteredList.map(v => {
+      const { date, time } = formatTimestamp(v.timestamp);
+      return (
+        <div key={v.id} className="violation-card">
+          <div className="card-cell c-id"><div className="cell-content-vertical"><span className="main-info">VIO-{v.id}</span></div></div>
+          <div className="card-cell c-plate"><div className="cell-content-vertical"><span className="main-info">{v.plateNumber}</span><span className="sub-info">小客車</span></div></div>
+          <div className="card-cell c-type"><span className="type-tag">{v.type}</span></div>
+          <div className="card-cell c-time"><div className="cell-content-vertical"><span className="main-info">{date}</span><span className="sub-info">{time}</span></div></div>
+          <div className="card-cell c-location">{v.location}</div>
+          
+          <div className="card-cell c-action">
+            {activeTab === 'pending' ? (
+              <button className="generate-btn" onClick={() => handleGenerateTicket(v)}>
+                <BiReceipt /> 生成罰單
+              </button>
+            ) : (
+              <span className="status-pill issued">已開罰</span>
+            )}
+          </div>
+        </div>
+      );
+    });
   };
 
   // --- 事件處理函式 ---
@@ -235,32 +272,7 @@ const GenerateTickets: React.FC = () => {
             <div className="header-cell h-action">操作</div>
           </div>
           <div className="list-body">
-            {loading ? <div className="table-message">正在載入...</div> :
-             error ? <div className="table-message error">{error}</div> :
-             filteredList.length === 0 ? <div className="table-message">沒有符合條件的紀錄</div> :
-             filteredList.map(v => {
-               const { date, time } = formatTimestamp(v.timestamp);
-               return (
-                <div key={v.id} className="violation-card">
-                  <div className="card-cell c-id"><div className="cell-content-vertical"><span className="main-info">VIO-{v.id}</span></div></div>
-                  <div className="card-cell c-plate"><div className="cell-content-vertical"><span className="main-info">{v.plateNumber}</span><span className="sub-info">小客車</span></div></div>
-                  <div className="card-cell c-type"><span className="type-tag">{v.type}</span></div>
-                  <div className="card-cell c-time"><div className="cell-content-vertical"><span className="main-info">{date}</span><span className="sub-info">{time}</span></div></div>
-                  <div className="card-cell c-location">{v.location}</div>
-                  
-                  <div className="card-cell c-action">
-                    {activeTab === 'pending' ? (
-                      <button className="generate-btn" onClick={() => handleGenerateTicket(v)}>
-                        <BiReceipt /> 生成罰單
-                      </button>
-                    ) : (
-                      <span className="status-pill issued">已開罰</span>
-                    )}
-                  </div>
-                </div>
-               );
-             })
-            }
+            {renderViolationList()}
           </div>
         </div>
 
