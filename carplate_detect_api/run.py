@@ -72,16 +72,16 @@ def correct_perspective_debug(image_crop):
     if not contours:
         return image_crop
     contours = sorted(contours, key=cv2.contourArea, reverse=True)[:5]
-    screenCnt = None
+    screen_cnt = None
     for c in contours:
         peri = cv2.arcLength(c, True)
         approx = cv2.approxPolyDP(c, 0.025 * peri, True)
         if len(approx) == 4 and cv2.contourArea(c) > image_area * 0.2:
-            screenCnt = approx
+            screen_cnt = approx
             break
-    if screenCnt is not None:
+    if screen_cnt is not None:
         try:
-            pts = screenCnt.reshape(4, 2)
+            pts = screen_cnt.reshape(4, 2)
             rect = order_points(pts)
             (tl, tr, br, bl) = rect
             width_a = np.sqrt(((br[0] - bl[0]) ** 2) + ((br[1] - bl[1]) ** 2))
