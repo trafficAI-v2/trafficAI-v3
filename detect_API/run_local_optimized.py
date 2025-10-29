@@ -77,11 +77,11 @@ class Config:
     def print_configuration(self):
         """印出配置資訊"""
         print("⚡ 雙模型整合運行模式配置 (複合邏輯版):")
-        print(f"   騎士偵測模型: {self.PERSON_MODEL_PATH}")
-        print(f"   車牌偵測模型: {self.PLATE_MODEL_PATH}")
-        print(f"   資料庫: {'已配置' if self.DATABASE_URL else '未配置'}")
-        print(f"   車牌API: {self.LPR_API_URL}")
-        print(f"   Web API: {self.WEB_API_URL}")
+        print("   騎士偵測模型: {self.PERSON_MODEL_PATH}")
+        print("   車牌偵測模型: {self.PLATE_MODEL_PATH}")
+        print("   資料庫: {'已配置' if self.DATABASE_URL else '未配置'}")
+        print("   車牌API: {self.LPR_API_URL}")
+        print("   Web API: {self.WEB_API_URL}")
 
 class SystemState:
     """管理系統狀態和執行緒"""
@@ -171,7 +171,7 @@ class LPRApiClient:
             _, img_encoded = cv2.imencode('.jpg', image_data, [cv2.IMWRITE_JPEG_QUALITY, 65])
             return {'file': ('violation.jpg', img_encoded.tobytes(), 'image/jpeg')}
         except Exception as e:
-            logging.error(f"圖片編碼失敗: {e}")
+            logging.error("圖片編碼失敗: {e}")
             return None
     
     @staticmethod
@@ -186,7 +186,7 @@ class LPRApiClient:
             )
             return response
         except requests.exceptions.RequestException as e:
-            logging.error(f"呼叫車牌 API 時發生網路錯誤: {e}")
+            logging.error("呼叫車牌 API 時發生網路錯誤: {e}")
             return None
     
     @staticmethod
@@ -217,7 +217,7 @@ def call_lpr_api(image_data):
     
     api_duration = time.time() - api_start_time
     if result:
-        logging.info(f"🚗 車牌識別成功，耗時: {api_duration:.3f}s")
+        logging.info("🚗 車牌識別成功，耗時: {api_duration:.3f}s")
     
     return result
 
@@ -233,7 +233,7 @@ class DatabaseManager:
                 with open(image_path, 'rb') as image_file:
                     return base64.b64encode(image_file.read()).decode('utf-8')
         except Exception as e:
-            logging.error(f"❌ 讀取圖片檔案失敗: {e}")
+            logging.error("❌ 讀取圖片檔案失敗: {e}")
         return None
     
     @staticmethod
@@ -268,7 +268,7 @@ class DatabaseManager:
                     conn.commit()
                     return new_record
         except Exception as error:
-            logging.error(f"資料庫寫入錯誤: {error}")
+            logging.error("資料庫寫入錯誤: {error}")
             return None
     
     @staticmethod
@@ -283,7 +283,7 @@ class DatabaseManager:
                 'status': new_record[4]
             }
             conf_str = f"{confidence:.2f}" if confidence is not None else "N/A"
-            logging.info(f"💾 資料庫寫入成功 ({new_record[1]}), 信心度: {conf_str}")
+            logging.info("💾 資料庫寫入成功 ({new_record[1]}), 信心度: {conf_str}")
             return result
         return None
 
@@ -322,11 +322,11 @@ class NotificationService:
         try:
             response = requests.post(notify_url, json=violation_data, timeout=3)
             if response.status_code == 200:
-                logging.info(f"✅ 成功通知伺服器廣播新違規: {violation_data['plateNumber']}")
+                logging.info("✅ 成功通知伺服器廣播新違規: {violation_data['plateNumber']}")
             else:
-                logging.error(f"❌ 通知伺服器失敗，狀態碼: {response.status_code}")
+                logging.error("❌ 通知伺服器失敗，狀態碼: {response.status_code}")
         except requests.exceptions.RequestException as e:
-            logging.error(f"❌ 呼叫廣播 API 時發生網路錯誤: {e}")
+            logging.error("❌ 呼叫廣播 API 時發生網路錯誤: {e}")
 
 def notify_violation(violation_data):
     """通知違規 (向後相容函數)"""
@@ -348,10 +348,10 @@ class ViolationProcessor:
         """保存違規圖片"""
         try:
             cv2.imwrite(filename, crop_img)
-            logging.info(f"📸 事件圖片已保存至: {filename}")
+            logging.info("📸 事件圖片已保存至: {filename}")
             return True
         except Exception as e:
-            logging.error(f"❌ 保存圖片失敗: {e}")
+            logging.error("❌ 保存圖片失敗: {e}")
             return False
     
     @staticmethod
@@ -371,7 +371,7 @@ def process_multiple_violations(crop_img, violations_list):
     if not violations_list:
         return
     
-    logging.info(f"🚗 偵測到事件，開始進行車牌辨識...")
+    logging.info("🚗 偵測到事件，開始進行車牌辨識...")
     
     # 1. 呼叫車牌識別 API
     owner_info = call_lpr_api(crop_img)
@@ -385,7 +385,7 @@ def process_multiple_violations(crop_img, violations_list):
         return
     
     # 3. 處理所有違規
-    logging.info(f"💾 準備將 {len(violations_list)} 項違規寫入資料庫...")
+    logging.info("💾 準備將 {len(violations_list)} 項違規寫入資料庫...")
     for violation in violations_list:
         ViolationProcessor.process_single_violation(owner_info, filename, violation)
 
@@ -586,7 +586,7 @@ class DetectionLogic:
         """處理未關聯的騎士"""
         for person in person_detections:
             if not person['is_associated'] and person['class_name'] == NO_HELMET_CLASS_NAME:
-                logging.info(f"🚨 [獨立騎士] 偵測到未戴安全帽! 觸發處理...")
+                logging.info("🚨 [獨立騎士] 偵測到未戴安全帽! 觸發處理...")
                 
                 # 計算截圖範圍
                 crop_coords = DetectionLogic.calculate_rider_crop_coordinates(
@@ -703,7 +703,7 @@ def adjust_roi_boundaries(roi_coords, frame_shape):
 
 def process_detected_violations(violations, roi_coords, frame_copy, person_count, has_no_helmet):
     """處理檢測到的違規"""
-    logging.info(f"🚨 [車牌關聯] 偵測到違規! 人數: {person_count}, 是否有未戴安全帽: {has_no_helmet}")
+    logging.info("🚨 [車牌關聯] 偵測到違規! 人數: {person_count}, 是否有未戴安全帽: {has_no_helmet}")
     
     crop_img = frame_copy[
         roi_coords['roi_y1']:roi_coords['roi_y2'], 
@@ -853,7 +853,7 @@ class CameraManager:
         # 記錄實際解析度
         width = global_cap.get(cv2.CAP_PROP_FRAME_WIDTH)
         height = global_cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-        logging.info(f"✅ 攝影機請求 1280x720，實際啟動解析度: {int(width)}x{int(height)}")
+        logging.info("✅ 攝影機請求 1280x720，實際啟動解析度: {int(width)}x{int(height)}")
     
     @staticmethod
     def test_camera_connection(video_path):
@@ -888,7 +888,7 @@ class ThreadManager:
         inference_thread.start()
         logic_thread.start()
         
-        logging.info(f"🚀 雙模型偵測任務開始")
+        logging.info("🚀 雙模型偵測任務開始")
     
     @staticmethod
     def stop_detection_threads():
@@ -1011,10 +1011,10 @@ def set_confidence():
         CONFIDENCE_THRESHOLD = new_threshold
         VISUAL_CONFIDENCE = max(0.3, new_threshold - 0.1)
         
-        logging.info(f"🎯 信心度閾值已更新：{CONFIDENCE_THRESHOLD:.2f} (顯示閾值：{VISUAL_CONFIDENCE:.2f})")
+        logging.info("🎯 信心度閾值已更新：{CONFIDENCE_THRESHOLD:.2f} (顯示閾值：{VISUAL_CONFIDENCE:.2f})")
         return jsonify({
             "status": "success", 
-            "message": f"信心度閾值已設定為 {confidence_percent}%"
+            "message": "信心度閾值已設定為 {confidence_percent}%"
         })
         
     except ValueError:
