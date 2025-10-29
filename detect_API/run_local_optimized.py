@@ -170,8 +170,8 @@ class LPRApiClient:
         try:
             _, img_encoded = cv2.imencode('.jpg', image_data, [cv2.IMWRITE_JPEG_QUALITY, 65])
             return {'file': ('violation.jpg', img_encoded.tobytes(), 'image/jpeg')}
-        except Exception as e:
-            logging.error("圖片編碼失敗: {e}")
+        except Exception:
+            logging.error("圖片編碼失敗")
             return None
     
     @staticmethod
@@ -217,7 +217,7 @@ def call_lpr_api(image_data):
     
     api_duration = time.time() - api_start_time
     if result:
-        logging.info("🚗 車牌識別成功，耗時: {api_duration:.3f}s")
+        logging.info(f"🚗 車牌識別成功，耗時: {api_duration:.3f}s")
     
     return result
 
@@ -233,7 +233,7 @@ class DatabaseManager:
                 with open(image_path, 'rb') as image_file:
                     return base64.b64encode(image_file.read()).decode('utf-8')
         except Exception as e:
-            logging.error("❌ 讀取圖片檔案失敗: {e}")
+            logging.error(f"❌ 讀取圖片檔案失敗: {e}")
         return None
     
     @staticmethod
@@ -267,8 +267,8 @@ class DatabaseManager:
                     new_record = cur.fetchone()
                     conn.commit()
                     return new_record
-        except Exception as error:
-            logging.error("資料庫寫入錯誤: {error}")
+        except Exception:
+            logging.error("資料庫寫入錯誤")
             return None
     
     @staticmethod
@@ -283,7 +283,7 @@ class DatabaseManager:
                 'status': new_record[4]
             }
             conf_str = f"{confidence:.2f}" if confidence is not None else "N/A"
-            logging.info("💾 資料庫寫入成功 ({new_record[1]}), 信心度: {conf_str}")
+            logging.info(f"💾 資料庫寫入成功 ({new_record[1]}), 信心度: {conf_str}")
             return result
         return None
 
@@ -348,10 +348,10 @@ class ViolationProcessor:
         """保存違規圖片"""
         try:
             cv2.imwrite(filename, crop_img)
-            logging.info("📸 事件圖片已保存至: {filename}")
+            logging.info(f"📸 事件圖片已保存至: {filename}")
             return True
         except Exception as e:
-            logging.error("❌ 保存圖片失敗: {e}")
+            logging.error(f"❌ 保存圖片失敗: {e}")
             return False
     
     @staticmethod
@@ -385,7 +385,7 @@ def process_multiple_violations(crop_img, violations_list):
         return
     
     # 3. 處理所有違規
-    logging.info("💾 準備將 {len(violations_list)} 項違規寫入資料庫...")
+    logging.info(f"💾 準備將 {len(violations_list)} 項違規寫入資料庫...")
     for violation in violations_list:
         ViolationProcessor.process_single_violation(owner_info, filename, violation)
 
@@ -703,7 +703,7 @@ def adjust_roi_boundaries(roi_coords, frame_shape):
 
 def process_detected_violations(violations, roi_coords, frame_copy, person_count, has_no_helmet):
     """處理檢測到的違規"""
-    logging.info("🚨 [車牌關聯] 偵測到違規! 人數: {person_count}, 是否有未戴安全帽: {has_no_helmet}")
+    logging.info(f"🚨 [車牌關聯] 偵測到違規! 人數: {person_count}, 是否有未戴安全帽: {has_no_helmet}")
     
     crop_img = frame_copy[
         roi_coords['roi_y1']:roi_coords['roi_y2'], 
@@ -1011,7 +1011,7 @@ def set_confidence():
         CONFIDENCE_THRESHOLD = new_threshold
         VISUAL_CONFIDENCE = max(0.3, new_threshold - 0.1)
         
-        logging.info("🎯 信心度閾值已更新：{CONFIDENCE_THRESHOLD:.2f} (顯示閾值：{VISUAL_CONFIDENCE:.2f})")
+        logging.info(f"🎯 信心度閾值已更新：{CONFIDENCE_THRESHOLD:.2f} (顯示閾值：{VISUAL_CONFIDENCE:.2f})")
         return jsonify({
             "status": "success", 
             "message": "信心度閾值已設定為 {confidence_percent}%"
