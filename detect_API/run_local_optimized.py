@@ -393,9 +393,9 @@ def generate_frames():
                 cv2.rectangle(frame_to_show, (x1, y1), (x2, y2), color, 2)
                 cv2.putText(frame_to_show, f'{class_name} {conf:.2f}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
 
-        (flag, encodedImage) = cv2.imencode(".jpg", frame_to_show, [cv2.IMWRITE_JPEG_QUALITY, 75])
+        (flag, encoded_image) = cv2.imencode(".jpg", frame_to_show, [cv2.IMWRITE_JPEG_QUALITY, 75])
         if not flag: continue
-        yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + bytearray(encodedImage) + b'\r\n')
+        yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + bytearray(encoded_image) + b'\r\n')
 
 # ==================== 4. Flask API 端點 ====================
 @app.route('/video_feed')
