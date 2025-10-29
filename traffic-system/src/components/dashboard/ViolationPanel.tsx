@@ -71,14 +71,14 @@ const ViolationPanel: React.FC = () => {
     try {
       // 範例: "2025-09-21T15:55:34.022801Z"
       const [datePartStr, timePartStrWithZone] = isoString.split('T');
-      const datePart = datePartStr.replace(/-/g, '/'); // 2025/09/21
+      const datePart = datePartStr.replaceAll('-', '/'); // 2025/09/21
 
       if (!timePartStrWithZone) return datePart;
 
       const mainTimePart = timePartStrWithZone.split('.')[0]; // 15:55:34
       const [hours, minutes, seconds] = mainTimePart.split(':').map(Number);
 
-      if ([hours, minutes, seconds].some(isNaN)) throw new Error('Invalid time');
+      if ([hours, minutes, seconds].some(Number.isNaN)) throw new Error('Invalid time');
       
       const ampm = hours >= 12 ? '下午' : '上午';
       let displayHours = hours % 12 || 12; // 處理 12 點和午夜
