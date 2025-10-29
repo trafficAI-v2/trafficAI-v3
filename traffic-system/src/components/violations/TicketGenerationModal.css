@@ -106,7 +106,7 @@
   height: 40px;
   border-radius: 50%;
   background-color: #e5e7eb;
-  color: #6b7280;
+  color: #374151;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -117,7 +117,7 @@
 }
 
 .step-indicator.active .step-number {
-  background-color: #3b82f6;
+  background-color: #1e40af;
   color: white;
 }
 
@@ -291,7 +291,7 @@
 .query-btn, .retry-btn {
   margin-top: 16px;
   padding: 12px 24px;
-  background-color: #3b82f6;
+  background-color: #1e40af;
   color: white;
   border: none;
   border-radius: 8px;
@@ -447,7 +447,7 @@
 }
 
 .btn-primary {
-  background-color: #3b82f6;
+  background-color: #1e40af;
   color: white;
 }
 
@@ -456,7 +456,7 @@
 }
 
 .btn-success {
-  background-color: #059669;
+  background-color: #047857;
   color: white;
 }
 
