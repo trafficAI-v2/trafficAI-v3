@@ -1,0 +1,56 @@
+---
+# Codacy 配置檔案
+engines:
+  # Python 代碼品質工具
+  pylint:
+    enabled: true
+  bandit:
+    enabled: true
+  prospector:
+    enabled: true
+  
+  # JavaScript/TypeScript 工具
+  eslint:
+    enabled: true
+  jshint:
+    enabled: true
+  
+  # 通用工具
+  duplication:
+    enabled: true
+    config:
+      languages:
+        - python
+        - javascript
+        - typescript
+
+# 排除檔案
+exclude_paths:
+  - "node_modules/**"
+  - "dist/**"
+  - "build/**"
+  - "**/*.pt"
+  - "**/*.jpg"
+  - "**/*.png"
+  - "**/*.gif"
+  - "**/*.svg"
+  - "**/*.ico"
+  - "traffic-system/src/vite-env.d.ts"
+  - "htmlcov/**"
+  - "__pycache__/**"
+  - ".venv/**"
+  - "venv/**"
+
+# 語言設定
+languages:
+  python:
+    extensions:
+      - ".py"
+  javascript:
+    extensions:
+      - ".js"
+      - ".jsx"
+  typescript:
+    extensions:
+      - ".ts"
+      - ".tsx"
