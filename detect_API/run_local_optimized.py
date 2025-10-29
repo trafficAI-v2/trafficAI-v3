@@ -751,8 +751,9 @@ class VideoRenderer:
     @staticmethod
     def resize_frame_for_display(frame, scale_factor):
         """為顯示調整框架大小"""
-        if scale_factor != 1.0:
-            height, width = frame.shape[:2]
+        # 使用容差來比較浮點數，避免精度問題
+        if abs(scale_factor - 1.0) > 1e-6:
+            height, _ = frame.shape[:2]
             return cv2.resize(frame, (DISPLAY_WIDTH, int(height * scale_factor)))
         return frame
     
@@ -802,7 +803,7 @@ def generate_frames():
             plate_results_to_show = latest_results['plates']
         
         # 計算顯示比例並調整框架大小
-        height, width = frame_to_show.shape[:2]
+        _, width = frame_to_show.shape[:2]
         scale_factor = VideoRenderer.calculate_display_scale(width)
         frame_to_show = VideoRenderer.resize_frame_for_display(frame_to_show, scale_factor)
         
@@ -815,7 +816,7 @@ def generate_frames():
         if not flag:
             continue
         
-        yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + 
+        yield(b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + 
               bytearray(encoded_image) + b'\r\n')
 
 # ==================== 11. 模型管理模組 ====================
