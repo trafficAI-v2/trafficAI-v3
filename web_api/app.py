@@ -50,6 +50,14 @@ app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
 mail = Mail(app)
 
+# --- SQL 查詢常數 ---
+SQL_SELECT_USER_ID_BY_USERNAME = "SELECT id FROM users WHERE username = %s"
+
+# --- 錯誤訊息常數 ---
+ERROR_INTERNAL_SERVER = "Internal Server Error"
+ERROR_INTERNAL_SERVER_ZH = "伺服器內部錯誤"
+ERROR_INTERNAL_SERVER_USER = "找不到用戶"
+
 # Email發送函數
 import smtplib
 import base64
@@ -395,7 +403,7 @@ def log_action(module: str, level: str, action: str, details: str = "", user_ide
         try:
             conn = get_db_connection()
             cur = conn.cursor()
-            cur.execute("SELECT id FROM users WHERE username = %s", (username,))
+            cur.execute(SQL_SELECT_USER_ID_BY_USERNAME, (username,))
             result = cur.fetchone()
             if result:
                 user_id = result[0]
@@ -450,7 +458,7 @@ def get_cameras():
         return jsonify(cameras)
     except Exception as e:
         print("❌ Error in get_cameras:", e)
-        return jsonify({'error': 'Internal Server Error'}), 500
+        return jsonify({'error': ERROR_INTERNAL_SERVER}), 500
 
 @app.route('/api/cameras/list', methods=['GET'])
 def get_cameras_list():
@@ -464,7 +472,7 @@ def get_cameras_list():
         return jsonify(cameras)
     except Exception as e:
         print("❌ Error in get_cameras_list:", e)
-        return jsonify({'error': 'Internal Server Error'}), 500
+        return jsonify({'error': ERROR_INTERNAL_SERVER}), 500
 
 # ==================================================
 # 違規類型 API
@@ -481,7 +489,7 @@ def get_violation_types():
         return jsonify(violation_types)
     except Exception as e:
         print(f"❌ Error in get_violation_types: {e}")
-        return jsonify({'error': 'Internal Server Error'}), 500
+        return jsonify({'error': ERROR_INTERNAL_SERVER}), 500
 
 # ==================================================
 # 違規紀錄 API (已修正)
@@ -580,7 +588,7 @@ def get_violations():
 
     except Exception as e:
         print(f"❌ Error in get_violations: {e}")
-        return jsonify({'error': 'Internal Server Error', 'details': str(e)}), 500
+        return jsonify({'error': ERROR_INTERNAL_SERVER, 'details': str(e)}), 500
 
 
 # ... (其餘所有 API 函式保持不變) ...
@@ -612,7 +620,7 @@ def get_latest_violations():
         return jsonify(latest_violations)
     except Exception as e:
         print(f"❌ Error in get_latest_violations: {e}")
-        return jsonify({'error': 'Internal Server Error'}), 500
+        return jsonify({'error': ERROR_INTERNAL_SERVER}), 500
 
 ## ==================================================
 # 違規狀態更新 API
@@ -705,7 +713,7 @@ def get_confirmed_violations_count():
         return jsonify({'count': count})
     except Exception as e:
         print(f"❌ Error in get_confirmed_violations_count: {e}")
-        return jsonify({'error': 'Internal Server Error'}), 500
+        return jsonify({'error': ERROR_INTERNAL_SERVER}), 500
 
 @app.route('/api/owners/<plate_number>', methods=['GET'])
 def get_owner_info(plate_number):
@@ -728,7 +736,7 @@ def get_owner_info(plate_number):
         return jsonify(owner_info), 200
     except Exception as e:
         print(f"❌ Error in get_owner_info: {e}")
-        return jsonify({'error': 'Internal Server Error', 'details': str(e)}), 500
+        return jsonify({'error': ERROR_INTERNAL_SERVER, 'details': str(e)}), 500
 
 @app.route('/api/owners/<plate_number>/vehicle-type', methods=['GET'])
 def get_vehicle_type(plate_number):
@@ -744,7 +752,7 @@ def get_vehicle_type(plate_number):
         return jsonify(vehicle_info), 200
     except Exception as e:
         print(f"❌ Error in get_vehicle_type: {e}")
-        return jsonify({'error': 'Internal Server Error', 'details': str(e)}), 500
+        return jsonify({'error': ERROR_INTERNAL_SERVER, 'details': str(e)}), 500
 
 @app.route('/api/tickets/list', methods=['GET'])
 def get_tickets_list():
@@ -760,7 +768,7 @@ def get_tickets_list():
         return jsonify(violations)
     except Exception as e:
         print(f"❌ Error in get_tickets_list: {e}")
-        return jsonify({'error': 'Internal Server Error'}), 500
+        return jsonify({'error': ERROR_INTERNAL_SERVER}), 500
 
 @app.route('/api/tickets/counts', methods=['GET'])
 def get_tickets_counts():
@@ -774,7 +782,7 @@ def get_tickets_counts():
         return jsonify(result)
     except Exception as e:
         print(f"❌ Error in get_tickets_counts: {e}")
-        return jsonify({'error': 'Internal Server Error'}), 500
+        return jsonify({'error': ERROR_INTERNAL_SERVER}), 500
 
 @app.route('/api/violation/<int:violation_id>/generate-ticket', methods=['POST'])
 def generate_ticket(violation_id):
@@ -804,7 +812,7 @@ def generate_ticket(violation_id):
         return jsonify({'message': response_message, 'email_sent': email_sent, 'violation_id': violation_id}), 200
     except Exception as e:
         print(f"❌ Error in generate_ticket: {e}")
-        return jsonify({'error': 'Internal Server Error', 'details': str(e)}), 500
+        return jsonify({'error': ERROR_INTERNAL_SERVER, 'details': str(e)}), 500
 
 # ==================================================
 # 統計分析 API
@@ -843,7 +851,7 @@ def get_analytics_data():
         print(f"❌ Error in get_analytics_data: {e}")
         if 'cur' in locals() and cur and not cur.closed: cur.close()
         if 'conn' in locals() and conn and not conn.closed: conn.close()
-        return jsonify({'error': 'Internal Server Error', 'details': str(e)}), 500
+        return jsonify({'error': ERROR_INTERNAL_SERVER, 'details': str(e)}), 500
 
 # ==================================================
 # 使用者管理 API
@@ -893,7 +901,7 @@ def register():
         return jsonify({"error": "資料庫操作失敗"}), 500
     except Exception as e:
         print(f"❌ 未知錯誤 in register: {e}")
-        return jsonify({"error": "伺服器內部錯誤"}), 500
+        return jsonify({"error": ERROR_INTERNAL_SERVER_ZH}), 500
 
 @app.route('/api/login', methods=['POST'])
 def login():
@@ -944,7 +952,7 @@ def login():
 
     except Exception as e:
         print(f"❌ 登入過程中發生嚴重錯誤: {e}")
-        return jsonify({"error": "伺服器內部錯誤"}), 500
+        return jsonify({"error": ERROR_INTERNAL_SERVER_ZH}), 500
     finally:
         # 【優化】確保無論成功或失敗，資料庫連線最後都會被關閉
         if 'cur' in locals() and cur:
@@ -984,7 +992,7 @@ def forgot_password():
         print(f"❌❌❌ CRITICAL ERROR in forgot_password: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({"error": "伺服器內部錯誤"}), 500
+        return jsonify({"error": ERROR_INTERNAL_SERVER_ZH}), 500
 
 @app.route('/api/verify-reset-token', methods=['POST'])
 def verify_reset_token():
@@ -1002,7 +1010,7 @@ def verify_reset_token():
         else: return jsonify({"error": "無效或已過期的 token"}), 400
     except Exception as e:
         print(f"❌ Error in verify_reset_token: {e}")
-        return jsonify({"error": "伺服器內部錯誤"}), 500
+        return jsonify({"error": ERROR_INTERNAL_SERVER_ZH}), 500
 
 @app.route('/api/reset-password', methods=['POST'])
 def reset_password():
@@ -1026,7 +1034,7 @@ def reset_password():
         return jsonify({"message": "密碼已成功重設"}), 200
     except Exception as e:
         print(f"❌ Error in reset_password: {e}")
-        return jsonify({"error": "伺服器內部錯誤"}), 500
+        return jsonify({"error": ERROR_INTERNAL_SERVER_ZH}), 500
 
 @app.route('/api/violations/<int:violation_id>/image', methods=['GET'])
 def get_violation_image(violation_id):
@@ -1052,7 +1060,7 @@ def get_violation_image(violation_id):
         return jsonify({'error': '找不到對應的圖片數據'}), 404
     except Exception as e:
         print(f"❌ Error in get_violation_image: {e}")
-        return jsonify({'error': 'Internal Server Error', 'details': str(e)}), 500
+        return jsonify({'error': ERROR_INTERNAL_SERVER, 'details': str(e)}), 500
 
 @app.route('/api/users', methods=['GET'])
 @admin_required()
@@ -1068,7 +1076,7 @@ def get_users_list():
         return jsonify(users)
     except Exception as e:
         print(f"❌ Error in get_users_list: {e}")
-        return jsonify({'error': 'Internal Server Error'}), 500
+        return jsonify({'error': ERROR_INTERNAL_SERVER}), 500
 
 @app.route('/api/profile/change-password', methods=['PUT'])
 @jwt_required()
@@ -1107,7 +1115,7 @@ def change_password():
     except Exception as e:
         if conn: conn.rollback()
         print(f"❌ 修改密碼時發生錯誤: {e}")
-        return jsonify({"error": "伺服器內部錯誤"}), 500
+        return jsonify({"error": ERROR_INTERNAL_SERVER_ZH}), 500
     finally:
         if 'cur' in locals() and cur: cur.close()
         if 'conn' in locals() and conn: conn.close()
@@ -1124,10 +1132,10 @@ def get_notifications():
         with conn.cursor() as cur:
             # 從 JWT 中獲取用戶名，然後獲取用戶 ID
             username = get_jwt_identity()
-            cur.execute("SELECT id FROM users WHERE username = %s", (username,))
+            cur.execute(SQL_SELECT_USER_ID_BY_USERNAME, (username,))
             user_result = cur.fetchone()
             if not user_result:
-                return jsonify({'error': '找不到用戶'}), 404
+                return jsonify({'error': ERROR_INTERNAL_SERVER_USER}), 404
             
             user_id = str(user_result[0])  # 轉換為字符串，因為 notifications 表中的 userId 是 text 類型
             
@@ -1155,7 +1163,7 @@ def get_notifications():
         return jsonify(notifications)
     except Exception as e:
         print(f"❌ Error in get_notifications: {e}")
-        return jsonify({'error': 'Internal Server Error'}), 500
+        return jsonify({'error': ERROR_INTERNAL_SERVER}), 500
 
 @app.route('/api/notifications/unread-count', methods=['GET'])
 @jwt_required()
@@ -1165,10 +1173,10 @@ def get_unread_notifications_count():
         with conn.cursor() as cur:
             # 從 JWT 中獲取用戶名，然後獲取用戶 ID
             username = get_jwt_identity()
-            cur.execute("SELECT id FROM users WHERE username = %s", (username,))
+            cur.execute(SQL_SELECT_USER_ID_BY_USERNAME, (username,))
             user_result = cur.fetchone()
             if not user_result:
-                return jsonify({'error': '找不到用戶'}), 404
+                return jsonify({'error': ERROR_INTERNAL_SERVER_USER}), 404
             
             user_id = str(user_result[0])  # 轉換為字符串
             
@@ -1183,7 +1191,7 @@ def get_unread_notifications_count():
         return jsonify({'count': count})
     except Exception as e:
         print(f"❌ Error in get_unread_notifications_count: {e}")
-        return jsonify({'error': 'Internal Server Error'}), 500
+        return jsonify({'error': ERROR_INTERNAL_SERVER}), 500
 
 @app.route('/api/notifications/mark-read', methods=['POST'])
 @jwt_required()
@@ -1199,10 +1207,10 @@ def mark_notifications_as_read():
         with conn.cursor() as cur:
             # 從 JWT 中獲取用戶名，然後獲取用戶 ID
             username = get_jwt_identity()
-            cur.execute("SELECT id FROM users WHERE username = %s", (username,))
+            cur.execute(SQL_SELECT_USER_ID_BY_USERNAME, (username,))
             user_result = cur.fetchone()
             if not user_result:
-                return jsonify({'error': '找不到用戶'}), 404
+                return jsonify({'error': ERROR_INTERNAL_SERVER_USER}), 404
             
             user_id = str(user_result[0])  # 轉換為字符串
             
@@ -1218,7 +1226,7 @@ def mark_notifications_as_read():
         return jsonify({'message': '通知已標記為已讀'}), 200
     except Exception as e:
         print(f"❌ Error in mark_notifications_as_read: {e}")
-        return jsonify({'error': 'Internal Server Error'}), 500
+        return jsonify({'error': ERROR_INTERNAL_SERVER}), 500
 
 # ==================================================
 # 【新增】系統效能監控 API
@@ -1352,7 +1360,7 @@ def get_system_logs():
     except Exception as e:
         print(f"❌ 獲取系統日誌時發生錯誤: {e}")
         traceback.print_exc()
-        return jsonify({'error': '伺服器內部錯誤'}), 500
+        return jsonify({'error': ERROR_INTERNAL_SERVER_ZH}), 500
 
 
 # ==================================================
