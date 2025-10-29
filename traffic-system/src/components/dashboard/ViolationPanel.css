@@ -82,7 +82,7 @@
 }
 
 /* 【修改】套用新的、多彩的狀態標籤顏色 */
-.status-tag.status-待審核 { background-color: #f7e5b2; color: #b08909; }
+.status-tag.status-待審核 { background-color: #f7e5b2; color: #7c5f00; }
 .status-tag.status-已確認 { background-color: #d1fae5; color: #065f46; }
 .status-tag.status-已駁回 { background-color: #fee2e2; color: #991b1b; }
 .status-tag.status-已開罰 { background-color: #e0e7ff; color: #4639ff; }
