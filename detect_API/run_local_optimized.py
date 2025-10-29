@@ -77,11 +77,11 @@ class Config:
     def print_configuration(self):
         """印出配置資訊"""
         print("⚡ 雙模型整合運行模式配置 (複合邏輯版):")
-        print("   騎士偵測模型: {self.PERSON_MODEL_PATH}")
-        print("   車牌偵測模型: {self.PLATE_MODEL_PATH}")
-        print("   資料庫: {'已配置' if self.DATABASE_URL else '未配置'}")
-        print("   車牌API: {self.LPR_API_URL}")
-        print("   Web API: {self.WEB_API_URL}")
+        print(f"   騎士偵測模型: {self.PERSON_MODEL_PATH}")
+        print(f"   車牌偵測模型: {self.PLATE_MODEL_PATH}")
+        print(f"   資料庫: {'已配置' if self.DATABASE_URL else '未配置'}")
+        print(f"   車牌API: {self.LPR_API_URL}")
+        print(f"   Web API: {self.WEB_API_URL}")
 
 class SystemState:
     """管理系統狀態和執行緒"""
@@ -186,7 +186,7 @@ class LPRApiClient:
             )
             return response
         except requests.exceptions.RequestException as e:
-            logging.error("呼叫車牌 API 時發生網路錯誤: {e}")
+            logging.error(f"呼叫車牌 API 時發生網路錯誤: {e}")
             return None
     
     @staticmethod
@@ -322,11 +322,11 @@ class NotificationService:
         try:
             response = requests.post(notify_url, json=violation_data, timeout=3)
             if response.status_code == 200:
-                logging.info("✅ 成功通知伺服器廣播新違規: {violation_data['plateNumber']}")
+                logging.info(f"✅ 成功通知伺服器廣播新違規: {violation_data['plateNumber']}")
             else:
-                logging.error("❌ 通知伺服器失敗，狀態碼: {response.status_code}")
+                logging.error(f"❌ 通知伺服器失敗，狀態碼: {response.status_code}")
         except requests.exceptions.RequestException as e:
-            logging.error("❌ 呼叫廣播 API 時發生網路錯誤: {e}")
+            logging.error(f"❌ 呼叫廣播 API 時發生網路錯誤: {e}")
 
 def notify_violation(violation_data):
     """通知違規 (向後相容函數)"""
@@ -853,7 +853,7 @@ class CameraManager:
         # 記錄實際解析度
         width = global_cap.get(cv2.CAP_PROP_FRAME_WIDTH)
         height = global_cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-        logging.info("✅ 攝影機請求 1280x720，實際啟動解析度: {int(width)}x{int(height)}")
+        logging.info(f"✅ 攝影機請求 1280x720，實際啟動解析度: {int(width)}x{int(height)}")
     
     @staticmethod
     def test_camera_connection(video_path):
@@ -1072,3 +1072,24 @@ def print_startup_banner():
     print("📱 前端請訪問: http://localhost:8080")
     print("🔧 API 端點: http://localhost:5001")
     print("按 Ctrl+C 停止服務\n")
+
+# ==================== 16. 主程序入口 ====================
+if __name__ == "__main__":
+    try:
+        # 驗證啟動需求
+        validate_startup_requirements()
+        
+        # 印出啟動橫幅
+        print_startup_banner()
+        
+        # 啟動 Flask 應用
+        app.run(host='0.0.0.0', port=5001, debug=False, threaded=True)
+        
+    except KeyboardInterrupt:
+        print("\n🛑 收到中斷信號，正在停止...")
+        if 'system_state' in globals():
+            ThreadManager.stop_detection_threads()
+        print("✅ 系統已安全停止")
+    except Exception as e:
+        print(f"❌ 系統啟動失敗: {e}")
+        sys.exit(1)
