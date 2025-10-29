@@ -624,9 +624,53 @@ class DetectionLogic:
         }
 
 
+def get_current_frame_data():
+    """獲取當前框架數據"""
+    global latest_frame, latest_results, data_lock
+    
+    with data_lock:
+        if latest_frame is None or latest_results is None:
+            return None
+        return {
+            'frame_copy': latest_frame.copy(),
+            'person_results': latest_results['persons'],
+            'plate_results': latest_results['plates']
+        }
+
+def process_detection_frame(frame_data, last_detection_time, cooldown):
+    """處理檢測框架並返回是否發現違規"""
+    # 檢查冷卻時間
+    current_time = time.time()
+    if current_time - last_detection_time < cooldown:
+        return False, last_detection_time
+    
+    # 提取檢測結果
+    plate_detections = DetectionLogic.extract_plate_detections(frame_data['plate_results'], plate_model)
+    person_detections = DetectionLogic.extract_person_detections(frame_data['person_results'], person_model)
+    
+    violation_found = False
+    
+    # 主要流程：以車牌為中心的檢測
+    if plate_detections:
+        violation_found = process_plate_centered_detection(
+            plate_detections, person_detections, frame_data['frame_copy']
+        )
+    
+    # 輔助流程：處理未關聯的騎士
+    if not violation_found:
+        violation_found = DetectionLogic.process_unassociated_riders(
+            person_detections, frame_data['frame_copy']
+        )
+    
+    # 更新檢測時間
+    if violation_found:
+        last_detection_time = current_time
+    
+    return violation_found, last_detection_time
+
 def run_detection_logic():
     """執行檢測邏輯 (重構版)"""
-    global stop_detection_flag, latest_results, data_lock, latest_frame
+    global stop_detection_flag
     last_successful_detection_time = 0
     violation_cooldown = 3.0
     logging.info("🔍 [複合邏輯] 偵測邏輯執行緒已啟動")
@@ -635,36 +679,14 @@ def run_detection_logic():
         time.sleep(0.2)
         
         # 獲取當前框架和結果
-        with data_lock:
-            if latest_frame is None or latest_results is None:
-                continue
-            local_frame_copy = latest_frame.copy()
-            local_person_results = latest_results['persons']
-            local_plate_results = latest_results['plates']
-        
-        # 檢查冷卻時間
-        current_time = time.time()
-        if current_time - last_successful_detection_time < violation_cooldown:
+        frame_data = get_current_frame_data()
+        if frame_data is None:
             continue
         
-        # 提取檢測結果
-        plate_detections = DetectionLogic.extract_plate_detections(local_plate_results, plate_model)
-        person_detections = DetectionLogic.extract_person_detections(local_person_results, person_model)
-        
-        violation_found_this_frame = False
-        
-        # 主要流程：以車牌為中心的檢測
-        if plate_detections:
-            violation_found_this_frame = process_plate_centered_detection(
-                plate_detections, person_detections, local_frame_copy
-            )
-            if violation_found_this_frame:
-                last_successful_detection_time = time.time()
-        
-        # 輔助流程：處理未關聯的騎士
-        if not violation_found_this_frame:
-            if DetectionLogic.process_unassociated_riders(person_detections, local_frame_copy):
-                last_successful_detection_time = time.time()
+        # 處理檢測框架
+        _, last_successful_detection_time = process_detection_frame(
+            frame_data, last_successful_detection_time, violation_cooldown
+        )
     
     logging.info("🔍 背景偵測邏輯執行緒已結束")
 
