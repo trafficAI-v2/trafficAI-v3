@@ -779,36 +779,58 @@ def register():
 def login():
     data = request.get_json()
     username, password = data.get('username'), data.get('password')
-    if not username or not password: return jsonify({"error": "請提供使用者名稱和密碼"}), 400
+    if not username or not password: 
+        return jsonify({"error": "請提供使用者名稱和密碼"}), 400
+
+    conn = None  # 將 conn 宣告在 try 區塊外，以便 finally 可以存取
     try:
         conn = get_db_connection()
         cur = conn.cursor()
+        
         sql = "SELECT id, username, password, role, name, status FROM users WHERE username = %s OR email = %s"
         cur.execute(sql, (username, username))
         user = cur.fetchone()
-        cur.close()
-        conn.close()
+
         if user:
             db_id, db_username, db_password_hash, db_role, db_name, db_status = user
-            if db_status != '啟用': return jsonify({"error": "此帳號已被停用"}), 403
+            
+            if db_status != '啟用': 
+                return jsonify({"error": "此帳號已被停用"}), 403
+            
             if check_password_hash(db_password_hash, password):
+                # --- 【核心修改開始】---
                 try:
-                    update_conn = get_db_connection()
-                    update_cur = update_conn.cursor()
-                    update_cur.execute('UPDATE users SET "lastLogin" = %s WHERE id = %s', (datetime.now(timezone.utc), db_id))
-                    update_conn.commit()
-                    update_cur.close()
-                    update_conn.close()
+                    # 1. 【修正】移除 "lastLogin" 的雙引號，使其符合資料庫中的 'lastlogin'
+                    # 2. 【優化】直接使用當前的連線 (cur) 進行更新，不要建立新連線
+                    update_sql = 'UPDATE users SET lastlogin = %s WHERE id = %s'
+                    cur.execute(update_sql, (datetime.now(timezone.utc), db_id))
+                    
+                    # 3. 【優化】提交事務以儲存變更
+                    conn.commit()
                 except Exception as e:
-                    print(f"❌ 更新 lastLogin 失敗: {e}")
+                    # 如果更新失敗，回滾事務以保持資料一致性
+                    conn.rollback() 
+                    print(f"❌ 更新 lastlogin 失敗: {e}")
+                # --- 【核心修改結束】---
+
                 identity = db_username
                 additional_claims = {"role": db_role, "name": db_name}
                 access_token = create_access_token(identity=identity, additional_claims=additional_claims)
+                
                 return jsonify(access_token=access_token)
+
+        # 如果 user 不存在或密碼錯誤，回傳統一的錯誤訊息
         return jsonify({"error": "使用者名稱或密碼錯誤"}), 401
+
     except Exception as e:
         print(f"❌ 登入過程中發生嚴重錯誤: {e}")
         return jsonify({"error": "伺服器內部錯誤"}), 500
+    finally:
+        # 【優化】確保無論成功或失敗，資料庫連線最後都會被關閉
+        if 'cur' in locals() and cur:
+            cur.close()
+        if conn:
+            conn.close()
 
 @app.route('/api/profile', methods=['GET'])
 @jwt_required()

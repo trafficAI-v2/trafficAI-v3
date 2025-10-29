@@ -550,6 +550,74 @@
 /* src/styles/SystemManagement.css (在檔案底部新增) */
 
 /* --- 【新增】系統日誌頁籤的專用樣式 --- */
+/* 
+  ==============================================================
+  【第 1 步】讓「系統日誌查詢」的 Modal 變寬
+  ==============================================================
+  這個 :has() 選擇器會自動辨識包含日誌元件的 Modal，並將其加寬。
+  :has() 瀏覽器支援度已超過 90%，可以放心使用。
+*/
+.modal-content:has(.logs-container) {
+  width: 90vw;       /* 寬度設定為當前視窗寬度的 90% */
+  max-width: 1400px; /* 但最大寬度不超過 1400px */
+}
+
+
+/*
+  ==============================================================
+  【第 2 步】針對日誌表格進行優化
+  ==============================================================
+  您的元件使用了 .user-table 這個 class，我們就直接針對它進行修改。
+*/
+.logs-container .user-table {
+  width: 100%;           /* 確保表格填滿加寬後的 Modal */
+  table-layout: fixed;   /* 這是關鍵！讓欄寬設定生效 */
+}
+
+/* 重新分配欄寬 */
+.logs-container .user-table th:nth-child(1),
+.logs-container .user-table td:nth-child(1) { width: 15%; } /* 時間 */
+
+.logs-container .user-table th:nth-child(2),
+.logs-container .user-table td:nth-child(2) { width: 10%; } /* 使用者 */
+
+.logs-container .user-table th:nth-child(3),
+.logs-container .user-table td:nth-child(3) { width: 12%; } /* 模組 */
+
+.logs-container .user-table th:nth-child(4),
+.logs-container .user-table td:nth-child(4) { width: 8%; text-align: center; } /* 等級 */
+
+.logs-container .user-table th:nth-child(5),
+.logs-container .user-table td:nth-child(5) { width: 12%; } /* 操作 */
+
+/*
+  ==============================================================
+  【第 3 步】修正「詳細資訊」欄位的樣式
+  ==============================================================
+  這是最重要的修改，取代您原有的 .log-details 樣式。
+*/
+.logs-container .user-table td.log-details {
+  /* 移除 max-width 和單行截斷的樣式 */
+  /* max-width: 300px; (移除) */
+  /* white-space: nowrap; (移除) */
+  /* overflow: hidden; (移除) */
+  /* text-overflow: ellipsis; (移除) */
+  
+  /* 【新增】允許內容自動換行 */
+  white-space: normal;
+  word-break: break-all; /* 對於長字串（如路徑、token）強制換行 */
+  
+  /* 可選：增加垂直對齊方式，讓多行文字從頂部開始 */
+  vertical-align: top;
+  line-height: 1.5; /* 增加行高，提升可讀性 */
+}
+
+
+/* 
+  ==============================================================
+  保留並優化您原有的其他樣式
+  ==============================================================
+*/
 .logs-container {
   display: flex;
   flex-direction: column;
@@ -584,7 +652,7 @@
 
 .filter-options {
   display: flex;
-  flex-wrap: wrap; /* 在小螢幕上自動換行 */
+  flex-wrap: wrap; 
   gap: 12px;
   align-items: center;
 }
@@ -593,13 +661,16 @@
   padding: 8px 12px;
   border: 1px solid #d1d5db;
   border-radius: 6px;
+  background-color: white; /* 確保背景色是白色 */
 }
 
-.log-table-container {
-  /* 使用 user-table-container 的樣式 */
+/* 將等級標籤置中 */
+.logs-container .user-table td:has(.log-level-tag) {
+  text-align: center;
 }
 
 .log-level-tag {
+  display: inline-block; /* 讓標籤可以置中 */
   padding: 4px 10px;
   border-radius: 20px;
   font-size: 12px;
@@ -619,12 +690,7 @@
 .log-time {
   font-family: monospace;
   font-size: 13px;
-}
-.log-details {
-    max-width: 300px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  color: #4b5563; /* 調整顏色，讓介面更有層次感 */
 }
 
 /* src/styles/SystemManagement.css (在底部新增) */
