@@ -81,8 +81,8 @@
 /* ----- 元件樣式 ----- */
 .sub-info.confidence { background-color: #f3f4f6; color: #4b5563; font-size: 12px; padding: 2px 8px; border-radius: 4px; width: fit-content; }
 .type-tag { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; background-color: #fee2e2; color: #b91c1c; }
-.generate-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border: none; background-color: #3b82f6; color: #fff; border-radius: 6px; font-weight: 500; cursor: pointer; transition: background-color 0.2s; }
-.generate-btn:hover { background-color: #2563eb; }
+.generate-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border: none; background-color: #1d4ed8; color: #fff; border-radius: 6px; font-weight: 500; cursor: pointer; transition: background-color 0.2s; }
+.generate-btn:hover { background-color: #1e40af; }
 
 /* ----- 頁腳 ----- */
 .log-footer { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: #374151; padding-top: 16px; border-top: 1px solid #e5e7eb; }
