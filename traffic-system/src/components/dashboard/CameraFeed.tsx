@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 // 确保 Camera 类型中有 id 和 name
-import type { Camera, ViolationType } from '../../types'; 
+import type { Camera } from '../../types'; 
 import { BiPlay, BiStop } from 'react-icons/bi';
 import DeviceStatusList from './DeviceStatusList'; 
 import ManualAnnotationTab from './ManualAnnotationTab';
@@ -19,7 +19,7 @@ const CameraFeed: React.FC = () => {
   const [zoom, setZoom] = useState<number>(50); 
   const [cameras, setCameras] = useState<Camera[]>([]);
   const [selectedCameraId, setSelectedCameraId] = useState<string>('0'); // (修改) 预设选中 '0'
-  const [loading, setLoading] = useState<boolean>(false); // (修改) 初始 loading 可以是 false
+  const [loading] = useState<boolean>(false); // (修改) 初始 loading 可以是 false
   const [error, setError] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -115,7 +115,7 @@ const CameraFeed: React.FC = () => {
       const data = await response.json();
       if (data.status === 'success') {
         // 加上时间戳参数来防止快取
-        setVideoStreamUrl(`${DETECT_BASE_URL}/video_feed?t=${new Date().getTime()}`);
+        setVideoStreamUrl(`${DETECT_BASE_URL}/video_feed?t=${Date.now()}`);
         setIsDetecting(true);
         setDetectionStatus('運行中');
       } else {
@@ -260,7 +260,7 @@ const CameraFeed: React.FC = () => {
                       year: 'numeric', month: 'numeric', day: '2-digit',
                       hour: '2-digit', minute: '2-digit', second: '2-digit',
                       hour12: false
-                    }).replace(/\//g, '-')}
+                    }).replaceAll('/', '-')}
                   </span>
                 </div>
               </div>
