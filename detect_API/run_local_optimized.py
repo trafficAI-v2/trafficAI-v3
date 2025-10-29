@@ -42,12 +42,12 @@ DATABASE_URL = os.getenv('DATABASE_URL')
 LPR_API_URL = "http://localhost:3001/recognize_plate"
 WEB_API_URL = "http://localhost:3002"
 
-print(f"⚡ 雙模型整合運行模式配置 (複合邏輯版):")
-print(f"   騎士偵測模型: {PERSON_MODEL_PATH}")
-print(f"   車牌偵測模型: {PLATE_MODEL_PATH}")
-print(f"   資料庫: {'已配置' if DATABASE_URL else '未配置'}")
-print(f"   車牌API: {LPR_API_URL}")
-print(f"   Web API: {WEB_API_URL}")
+print("⚡ 雙模型整合運行模式配置 (複合邏輯版):")
+print("   騎士偵測模型: {PERSON_MODEL_PATH}")
+print("   車牌偵測模型: {PLATE_MODEL_PATH}")
+print("   資料庫: {'已配置' if DATABASE_URL else '未配置'}")
+print("   車牌API: {LPR_API_URL}")
+print("   Web API: {WEB_API_URL}")
 
 # 全域變數管理
 global_cap = None
@@ -393,9 +393,9 @@ def generate_frames():
                 cv2.rectangle(frame_to_show, (x1, y1), (x2, y2), color, 2)
                 cv2.putText(frame_to_show, f'{class_name} {conf:.2f}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
 
-        (flag, encodedImage) = cv2.imencode(".jpg", frame_to_show, [cv2.IMWRITE_JPEG_QUALITY, 75])
+        (flag, encoded_image) = cv2.imencode(".jpg", frame_to_show, [cv2.IMWRITE_JPEG_QUALITY, 75])
         if not flag: continue
-        yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + bytearray(encodedImage) + b'\r\n')
+        yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + bytearray(encoded_image) + b'\r\n')
 
 # ==================== 4. Flask API 端點 ====================
 @app.route('/video_feed')
@@ -517,15 +517,15 @@ if __name__ == "__main__":
     print("=" * 60)
     print("⚡ 交通 AI 系統 - 雙模型整合模式 (複合邏輯版)")
     print("=" * 60)
-    print(f"🔧 騎士模型：{PERSON_MODEL_PATH}")
-    print(f"🔧 車牌模型：{PLATE_MODEL_PATH}")
+    print("🔧 騎士模型：{PERSON_MODEL_PATH}")
+    print("🔧 車牌模型：{PLATE_MODEL_PATH}")
     print("=" * 60)
     
     if not PERSON_MODEL_PATH or not os.path.exists(PERSON_MODEL_PATH):
-        print(f"❌ 錯誤：找不到騎士模型檔案，請檢查 .env 的 HELMATE_MODEL_PATH！")
+        print("❌ 錯誤：找不到騎士模型檔案，請檢查 .env 的 HELMATE_MODEL_PATH！")
         sys.exit(1)
     if not PLATE_MODEL_PATH or not os.path.exists(PLATE_MODEL_PATH):
-        print(f"❌ 錯誤：找不到車牌模型檔案，請檢查 .env 的 PLATE_MODEL_PATH！")
+        print("❌ 錯誤：找不到車牌模型檔案，請檢查 .env 的 PLATE_MODEL_PATH！")
         sys.exit(1)
     
     print("\n🚀 啟動 Flask 伺服器...")

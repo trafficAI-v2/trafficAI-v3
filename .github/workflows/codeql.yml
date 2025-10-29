@@ -1,0 +1,40 @@
+name: "CodeQL Security Analysis"
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  schedule:
+    - cron: '30 1 * * 0'  # 每週日 1:30 AM 執行
+
+jobs:
+  analyze:
+    name: CodeQL 分析
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'javascript', 'python' ]
+
+    steps:
+    - name: 📥 檢出代碼
+      uses: actions/checkout@v4
+
+    - name: 🔧 初始化 CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+
+    - name: 🏗️ 自動構建
+      uses: github/codeql-action/autobuild@v3
+
+    - name: 🔍 執行 CodeQL 分析
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{matrix.language}}"

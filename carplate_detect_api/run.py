@@ -72,28 +72,28 @@ def correct_perspective_debug(image_crop):
     if not contours:
         return image_crop
     contours = sorted(contours, key=cv2.contourArea, reverse=True)[:5]
-    screenCnt = None
+    screen_cnt = None
     for c in contours:
         peri = cv2.arcLength(c, True)
         approx = cv2.approxPolyDP(c, 0.025 * peri, True)
         if len(approx) == 4 and cv2.contourArea(c) > image_area * 0.2:
-            screenCnt = approx
+            screen_cnt = approx
             break
-    if screenCnt is not None:
+    if screen_cnt is not None:
         try:
-            pts = screenCnt.reshape(4, 2)
+            pts = screen_cnt.reshape(4, 2)
             rect = order_points(pts)
             (tl, tr, br, bl) = rect
-            widthA = np.sqrt(((br[0] - bl[0]) ** 2) + ((br[1] - bl[1]) ** 2))
-            widthB = np.sqrt(((tr[0] - tl[0]) ** 2) + ((tr[1] - tl[1]) ** 2))
-            maxWidth = max(int(widthA), int(widthB))
-            heightA = np.sqrt(((tr[0] - br[0]) ** 2) + ((tr[1] - br[1]) ** 2))
-            heightB = np.sqrt(((tl[0] - bl[0]) ** 2) + ((tl[1] - bl[1]) ** 2))
-            maxHeight = max(int(heightA), int(heightB))
-            dst = np.array([[0, 0], [maxWidth - 1, 0],
-                            [maxWidth - 1, maxHeight - 1], [0, maxHeight - 1]], dtype="float32")
+            width_a = np.sqrt(((br[0] - bl[0]) ** 2) + ((br[1] - bl[1]) ** 2))
+            width_b = np.sqrt(((tr[0] - tl[0]) ** 2) + ((tr[1] - tl[1]) ** 2))
+            max_width = max(int(width_a), int(width_b))
+            height_a = np.sqrt(((tr[0] - br[0]) ** 2) + ((tr[1] - br[1]) ** 2))
+            height_b = np.sqrt(((tl[0] - bl[0]) ** 2) + ((tl[1] - bl[1]) ** 2))
+            max_height = max(int(height_a), int(height_b))
+            dst = np.array([[0, 0], [max_width - 1, 0],
+                            [max_width - 1, max_height - 1], [0, max_height - 1]], dtype="float32")
             M = cv2.getPerspectiveTransform(rect, dst)
-            warped = cv2.warpPerspective(image_crop, M, (maxWidth, maxHeight))
+            warped = cv2.warpPerspective(image_crop, M, (max_width, max_height))
             return warped
         except Exception:
             return image_crop
