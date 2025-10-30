@@ -33,18 +33,32 @@
 /* --- 畫布 --- */
 .annotation-canvas-container {
     @apply relative w-full h-[500px] bg-gray-200 rounded-lg overflow-hidden border;
+    /* 防止滾輪事件冒泡 */
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: none;
 }
 .annotation-canvas {
     @apply w-full h-full;
+    /* 防止圖片被選取和拖曳 */
+    user-select: none;
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
 }
 .canvas-controls {
     @apply absolute bottom-4 left-1/2 -translate-x-1/2 bg-gray-800 text-white p-2 rounded-full flex items-center gap-2 backdrop-blur-sm shadow-lg;
+    pointer-events: auto; /* 確保控制區域可以接收事件 */
 }
 .control-button {
     @apply bg-transparent border-none text-white text-xl cursor-pointer p-1 rounded-full hover:bg-gray-700;
+    pointer-events: auto;
+    font-size: 18px;
 }
 .zoom-slider {
     @apply w-32; /* Tailwind forms plugin might be needed for full styling */
+    pointer-events: auto;
 }
 
 /* --- 操作按鈕 --- */

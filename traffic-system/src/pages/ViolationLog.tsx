@@ -41,8 +41,8 @@ interface ViolationRecord {
   ownerPhone?: string;
   ownerEmail?: string;
   ownerAddress?: string;
-  // 【修改】新增 confidence 欄位，型別為 number 或 null
-  confidence?: number | null;
+  // 【修改】confidence 欄位支援數字和字串
+  confidence?: number | string | null;
 }
 
 const TABS = ['全部', '待審核', '已確認', '已駁回', '已開罰'];
@@ -62,29 +62,59 @@ const ViolationDetail: React.FC<{
   const [imageError, setImageError] = useState<string | null>(null);
 
   // 【新增】格式化信心度函式
-  // 將小數（例如 0.8756）轉換為百分比字串（"88%"）
-  const formatConfidence = (value?: number | null): string => {
+  // 將小數（例如 0.8756）轉換為百分比字串（"88%"）或直接顯示字串
+  const formatConfidence = (value?: number | string | null): string => {
     if (value === null || value === undefined) {
       return 'N/A'; // 如果沒有信心度資料，顯示 N/A
     }
-    // 將小數乘以 100 並四捨五入到整數
+    
+    // 如果是字串，檢查是否為數字字串
+    if (typeof value === 'string') {
+      // 如果字串是 "手動標注" 或類似的文字，直接返回
+      if (value === '手動標注' || value === '手動標註' || isNaN(parseFloat(value))) {
+        return value;
+      }
+      // 如果是數字字串（如 "0.8756"），轉換為數字處理
+      const numValue = parseFloat(value);
+      return `${Math.round(numValue * 100)}%`;
+    }
+    
+    // 如果是數字，將小數乘以 100 並四捨五入到整數
     return `${Math.round(value * 100)}%`;
   };
 
   // 【新增】根據信心度決定等級的函式
-  const getConfidenceLevel = (value?: number | null): { text: string; className: string } => {
+  const getConfidenceLevel = (value?: number | string | null): { text: string; className: string } => {
     if (value === null || value === undefined) {
       return { text: '未知', className: 'level-unknown' };
     }
-    if (value >= 0.9) {
+    
+    let numericValue: number;
+    
+    // 如果是字串，檢查是否為數字字串
+    if (typeof value === 'string') {
+      // 如果字串是 "手動標注" 或類似的文字，返回手動樣式
+      if (value === '手動標注' || value === '手動標註' || isNaN(parseFloat(value))) {
+        return { text: '手動', className: 'level-manual' };
+      }
+      // 如果是數字字串（如 "0.8756"），轉換為數字
+      numericValue = parseFloat(value);
+    } else {
+      // 如果已經是數字
+      numericValue = value;
+    }
+    
+    // 按照數值範圍判斷等級
+    if (numericValue >= 0.9) {
       return { text: '高', className: 'level-high' };
     }
-    if (value >= 0.75) {
+    if (numericValue >= 0.75) {
       return { text: '中高', className: 'level-medium-high' };
     }
-    if (value >= 0.5) {
+    if (numericValue >= 0.5) {
       return { text: '中等', className: 'level-medium' };
     }
+    // 小於 0.5 的情況
     return { text: '低', className: 'level-low' };
   };
 

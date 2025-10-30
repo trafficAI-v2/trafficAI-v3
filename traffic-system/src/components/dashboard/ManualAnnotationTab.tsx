@@ -29,10 +29,10 @@ interface Annotation {
 
 // --- 手動違規記錄型別 ---
 interface ManualViolation {
+    license_plate: string;
     violation_type: string;
     violation_address: string;
     description?: string;
-    confidence: number;
     image_data: string;
     annotations: {
         x: number;
@@ -61,6 +61,7 @@ const ManualAnnotationTab: React.FC = () => {
     const [selectedViolationType, setSelectedViolationType] = useState<string>('');
     const [selectedLocation, setSelectedLocation] = useState<string>('');
     const [violationDescription, setViolationDescription] = useState<string>('');
+    const [licensePlate, setLicensePlate] = useState<string>('');
     
     const [annotations, setAnnotations] = useState<Annotation[]>([]);
     const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
@@ -157,9 +158,71 @@ const ManualAnnotationTab: React.FC = () => {
         ctx.restore();
     }, [imagePreviewUrl, annotations, currentRect, offset, zoom, selectedAnnotationId]);
 
+    // --- 重置照片大小和位置 ---
+    const resetImageView = () => {
+        if (!imageDimensions) return;
+        
+        const canvas = canvasRef.current;
+        if (!canvas || !canvas.parentElement) return;
+        
+        const parentWidth = canvas.parentElement.clientWidth;
+        const parentHeight = canvas.parentElement.clientHeight;
+        
+        const hRatio = parentWidth / imageDimensions.width;
+        const vRatio = parentHeight / imageDimensions.height;
+        const ratio = Math.min(hRatio, vRatio, 1); // 不要超過100%
+        
+        setZoom(ratio);
+        setOffset({
+            x: (parentWidth - imageDimensions.width * ratio) / 2,
+            y: (parentHeight - imageDimensions.height * ratio) / 2,
+        });
+    };
+
     useEffect(() => {
         draw();
     }, [draw]);
+
+    // --- 強制阻止滾輪事件冒泡 ---
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const handleDOMWheel = (e: WheelEvent) => {
+            if (!imageFile) return;
+            
+            // 強制阻止所有預設行為和冒泡
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            // 計算縮放前滑鼠在圖片上的位置
+            const beforeZoomX = (mouseX - offset.x) / zoom;
+            const beforeZoomY = (mouseY - offset.y) / zoom;
+            
+            // 縮放
+            const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+            const newZoom = Math.max(0.1, Math.min(5, zoom * zoomFactor));
+            
+            // 計算縮放後的新偏移量，保持滑鼠位置不變
+            const newOffsetX = mouseX - beforeZoomX * newZoom;
+            const newOffsetY = mouseY - beforeZoomY * newZoom;
+            
+            setZoom(newZoom);
+            setOffset({ x: newOffsetX, y: newOffsetY });
+        };
+
+        // 使用 passive: false 來確保可以阻止預設行為
+        canvas.addEventListener('wheel', handleDOMWheel, { passive: false });
+        
+        return () => {
+            canvas.removeEventListener('wheel', handleDOMWheel);
+        };
+    }, [imageFile, zoom, offset]);
     
     // --- 事件處理 ---
     const getTransformedPos = (e: ReactMouseEvent): { x: number, y: number } => {
@@ -173,27 +236,35 @@ const ManualAnnotationTab: React.FC = () => {
     };
 
     const handleMouseDown = (e: ReactMouseEvent) => {
-        if (!isAnnotationMode || !imageFile) return;
-        if (e.button === 1) { // Middle mouse button for panning
-            setIsPanning(true);
-            setLastPanPoint({ x: e.clientX, y: e.clientY });
-            return;
-        }
-        if (e.button !== 0) return; // Only allow left click for drawing
+        if (!imageFile) return;
         
-        setIsDrawing(true);
-        setStartPoint(getTransformedPos(e));
+        if (isAnnotationMode) {
+            // 標註模式：左鍵畫框
+            if (e.button !== 0) return; // Only allow left click for drawing
+            setIsDrawing(true);
+            setStartPoint(getTransformedPos(e));
+        } else {
+            // 非標註模式：左鍵拖曳照片
+            if (e.button === 0) { // Left mouse button for panning
+                setIsPanning(true);
+                setLastPanPoint({ x: e.clientX, y: e.clientY });
+                e.preventDefault(); // 防止選取文字等預設行為
+            }
+        }
     };
     
     const handleMouseMove = (e: ReactMouseEvent) => {
         if (isPanning) {
+            // 拖曳移動照片
             const dx = e.clientX - lastPanPoint.x;
             const dy = e.clientY - lastPanPoint.y;
             setOffset(prev => ({ x: prev.x + dx, y: prev.y + dy }));
             setLastPanPoint({ x: e.clientX, y: e.clientY });
             return;
         }
-        if (!isDrawing || !startPoint) return;
+        
+        // 標註模式下的畫框
+        if (!isDrawing || !startPoint || !isAnnotationMode) return;
         const currentPos = getTransformedPos(e);
         const rect = {
             x: Math.min(startPoint.x, currentPos.x),
@@ -211,7 +282,9 @@ const ManualAnnotationTab: React.FC = () => {
             setIsPanning(false);
             return;
         }
-        if (isDrawing && currentRect && currentRect.width > 5 && currentRect.height > 5) {
+        
+        // 標註模式下完成畫框
+        if (isDrawing && currentRect && currentRect.width > 5 && currentRect.height > 5 && isAnnotationMode) {
             const newAnnotation: Annotation = {
                 id: `anno-${Date.now()}`,
                 ...currentRect,
@@ -278,8 +351,14 @@ const ManualAnnotationTab: React.FC = () => {
             return;
         }
 
-        if (!selectedViolationType || !selectedLocation) {
-            setError('請選擇違規類型和地點');
+        if (!selectedViolationType || !selectedLocation || !licensePlate.trim()) {
+            setError('請填入車牌號碼、選擇違規類型和地點');
+            return;
+        }
+
+        // 驗證車牌號碼格式（基本檢查）
+        if (licensePlate.length < 3) {
+            setError('請輸入有效的車牌號碼');
             return;
         }
 
@@ -300,11 +379,11 @@ const ManualAnnotationTab: React.FC = () => {
             const imageData = await imageDataPromise;
 
             // 準備違規記錄資料
-            const violationData: ManualViolation = {
+            const violationData = {
+                license_plate: licensePlate.trim(),
                 violation_type: selectedViolationType,
                 violation_address: selectedLocation,
-                description: violationDescription,
-                confidence: 1.0, // 手動標註的信心度設為 100%
+                description: violationDescription.trim() || undefined,
                 image_data: imageData,
                 annotations: annotations.map(ann => ({
                     x: ann.x,
@@ -333,6 +412,7 @@ const ManualAnnotationTab: React.FC = () => {
             setImagePreviewUrl(null);
             setAnnotations([]);
             setViolationDescription('');
+            setLicensePlate('');
             alert('違規記錄已成功保存！');
 
         } catch (err) {
@@ -365,101 +445,13 @@ const ManualAnnotationTab: React.FC = () => {
                 </div>
             ) : (
                 <div className="annotation-workspace">
-                    <div className="annotation-header">
-                        <h4 className="text-lg font-semibold">手動違規標註</h4>
-                        <div className="flex items-center gap-2">
-                            <label htmlFor="annotation-toggle" className="text-sm font-medium">標註模式</label>
-                            <input
-                                type="checkbox"
-                                id="annotation-toggle"
-                                className="toggle-switch"
-                                checked={isAnnotationMode}
-                                onChange={(e) => setIsAnnotationMode(e.target.checked)}
-                            />
-                        </div>
-                    </div>
-
-                    {/* 違規類型和地點選擇 */}
-                    <div className="violation-settings" style={{ 
-                        padding: '16px', 
-                        background: '#f9f9f9', 
-                        borderRadius: '8px', 
-                        marginBottom: '16px',
-                        display: 'grid',
-                        gridTemplateColumns: '1fr 1fr',
-                        gap: '16px'
-                    }}>
-                        <div>
-                            <label htmlFor="violation-type-select" style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                                違規類型
-                            </label>
-                            <select
-                                id="violation-type-select"
-                                value={selectedViolationType}
-                                onChange={(e) => setSelectedViolationType(e.target.value)}
-                                style={{ 
-                                    width: '100%', 
-                                    padding: '8px', 
-                                    border: '1px solid #ddd', 
-                                    borderRadius: '4px' 
-                                }}
-                            >
-                                {violationTypes.map((type) => (
-                                    <option key={type.type_name} value={type.type_name}>
-                                        {type.type_name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        
-                        <div>
-                            <label htmlFor="location-select" style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                                違規地點
-                            </label>
-                            <select
-                                id="location-select"
-                                value={selectedLocation}
-                                onChange={(e) => setSelectedLocation(e.target.value)}
-                                style={{ 
-                                    width: '100%', 
-                                    padding: '8px', 
-                                    border: '1px solid #ddd', 
-                                    borderRadius: '4px' 
-                                }}
-                            >
-                                {locations.map((location) => (
-                                    <option key={location.camera_name} value={location.camera_name}>
-                                        {location.camera_name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        
-                        <div style={{ gridColumn: '1 / -1' }}>
-                            <label htmlFor="description-input" style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                                詳細描述 (選填)
-                            </label>
-                            <textarea
-                                id="description-input"
-                                rows={3}
-                                value={violationDescription}
-                                onChange={(e) => setViolationDescription(e.target.value)}
-                                placeholder="輸入違規行為的詳細描述..."
-                                style={{ 
-                                    width: '100%', 
-                                    padding: '8px', 
-                                    border: '1px solid #ddd', 
-                                    borderRadius: '4px',
-                                    resize: 'vertical'
-                                }}
-                            />
-                        </div>
-                    </div>
-                    
                     <div className="image-info-bar">
                         <span className="info-dot"></span>
                         <span>已載入圖片 - 尺寸: {imageDimensions?.width} x {imageDimensions?.height}</span>
-                        <span style={{ marginLeft: 'auto' }}>
+                        <span style={{ marginLeft: 'auto', fontSize: '12px', color: '#666' }}>
+                            {isAnnotationMode ? '🎯 左鍵畫框標註' : '👆 左鍵拖曳 | 滾輪縮放'}
+                        </span>
+                        <span style={{ marginLeft: '10px' }}>
                             已標註: {annotations.length} 個區域
                         </span>
                     </div>
@@ -470,26 +462,44 @@ const ManualAnnotationTab: React.FC = () => {
                       onMouseMove={handleMouseMove}
                       onMouseUp={handleMouseUp}
                       onMouseLeave={handleMouseUp}
+                      style={{ 
+                          overflow: 'hidden',
+                          touchAction: 'none' // 防止觸控裝置的滾動
+                      }}
                     >
                         <canvas 
                             ref={canvasRef} 
                             className="annotation-canvas" 
-                            style={{ cursor: isAnnotationMode ? (isPanning ? 'grabbing' : 'crosshair') : 'grab' }} 
+                            style={{ 
+                                cursor: isAnnotationMode ? 'crosshair' : (isPanning ? 'grabbing' : 'grab'),
+                                userSelect: 'none' // 防止拖曳時選取文字
+                            }} 
                         />
-                        <div className="canvas-controls">
-                            <button onClick={() => setZoom(z => Math.max(0.2, z / 1.2))} className="control-button">
+                        <div 
+                            className="canvas-controls"
+                            onMouseDown={e => e.stopPropagation()}
+                            onMouseMove={e => e.stopPropagation()}
+                            onMouseUp={e => e.stopPropagation()}
+                        >
+                            <button onClick={() => setZoom(z => Math.max(0.1, z / 1.2))} className="control-button">
                                 <BiZoomOut />
                             </button>
                             <input 
                                 type="range" 
-                                min="20" 
-                                max="400" 
+                                min="10" 
+                                max="500" 
                                 value={zoom * 100} 
                                 onChange={e => setZoom(Number(e.target.value) / 100)} 
+                                onMouseDown={e => e.stopPropagation()}
+                                onMouseMove={e => e.stopPropagation()}
+                                onMouseUp={e => e.stopPropagation()}
                                 className="zoom-slider"
                             />
-                            <button onClick={() => setZoom(z => Math.min(8, z * 1.2))} className="control-button">
+                            <button onClick={() => setZoom(z => Math.min(5, z * 1.2))} className="control-button">
                                 <BiZoomIn />
+                            </button>
+                            <button onClick={resetImageView} className="control-button" title="重置大小">
+                                重置
                             </button>
                         </div>
                     </div>
@@ -534,6 +544,119 @@ const ManualAnnotationTab: React.FC = () => {
                         </div>
                     )}
 
+                    <div className="annotation-header">
+                        <h4 className="text-lg font-semibold">手動違規標註</h4>
+                        <div className="flex items-center gap-2">
+                            <label htmlFor="annotation-toggle" className="text-sm font-medium">
+                                {isAnnotationMode ? '🎯 標註模式' : '👆 拖曳模式'}
+                            </label>
+                            <input
+                                type="checkbox"
+                                id="annotation-toggle"
+                                className="toggle-switch"
+                                checked={isAnnotationMode}
+                                onChange={(e) => setIsAnnotationMode(e.target.checked)}
+                            />
+                        </div>
+                    </div>
+
+                    {/* 違規資訊填寫 */}
+                    <div className="violation-settings" style={{ 
+                        padding: '16px', 
+                        background: '#f9f9f9', 
+                        borderRadius: '8px', 
+                        marginBottom: '16px',
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr 1fr',
+                        gap: '16px'
+                    }}>
+                        <div>
+                            <label htmlFor="license-plate-input" style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                                車牌號碼 <span style={{ color: '#e53e3e' }}>*</span>
+                            </label>
+                            <input
+                                type="text"
+                                id="license-plate-input"
+                                value={licensePlate}
+                                onChange={(e) => setLicensePlate(e.target.value.toUpperCase())}
+                                placeholder="例：ABC1234(勿加入“-”)"
+                                style={{ 
+                                    width: '100%', 
+                                    padding: '8px', 
+                                    border: '1px solid #ddd', 
+                                    borderRadius: '4px',
+                                    textTransform: 'uppercase'
+                                }}
+                            />
+                        </div>
+
+                        <div>
+                            <label htmlFor="violation-type-select" style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                                違規類型 <span style={{ color: '#e53e3e' }}>*</span>
+                            </label>
+                            <select
+                                id="violation-type-select"
+                                value={selectedViolationType}
+                                onChange={(e) => setSelectedViolationType(e.target.value)}
+                                style={{ 
+                                    width: '100%', 
+                                    padding: '8px', 
+                                    border: '1px solid #ddd', 
+                                    borderRadius: '4px' 
+                                }}
+                            >
+                                {violationTypes.map((type) => (
+                                    <option key={type.type_name} value={type.type_name}>
+                                        {type.type_name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label htmlFor="location-select" style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                                違規地點 <span style={{ color: '#e53e3e' }}>*</span>
+                            </label>
+                            <select
+                                id="location-select"
+                                value={selectedLocation}
+                                onChange={(e) => setSelectedLocation(e.target.value)}
+                                style={{ 
+                                    width: '100%', 
+                                    padding: '8px', 
+                                    border: '1px solid #ddd', 
+                                    borderRadius: '4px' 
+                                }}
+                            >
+                                {locations.map((location) => (
+                                    <option key={location.camera_name} value={location.camera_name}>
+                                        {location.camera_name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        
+                        <div style={{ gridColumn: '1 / -1' }}>
+                            <label htmlFor="description-input" style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                                詳細描述 (選填)
+                            </label>
+                            <textarea
+                                id="description-input"
+                                rows={3}
+                                value={violationDescription}
+                                onChange={(e) => setViolationDescription(e.target.value)}
+                                placeholder="輸入違規行為的詳細描述..."
+                                style={{ 
+                                    width: '100%', 
+                                    padding: '8px', 
+                                    border: '1px solid #ddd', 
+                                    borderRadius: '4px',
+                                    resize: 'vertical'
+                                }}
+                            />
+                        </div>
+                    </div>
+
                     <div className="action-buttons">
                         <button 
                             className="cancel-button"
@@ -542,6 +665,7 @@ const ManualAnnotationTab: React.FC = () => {
                                 setImagePreviewUrl(null);
                                 setAnnotations([]);
                                 setViolationDescription('');
+                                setLicensePlate('');
                             }}
                         >
                             取消
@@ -549,14 +673,14 @@ const ManualAnnotationTab: React.FC = () => {
                         <button 
                             className="submit-button"
                             onClick={saveViolationRecord}
-                            disabled={loading || annotations.length === 0}
+                            disabled={loading || annotations.length === 0 || !licensePlate.trim()}
                             style={{ 
-                                background: loading ? '#ccc' : '#4CAF50',
-                                cursor: loading ? 'not-allowed' : 'pointer'
+                                background: loading || annotations.length === 0 || !licensePlate.trim() ? '#ccc' : '#4CAF50',
+                                cursor: loading || annotations.length === 0 || !licensePlate.trim() ? 'not-allowed' : 'pointer'
                             }}
                         >
                             <BiSave style={{ marginRight: '8px' }} />
-                            {loading ? '保存中...' : `儲存 ${annotations.length} 個違規標記`}
+                            {loading ? '保存中...' : `儲存違規記錄`}
                         </button>
                     </div>
                 </div>

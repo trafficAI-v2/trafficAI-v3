@@ -152,6 +152,9 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
               padding: 20px; 
               line-height: 1.4;
               background-color: #f5f5f5;
+              overflow-x: hidden;
+              overflow-y: auto;
+              min-height: 100vh;
             }
             .document-container {
               max-width: 800px;
@@ -692,6 +695,7 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
     >
       <div 
         className="ticket-modal"
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="ticket-modal-header">
           <h2 id="ticket-modal-title">罰單開立作業 - 違規編號：VIO-{violation.id} | 車牌：{violation.plateNumber}</h2>
@@ -826,6 +830,7 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
         >
           <div 
             className="pdf-preview-modal"
+            onClick={(e) => e.stopPropagation()}
           >
             <div className="pdf-preview-header">
               <h3 id="pdf-preview-title">電子罰單PDF預覽</h3>
@@ -836,10 +841,8 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
             <div className="pdf-viewer">
               <iframe
                 srcDoc={generateMockPdfContent()}
-                width="100%"
-                height="600px"
                 title="PDF預覽"
-                style={{ border: 'none', backgroundColor: 'white' }}
+                style={{ width: '100%', height: '100%', border: 'none', backgroundColor: 'white' }}
               />
             </div>
             <div className="pdf-preview-footer">

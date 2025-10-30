@@ -58,6 +58,13 @@ ERROR_INTERNAL_SERVER = "Internal Server Error"
 ERROR_INTERNAL_SERVER_ZH = "伺服器內部錯誤"
 ERROR_INTERNAL_SERVER_USER = "找不到用戶"
 
+# --- 手動標註違規類型與罰金對應表 ---
+MANUAL_VIOLATION_FINES = {
+    "違規乘載人數": 1000,
+    "未戴安全帽": 800,
+    "亂丟煙蒂": 600
+}
+
 # Email發送函數
 import smtplib
 import base64
@@ -491,6 +498,29 @@ def get_violation_types():
         print(f"❌ Error in get_violation_types: {e}")
         return jsonify({'error': ERROR_INTERNAL_SERVER}), 500
 
+@app.route('/api/violations/manual-types', methods=['GET'])
+def get_manual_violation_types():
+    """
+    獲取手動標註的違規類型及其對應的罰金
+    """
+    try:
+        manual_types = [
+            {
+                'type_name': violation_type,
+                'fine_amount': fine_amount,
+                'formatted_fine': f"NT${fine_amount:,}"
+            }
+            for violation_type, fine_amount in MANUAL_VIOLATION_FINES.items()
+        ]
+        
+        return jsonify({
+            'violation_types': manual_types,
+            'total_types': len(manual_types)
+        })
+    except Exception as e:
+        print(f"❌ Error in get_manual_violation_types: {e}")
+        return jsonify({'error': ERROR_INTERNAL_SERVER}), 500
+
 # ==================================================
 # 違規紀錄 API (已修正)
 # ==================================================
@@ -674,6 +704,127 @@ def update_violations_status():
         if 'conn' in locals() and conn: conn.rollback()
         print(f"❌ Error in update_violations_status: {e}")
         return jsonify({'error': '內部伺服器錯誤'}), 500
+
+# ==================================================
+# 手動標註違規記錄 API
+# ==================================================
+@app.route('/api/violations/manual', methods=['POST', 'OPTIONS'])
+def create_manual_violation():
+    if request.method == 'OPTIONS':
+        response = jsonify({'message': 'CORS preflight OK'})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Methods", "POST, OPTIONS")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        return response, 200
+
+    try:
+        data = request.get_json()
+        
+        # 驗證必要欄位
+        required_fields = ['license_plate', 'violation_type', 'violation_address', 'image_data']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify({'error': f'缺少必要欄位: {field}'}), 400
+        
+        # 提取資料
+        license_plate = data['license_plate'].strip().upper()
+        violation_type = data['violation_type']
+        violation_address = data['violation_address']
+        image_data = data['image_data']
+        annotations = data.get('annotations', [])
+        
+        # 根據違規類型設定罰金金額
+        fine_amount = MANUAL_VIOLATION_FINES.get(violation_type, 900)  # 預設罰金為900元
+        
+        # 基本驗證
+        if len(license_plate) < 3:
+            return jsonify({'error': '車牌號碼格式不正確'}), 400
+        
+        # 準備插入資料庫的資料
+        current_time = datetime.now(timezone.utc)
+        
+        # 查詢車主資料
+        owner_name = None
+        owner_phone = None
+        owner_email = None
+        owner_address = None
+        
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            # 先查詢車主資料
+            cur.execute("""
+                SELECT full_name, phone_number, email, address 
+                FROM owners 
+                WHERE license_plate_number = %s
+            """, (license_plate,))
+            owner_data = cur.fetchone()
+            
+            if owner_data:
+                owner_name, owner_phone, owner_email, owner_address = owner_data
+            
+            # 插入違規記錄（包含車主資料）
+            insert_query = """
+                INSERT INTO violations (
+                    violation_type, license_plate, timestamp, violation_address, 
+                    status, confidence, image_data, fine, owner_name, owner_phone, owner_email, owner_address
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+            """
+            
+            cur.execute(insert_query, (
+                violation_type,
+                license_plate,
+                current_time,
+                violation_address,
+                '待審核',  # 手動標註的預設狀態
+                '手動標注',  # confidence 統一設為 "手動標注"
+                image_data,
+                fine_amount,  # 根據違規類型設定的罰金
+                owner_name,   # 車主姓名
+                owner_phone,  # 車主電話
+                owner_email,  # 車主信箱
+                owner_address # 車主地址
+            ))
+            
+            violation_id = cur.fetchone()[0]
+        
+        conn.commit()
+        conn.close()
+        
+        # 記錄日誌
+        try:
+            log_action(
+                module="手動標註",
+                level="INFO",
+                action="新增手動違規記錄",
+                details=f"車牌: {license_plate}, 類型: {violation_type}, 地點: {violation_address}, 罰金: NT${fine_amount}, 車主: {owner_name or '未找到'}, 標註數量: {len(annotations)}",
+                user_identity=get_jwt_identity(),
+                client_ip=request.remote_addr
+            )
+        except Exception as log_error:
+            print(f"⚠️ 警告：記錄手動標註日誌時發生錯誤: {log_error}")
+        
+        return jsonify({
+            'message': '手動違規記錄已成功保存',
+            'violation_id': violation_id,
+            'license_plate': license_plate,
+            'violation_type': violation_type,
+            'fine_amount': fine_amount,
+            'confidence': '手動標注',
+            'owner_info': {
+                'name': owner_name,
+                'phone': owner_phone,
+                'email': owner_email,
+                'address': owner_address
+            } if owner_name else None
+        }), 201
+
+    except Exception as e:
+        if 'conn' in locals() and conn:
+            conn.rollback()
+        print(f"❌ Error in create_manual_violation: {e}")
+        traceback.print_exc()
+        return jsonify({'error': '保存失敗，請稍後再試'}), 500
 
 # ==================================================
 # WebSocket 廣播

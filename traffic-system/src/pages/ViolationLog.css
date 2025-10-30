@@ -848,6 +848,12 @@
   color: #4b5563; /* 深灰文字 */
 }
 
+/* 手動標注 - 紫色 */
+.confidence-level.level-manual {
+  background-color: #f3e8ff; /* 淺紫背景 */
+  color: #7c3aed; /* 深紫文字 */
+}
+
 
 .detail-footer-actions {
   padding-top: 16px;
