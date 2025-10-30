@@ -1,6 +1,6 @@
 // src/components/common/Modal.tsx
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BiX } from 'react-icons/bi';
 import '../../styles/modal.css';
 
@@ -12,16 +12,63 @@ interface ModalProps {
 }
 
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
+  // 新增：ESC 鍵關閉 modal 的功能
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscapeKey);
+      // 防止背景頁面滾動
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) {
     return null;
   }
 
+  const handleOverlayClick = () => {
+    onClose();
+  };
+
+  const handleOverlayKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClose();
+    }
+  };
+
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+    <div 
+      className="modal-overlay" 
+      onClick={handleOverlayClick}
+      onKeyDown={handleOverlayKeyDown}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+      tabIndex={-1}
+    >
+      <div 
+        className="modal-content" 
+        onClick={(e) => e.stopPropagation()}
+        role="document"
+      >
         <div className="modal-header">
-          <h3 className="modal-title">{title}</h3>
-          <button className="modal-close-button" onClick={onClose}>
+          <h3 id="modal-title" className="modal-title">{title}</h3>
+          <button 
+            className="modal-close-button" 
+            onClick={onClose}
+            aria-label="關閉對話框"
+          >
             <BiX />
           </button>
         </div>
