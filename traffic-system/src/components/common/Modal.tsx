@@ -12,7 +12,7 @@ interface ModalProps {
 }
 
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
-  // 新增：ESC 鍵關閉 modal 的功能
+  // ESC 鍵關閉 modal 的功能
   useEffect(() => {
     const handleEscapeKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -36,44 +36,26 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
     return null;
   }
 
-  const handleOverlayClick = () => {
-    onClose();
-  };
-
-  const handleOverlayKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      onClose();
-    }
-  };
-
-  const handleContentClick = (e: React.MouseEvent<HTMLElement>) => {
-    e.stopPropagation();
-  };
-
-  const handleContentKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
-    // 阻止事件冒泡，但不執行任何動作
-    e.stopPropagation();
-  };
-
   return (
-    <div 
-      className="modal-overlay" 
-      onClick={handleOverlayClick}
-      onKeyDown={handleOverlayKeyDown}
-      role="button"
-      tabIndex={0}
-      aria-label="關閉對話框背景"
-    >
-      <section 
-        className="modal-content" 
-        onClick={handleContentClick}
-        onKeyDown={handleContentKeyDown}
-        role="dialog"
-        aria-labelledby="modal-title"
-        aria-modal="true"
-        tabIndex={-1}
-      >
+    <div className="modal-overlay">
+      {/* 隱藏的背景關閉按鈕 */}
+      <button 
+        className="modal-backdrop-button"
+        onClick={onClose}
+        aria-label="點擊背景關閉對話框"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          zIndex: -1
+        }}
+      />
+      <div className="modal-content">
         <div className="modal-header">
           <h3 id="modal-title" className="modal-title">{title}</h3>
           <button 
@@ -95,7 +77,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
           專門用來放「儲存」、「取消」等通用按鈕。
           目前暫時不需要。
         */}
-      </section>
+      </div>
     </div>
   );
 };
