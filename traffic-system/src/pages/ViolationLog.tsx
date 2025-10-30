@@ -13,6 +13,8 @@ const CONFIRMED_COUNT_URL = `${API_BASE_URL}/api/violations/confirmed-count`;
 const VEHICLE_TYPE_URL = `${API_BASE_URL}/api/owners`;
 
 // --- TypeScript 型別定義 ---
+type ViolationStatus = '待審核' | '已確認' | '已駁回' | '已開罰';
+
 interface ViolationType {
   type_name: string;
 }
@@ -33,7 +35,7 @@ interface ViolationRecord {
   vehicleType: string;
   timestamp: string;
   location: string;
-  status: '待審核' | '已確認' | '已駁回' | '已開罰';
+  status: ViolationStatus;
   fine?: number;
   ownerName?: string;
   ownerPhone?: string;
@@ -50,7 +52,7 @@ const TABS = ['全部', '待審核', '已確認', '已駁回', '已開罰'];
 const ViolationDetail: React.FC<{ 
   violation: ViolationRecord; 
   onClose: () => void;
-  onUpdateStatus: (id: number, status: '已確認' | '已駁回' | '已開罰') => void;
+  onUpdateStatus: (id: number, status: ViolationStatus) => void;
 }> = ({ violation, onClose, onUpdateStatus }) => {
   const [vehicleTypeInfo, setVehicleTypeInfo] = useState<VehicleTypeInfo | null>(null);
   const [vehicleTypeLoading, setVehicleTypeLoading] = useState<boolean>(false);
@@ -62,7 +64,7 @@ const ViolationDetail: React.FC<{
   // 【新增】格式化信心度函式
   // 將小數（例如 0.8756）轉換為百分比字串（"88%"）
   const formatConfidence = (value?: number | null): string => {
-    if (value === null || typeof value === 'undefined') {
+    if (value === null || value === undefined) {
       return 'N/A'; // 如果沒有信心度資料，顯示 N/A
     }
     // 將小數乘以 100 並四捨五入到整數
@@ -71,16 +73,16 @@ const ViolationDetail: React.FC<{
 
   // 【新增】根據信心度決定等級的函式
   const getConfidenceLevel = (value?: number | null): { text: string; className: string } => {
-    if (value === null || typeof value === 'undefined') {
+    if (value === null || value === undefined) {
       return { text: '未知', className: 'level-unknown' };
     }
-    if (value >= 0.90) {
+    if (value >= 0.9) {
       return { text: '高', className: 'level-high' };
     }
     if (value >= 0.75) {
       return { text: '中高', className: 'level-medium-high' };
     }
-    if (value >= 0.50) {
+    if (value >= 0.5) {
       return { text: '中等', className: 'level-medium' };
     }
     return { text: '低', className: 'level-low' };
@@ -161,6 +163,54 @@ const ViolationDetail: React.FC<{
   const confidenceText = formatConfidence(violation.confidence);
   const confidenceLevel = getConfidenceLevel(violation.confidence);
 
+  // 【新增】渲染違規圖片的輔助函式
+  const renderViolationImage = () => {
+    if (imageLoading) {
+      return <div className="image-loading"><p>載入違規照片中...</p></div>;
+    }
+    
+    if (imageError) {
+      return (
+        <div className="image-error">
+          <p>❌ {imageError}</p>
+          <p style={{ fontSize: '14px', opacity: '0.8' }}>請檢查網路連線或聯絡系統管理員</p>
+        </div>
+      );
+    }
+    
+    if (imageData) {
+      return (
+        <div className="violation-image">
+          <img src={`data:image/jpeg;base64,${imageData}`} alt={`車牌 ${violation.plateNumber} 的違規照片`} />
+          <p>車牌：{violation.plateNumber} | 違規類型：{violation.type}</p>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="image-placeholder">
+        <p>📷</p><p>違規道路照片</p>
+        <p style={{ fontSize: '14px', color: '#000000ff' }}>暫無圖片數據</p>
+      </div>
+    );
+  };
+
+  // 【新增】渲染車輛類型的輔助函式
+  const renderVehicleType = () => {
+    if (vehicleTypeLoading) {
+      return <input id="vehicle-type" type="text" value="正在查詢車輛類型..." readOnly />;
+    }
+    
+    if (vehicleTypeError) {
+      return <input id="vehicle-type" type="text" value={`${violation.vehicleType || '未指定'} (${vehicleTypeError})`} readOnly />;
+    }
+    
+    if (vehicleTypeInfo) {
+      return <input id="vehicle-type" type="text" value={vehicleTypeInfo.vehicle_type} readOnly />;
+    }
+    
+    return <input id="vehicle-type" type="text" value={violation.vehicleType || '未指定'} readOnly />;
+  };
 
   const handleReject = () => onUpdateStatus(violation.id, '已駁回');
   const handleConfirm = () => onUpdateStatus(violation.id, '已確認');
@@ -178,43 +228,26 @@ const ViolationDetail: React.FC<{
         </div>
 
         <div className="violation-image-placeholder">
-            {imageLoading ? (
-                <div className="image-loading"><p>載入違規照片中...</p></div>
-            ) : imageError ? (
-                <div className="image-error">
-                    <p>❌ {imageError}</p>
-                    <p style={{ fontSize: '14px', opacity: '0.8' }}>請檢查網路連線或聯絡系統管理員</p>
-                </div>
-            ) : imageData ? (
-                <div className="violation-image">
-                    <img src={`data:image/jpeg;base64,${imageData}`} alt={`車牌 ${violation.plateNumber} 的違規照片`} />
-                    <p>車牌：{violation.plateNumber} | 違規類型：{violation.type}</p>
-                </div>
-            ) : (
-                <div className="image-placeholder">
-                    <p>📷</p><p>違規道路照片</p>
-                    <p style={{ fontSize: '14px', color: '#000000ff' }}>暫無圖片數據</p>
-                </div>
-            )}
+            {renderViolationImage()}
         </div>
 
         <div className="detail-form">
             <div className="form-row">
-                <label>罰單編號</label>
-                <input type="text" value={`VIO-${violation.id}`} readOnly />
+                <label htmlFor="ticket-number">罰單編號</label>
+                <input id="ticket-number" type="text" value={`VIO-${violation.id}`} readOnly />
             </div>
             <div className="form-row">
-                <label>違規日期</label>
-                <input type="text" value={formattedDate} readOnly />
+                <label htmlFor="violation-date">違規日期</label>
+                <input id="violation-date" type="text" value={formattedDate} readOnly />
             </div>
             <div className="form-row">
-                <label>違規類型</label>
-                <input type="text" value={violation.type} readOnly />
+                <label htmlFor="violation-type">違規類型</label>
+                <input id="violation-type" type="text" value={violation.type} readOnly />
             </div>
             {/* 【修改】偵測信心度欄位，使用動態數據 */}
             <div className="form-row">
-                <label>偵測信心度</label>
-                <div className="confidence-display">
+                <label htmlFor="confidence-display">偵測信心度</label>
+                <div id="confidence-display" className="confidence-display">
                   {confidenceText}
                   <span className={`confidence-level ${confidenceLevel.className}`}>
                     {confidenceLevel.text}
@@ -222,48 +255,40 @@ const ViolationDetail: React.FC<{
                 </div>
             </div>
             <div className="form-row">
-                <label>車牌號碼</label>
-                <input type="text" value={violation.plateNumber} readOnly />
+                <label htmlFor="plate-number">車牌號碼</label>
+                <input id="plate-number" type="text" value={violation.plateNumber} readOnly />
             </div>
             <div className="form-row">
-                <label>車輛類型</label>
-                {vehicleTypeLoading ? (
-                    <input type="text" value="正在查詢車輛類型..." readOnly />
-                ) : vehicleTypeError ? (
-                    <input type="text" value={`${violation.vehicleType || '未指定'} (${vehicleTypeError})`} readOnly />
-                ) : vehicleTypeInfo ? (
-                    <input type="text" value={vehicleTypeInfo.vehicle_type} readOnly />
-                ) : (
-                    <input type="text" value={violation.vehicleType || '未指定'} readOnly />
-                )}
+                <label htmlFor="vehicle-type">車輛類型</label>
+                {renderVehicleType()}
             </div>
             <div className="form-row">
-                <label>違規地點</label>
-                <input type="text" value={violation.location} readOnly />
+                <label htmlFor="violation-location">違規地點</label>
+                <input id="violation-location" type="text" value={violation.location} readOnly />
             </div>
             <div className="form-row owner-info">
-                <label>車主姓名</label>
-                <input type="text" value={violation.ownerName || '未提供'} readOnly />
+                <label htmlFor="owner-name">車主姓名</label>
+                <input id="owner-name" type="text" value={violation.ownerName || '未提供'} readOnly />
             </div>
             <div className="form-row owner-info">
-                <label>車主電話</label>
-                <input type="text" value={violation.ownerPhone || '未提供'} readOnly />
+                <label htmlFor="owner-phone">車主電話</label>
+                <input id="owner-phone" type="text" value={violation.ownerPhone || '未提供'} readOnly />
             </div>
             <div className="form-row owner-info">
-                <label>車主地址</label>
-                <input type="text" value={violation.ownerAddress || '未提供'} readOnly />
+                <label htmlFor="owner-address">車主地址</label>
+                <input id="owner-address" type="text" value={violation.ownerAddress || '未提供'} readOnly />
             </div>
              <div className="form-row">
-                <label>罰單金額 (NT$)</label>
-                <input type="text" value={violation.fine ? `NT$ ${violation.fine.toLocaleString()}` : 'NT$ 未設定'} readOnly />
+                <label htmlFor="fine-amount">罰單金額 (NT$)</label>
+                <input id="fine-amount" type="text" value={violation.fine ? `NT$ ${violation.fine.toLocaleString()}` : 'NT$ 未設定'} readOnly />
             </div>
             <div className="form-row">
-                <label>開立人員</label>
-                <input type="text" value="系統自動生成" readOnly />
+                <label htmlFor="issuer">開立人員</label>
+                <input id="issuer" type="text" value="系統自動生成" readOnly />
             </div>
             <div className="form-row">
-                <label>備註</label>
-                <textarea placeholder="輸入額外備註..."></textarea>
+                <label htmlFor="remarks">備註</label>
+                <textarea id="remarks" placeholder="輸入額外備註..."></textarea>
             </div>
         </div>
 
@@ -424,11 +449,11 @@ const ViolationLog: React.FC = () => {
     if (!isoString) return { date: 'N/A', time: '' };
     try {
       const [datePartStr, timePartStrWithZone] = isoString.split('T');
-      const datePart = datePartStr.replace(/-/g, '/');
+      const datePart = datePartStr.replaceAll('-', '/');
       if (!timePartStrWithZone) return { date: datePart, time: '' };
       const mainTimePart = timePartStrWithZone.split('.')[0];
       const [hours, minutes, seconds] = mainTimePart.split(':').map(Number);
-      if ([hours, minutes, seconds].some(isNaN)) throw new Error('Invalid time');
+      if ([hours, minutes, seconds].some(Number.isNaN)) throw new Error('Invalid time');
       const ampm = hours >= 12 ? '下午' : '上午';
       let displayHours = hours % 12 || 12;
       const timePart = `${ampm} ${displayHours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
@@ -453,7 +478,7 @@ const ViolationLog: React.FC = () => {
     }
   };
 
-  const handleBulkUpdate = async (newStatus: '已確認' | '已駁回' | '已開罰') => {
+  const handleBulkUpdate = async (newStatus: ViolationStatus) => {
     if (selectedIds.length === 0) return;
     if (!API_BASE_URL) {
       alert('錯誤：未在 .env.local 中設定 VITE_API_BASE_URL');
@@ -491,7 +516,7 @@ const ViolationLog: React.FC = () => {
     }
   };
 
-  const handleSingleUpdate = async (id: number, newStatus: '已確認' | '已駁回' | '已開罰') => {
+  const handleSingleUpdate = async (id: number, newStatus: ViolationStatus) => {
     if (!API_BASE_URL) {
       alert('錯誤：未在 .env.local 中設定 VITE_API_BASE_URL');
       return;
@@ -533,6 +558,75 @@ const ViolationLog: React.FC = () => {
     } else {
       setSelectedViolation(violation);
     }
+  };
+
+  // 【新增】渲染列表內容的輔助函式
+  const renderListContent = () => {
+    if (loading) {
+      return <div className="table-message">正在載入紀錄...</div>;
+    }
+    
+    if (error) {
+      return <div className="table-message error">{error}</div>;
+    }
+    
+    if (violations.length === 0) {
+      return <div className="table-message">沒有符合條件的違規紀錄</div>;
+    }
+    
+    return violations.map(v => {
+      const { date, time } = formatTimestamp(v.timestamp);
+      const isSelected = selectedIds.includes(v.id);
+      const isDetailActive = selectedViolation && selectedViolation.id === v.id;
+
+      const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleRowClick(v);
+        }
+      };
+
+      return (
+        <div 
+          key={v.id} 
+          className={`violation-card ${isSelected ? 'selected' : ''} ${isDetailActive ? 'detail-active' : ''}`}
+          onClick={() => handleRowClick(v)}
+          onKeyDown={handleKeyDown}
+          role="button"
+          tabIndex={0}
+          aria-label={`查看違規紀錄 ${v.plateNumber} 的詳細資訊`}
+        >
+          <div className="card-cell checkbox">
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={(e) => { e.stopPropagation(); handleRowSelect(v.id); }}
+              aria-label={`選取違規紀錄 ${v.plateNumber}`}
+            />
+            <div className="cell-content-vertical">
+              <span className="type-main">{v.type}</span>
+              <span className="plate-sub">VIO-{v.id}</span>
+            </div>
+          </div>
+          <div className="card-cell plate">
+             <div className="cell-content-vertical">
+              <span className="plate-main">{v.plateNumber}</span>
+              <span className="plate-sub">{v.vehicleType}</span> 
+            </div>
+          </div>
+          <div className="card-cell time">
+            <div className="cell-content-vertical">
+              <span className="date-main">{date}</span>
+              <span className="time-sub">{time}</span>
+            </div>
+          </div>
+          <div className="card-cell location">{v.location}</div>
+          <div className="card-cell status">
+            <span className={`status-tag status-${v.status}`}>{v.status}</span>
+          </div>
+        </div>
+      );
+    });
   };
 
   return (
@@ -615,28 +709,29 @@ const ViolationLog: React.FC = () => {
       
               <div className="filters-grid">
                 <div className="filter-group">
-                  <label>違規類型</label>
-                  <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+                  <label htmlFor="filter-type">違規類型</label>
+                  <select id="filter-type" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
                     <option value="所有類型">所有類型</option>
-                    {violationTypes.map((vType, index) => (
-                      <option key={index} value={vType.type_name}>{vType.type_name}</option>
+                    {violationTypes.map((vType) => (
+                      <option key={vType.type_name} value={vType.type_name}>{vType.type_name}</option>
                     ))}
                   </select>
                 </div>
                 <div className="filter-group">
-                  <label>違規地點</label>
-                  <select value={filterLocation} onChange={(e) => setFilterLocation(e.target.value)}>
+                  <label htmlFor="filter-location">違規地點</label>
+                  <select id="filter-location" value={filterLocation} onChange={(e) => setFilterLocation(e.target.value)}>
                     <option value="所有地點">所有地點</option>
-                    {locations.map((loc, index) => (
-                      <option key={index} value={loc.camera_name}>{loc.camera_name}</option>
+                    {locations.map((loc) => (
+                      <option key={loc.camera_name} value={loc.camera_name}>{loc.camera_name}</option>
                     ))}
                   </select>
                 </div>
                 <div className="filter-group">
-                  <label>時間範圍</label>
+                  <label htmlFor="filter-date">時間範圍</label>
                   <div className="date-picker-input">
                     <BiCalendar className="date-picker-icon"/>
                     <input 
+                      id="filter-date"
                       type="text" 
                       placeholder="選擇日期範圍"
                       onFocus={(e) => (e.target.type = 'date')}
@@ -660,55 +755,7 @@ const ViolationLog: React.FC = () => {
             </div>
             
             <div className="list-body">
-              {loading ? (
-                <div className="table-message">正在載入紀錄...</div>
-              ) : error ? (
-                <div className="table-message error">{error}</div>
-              ) : violations.length === 0 ? (
-                <div className="table-message">沒有符合條件的違規紀錄</div>
-              ) : (
-                violations.map(v => {
-                  const { date, time } = formatTimestamp(v.timestamp);
-                  const isSelected = selectedIds.includes(v.id);
-                  const isDetailActive = selectedViolation && selectedViolation.id === v.id;
-
-                  return (
-                    <div 
-                      key={v.id} 
-                      className={`violation-card ${isSelected ? 'selected' : ''} ${isDetailActive ? 'detail-active' : ''}`}
-                      onClick={() => handleRowClick(v)}
-                    >
-                      <div className="card-cell checkbox">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={(e) => { e.stopPropagation(); handleRowSelect(v.id); }}
-                        />
-                        <div className="cell-content-vertical">
-                          <span className="type-main">{v.type}</span>
-                          <span className="plate-sub">VIO-{v.id}</span>
-                        </div>
-                      </div>
-                      <div className="card-cell plate">
-                         <div className="cell-content-vertical">
-                          <span className="plate-main">{v.plateNumber}</span>
-                          <span className="plate-sub">{v.vehicleType}</span> 
-                        </div>
-                      </div>
-                      <div className="card-cell time">
-                        <div className="cell-content-vertical">
-                          <span className="date-main">{date}</span>
-                          <span className="time-sub">{time}</span>
-                        </div>
-                      </div>
-                      <div className="card-cell location">{v.location}</div>
-                      <div className="card-cell status">
-                        <span className={`status-tag status-${v.status}`}>{v.status}</span>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
+              {renderListContent()}
             </div>
           </div>
 
