@@ -440,7 +440,7 @@ const ManualAnnotationTab: React.FC = () => {
                         </span>
                     </div>
 
-                    <div 
+                    <button 
                       className="annotation-canvas-container" 
                       onMouseDown={handleMouseDown}
                       onMouseMove={handleMouseMove}
@@ -448,10 +448,15 @@ const ManualAnnotationTab: React.FC = () => {
                       onMouseLeave={handleMouseUp}
                       style={{ 
                           overflow: 'hidden',
-                          touchAction: 'none' // 防止觸控裝置的滾動
+                          touchAction: 'none', // 防止觸控裝置的滾動
+                          border: 'none',
+                          padding: 0,
+                          background: 'none',
+                          width: '100%',
+                          height: '100%'
                       }}
-                      role="application"
                       aria-label="圖片標註區域"
+                      type="button"
                     >
                         <canvas 
                             ref={canvasRef} 
@@ -493,7 +498,7 @@ const ManualAnnotationTab: React.FC = () => {
                                 重置
                             </button>
                         </div>
-                    </div>
+                    </button>
 
                     {/* 標註列表 */}
                     {annotations.length > 0 && (
