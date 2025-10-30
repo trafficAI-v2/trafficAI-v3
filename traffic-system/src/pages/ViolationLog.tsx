@@ -14,6 +14,7 @@ const VEHICLE_TYPE_URL = `${API_BASE_URL}/api/owners`;
 
 // --- TypeScript 型別定義 ---
 type ViolationStatus = '待審核' | '已確認' | '已駁回' | '已開罰';
+type ConfidenceValue = number | string | null;
 
 interface ViolationType {
   type_name: string;
@@ -41,8 +42,8 @@ interface ViolationRecord {
   ownerPhone?: string;
   ownerEmail?: string;
   ownerAddress?: string;
-  // 【修改】confidence 欄位支援數字和字串
-  confidence?: number | string | null;
+  // 使用類型別名
+  confidence?: ConfidenceValue;
 }
 
 const TABS = ['全部', '待審核', '已確認', '已駁回', '已開罰'];
@@ -63,7 +64,7 @@ const ViolationDetail: React.FC<{
 
   // 【新增】格式化信心度函式
   // 將小數（例如 0.8756）轉換為百分比字串（"88%"）或直接顯示字串
-  const formatConfidence = (value?: number | string | null): string => {
+  const formatConfidence = (value?: ConfidenceValue): string => {
     if (value === null || value === undefined) {
       return 'N/A'; // 如果沒有信心度資料，顯示 N/A
     }
@@ -71,11 +72,11 @@ const ViolationDetail: React.FC<{
     // 如果是字串，檢查是否為數字字串
     if (typeof value === 'string') {
       // 如果字串是 "手動標注" 或類似的文字，直接返回
-      if (value === '手動標注' || value === '手動標註' || isNaN(parseFloat(value))) {
+      if (value === '手動標注' || value === '手動標註' || Number.isNaN(Number.parseFloat(value))) {
         return value;
       }
       // 如果是數字字串（如 "0.8756"），轉換為數字處理
-      const numValue = parseFloat(value);
+      const numValue = Number.parseFloat(value);
       return `${Math.round(numValue * 100)}%`;
     }
     
@@ -84,7 +85,7 @@ const ViolationDetail: React.FC<{
   };
 
   // 【新增】根據信心度決定等級的函式
-  const getConfidenceLevel = (value?: number | string | null): { text: string; className: string } => {
+  const getConfidenceLevel = (value?: ConfidenceValue): { text: string; className: string } => {
     if (value === null || value === undefined) {
       return { text: '未知', className: 'level-unknown' };
     }
@@ -94,11 +95,11 @@ const ViolationDetail: React.FC<{
     // 如果是字串，檢查是否為數字字串
     if (typeof value === 'string') {
       // 如果字串是 "手動標注" 或類似的文字，返回手動樣式
-      if (value === '手動標注' || value === '手動標註' || isNaN(parseFloat(value))) {
+      if (value === '手動標注' || value === '手動標註' || Number.isNaN(Number.parseFloat(value))) {
         return { text: '手動', className: 'level-manual' };
       }
       // 如果是數字字串（如 "0.8756"），轉換為數字
-      numericValue = parseFloat(value);
+      numericValue = Number.parseFloat(value);
     } else {
       // 如果已經是數字
       numericValue = value;
