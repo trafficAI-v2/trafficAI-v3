@@ -682,7 +682,19 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
   const { date, time } = formatTimestamp(violation.timestamp);
 
   return (
-    <div className="ticket-modal-overlay" onClick={onClose}>
+    <div 
+      className="ticket-modal-overlay" 
+      onClick={onClose}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClose();
+        }
+      }}
+      aria-label="關閉罰單模態框"
+    >
       <dialog 
         open={isOpen}
         className="ticket-modal"
@@ -814,7 +826,19 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
       
       {/* PDF預覽模態 */}
       {showPdfPreview && ownerInfo && violation && (
-        <div className="pdf-preview-overlay" onClick={closePdfPreview}>
+        <div 
+          className="pdf-preview-overlay" 
+          onClick={closePdfPreview}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              closePdfPreview();
+            }
+          }}
+          aria-label="關閉PDF預覽"
+        >
           <dialog 
             open={showPdfPreview}
             className="pdf-preview-modal"
