@@ -686,16 +686,19 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
       open={isOpen}
       className="ticket-modal-overlay" 
       onClick={onClose}
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') {
-          onClose();
-        }
-      }}
-      aria-labelledby="ticket-modal-title"
     >
       <div 
         className="ticket-modal"
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ticket-modal-title"
+        tabIndex={-1}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            onClose();
+          }
+        }}
       >
         <div className="ticket-modal-header">
           <h2 id="ticket-modal-title">罰單開立作業 - 違規編號：VIO-{violation.id} | 車牌：{violation.plateNumber}</h2>
@@ -821,16 +824,19 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
           open={showPdfPreview}
           className="pdf-preview-overlay" 
           onClick={closePdfPreview}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') {
-              closePdfPreview();
-            }
-          }}
-          aria-labelledby="pdf-preview-title"
         >
           <div 
             className="pdf-preview-modal"
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pdf-preview-title"
+            tabIndex={-1}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                closePdfPreview();
+              }
+            }}
           >
             <div className="pdf-preview-header">
               <h3 id="pdf-preview-title">電子罰單PDF預覽</h3>
