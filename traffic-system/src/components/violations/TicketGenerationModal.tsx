@@ -682,18 +682,12 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
   const { date, time } = formatTimestamp(violation.timestamp);
 
   return (
-    <dialog 
-      open={isOpen}
-      className="ticket-modal-overlay" 
-      onClick={onClose}
-    >
-      <div 
+    <div className="ticket-modal-overlay" onClick={onClose}>
+      <dialog 
+        open={isOpen}
         className="ticket-modal"
         onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
         aria-labelledby="ticket-modal-title"
-        tabIndex={-1}
         onKeyDown={(e) => {
           if (e.key === 'Escape') {
             onClose();
@@ -816,22 +810,16 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
         <div className="ticket-modal-footer">
           {renderStepButtons()}
         </div>
-      </div>
+      </dialog>
       
       {/* PDF預覽模態 */}
       {showPdfPreview && ownerInfo && violation && (
-        <dialog 
-          open={showPdfPreview}
-          className="pdf-preview-overlay" 
-          onClick={closePdfPreview}
-        >
-          <div 
+        <div className="pdf-preview-overlay" onClick={closePdfPreview}>
+          <dialog 
+            open={showPdfPreview}
             className="pdf-preview-modal"
             onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
             aria-labelledby="pdf-preview-title"
-            tabIndex={-1}
             onKeyDown={(e) => {
               if (e.key === 'Escape') {
                 closePdfPreview();
@@ -856,10 +844,10 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
                 關閉預覽
               </button>
             </div>
-          </div>
-        </dialog>
+          </dialog>
+        </div>
       )}
-    </dialog>
+    </div>
   );
 };
 
