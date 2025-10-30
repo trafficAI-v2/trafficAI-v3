@@ -126,10 +126,10 @@
   padding: 8px 12px;
 }
 
-/* 被選中的活動頁籤的樣式 (白色部分更小，完美置中，藍色文字) */
+/* 被選中的活動頁籤的樣式 (白色部分更小，完美置中，深藍色文字) */
 .violation-log-page .log-tab-button.active {
   background-color: #ffffff;
-  color: #3b82f6;
+  color: #1e40af;
   font-weight: 600;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   border-radius: 6px;
@@ -288,7 +288,7 @@
   text-align: center;
   white-space: nowrap;
 }
-.status-tag.status-待審核 { background-color: #f7e5b2; color: #b08909; }
+.status-tag.status-待審核 { background-color: #f7e5b2; color: #8b4513; }
 .status-tag.status-已確認 { background-color: #d1fae5; color: #065f46; } 
 .status-tag.status-已駁回 { background-color: #fee2e2; color: #991b1b;  }
 .status-tag.status-已開罰 { background-color: #e0e7ff; color: #4639ff; }
@@ -358,8 +358,8 @@
 }
 
 .pagination-btn.active {
-  background-color: #3b82f6;
-  border-color: #3b82f6;
+  background-color: #1e40af;
+  border-color: #1e40af;
   color: #fff;
 }
 
@@ -414,16 +414,16 @@
   transition: all 0.2s;
 }
 .bulk-action-btn.confirm {
-  background-color: #0cbd41;
-  border-color: #25ea60;
+  background-color: #047857;
+  border-color: #047857;
   color: #ffffff;
 }
 .bulk-action-btn.confirm:hover {
   background-color: #14a94a;
 }
 .bulk-action-btn.reject {
-  background-color: #ff0000d8;
-  border-color: #d1d5db;
+  background-color: #dc2626;
+  border-color: #dc2626;
   color: #ffffff;
 }
 .bulk-action-btn.reject:hover {
@@ -489,7 +489,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background-color: #16a34a;
+  background-color: #047857;
   color: #ffffff;
   padding: 10px 16px;
   font-size: 14px;
@@ -622,13 +622,13 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #6b7280;
+  color: #111827;
   transition: background-color 0.2s, color 0.2s;
   flex-shrink: 0;
 }
 .close-detail-btn:hover {
   background-color: #e5e7eb;
-  color: #1f2937;
+  color: #000000;
 }
 .close-detail-btn svg {
   font-size: 24px;
@@ -683,7 +683,7 @@
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    color: #dc2626;
+    color: #991b1b;
     background: #fef2f2;
     border-color: #fecaca;
     padding: 20px;
@@ -793,7 +793,7 @@
 .owner-info label{
   width: auto;
   min-width: 0;
-  color: #e31616;
+  color: #991b1b;
   font-weight: 600;
   background-color: rgb(255, 186, 186);
   text-align: left;
@@ -884,29 +884,29 @@
     transition: background-color 0.2s, border-color 0.2s;
 }
 .detail-footer-actions .btn-primary {
-  background-color: #0cbd41;
-  border-color: #14a94a;
+  background-color: #047857;
+  border-color: #047857;
   color: #ffffff;
 }
 .detail-footer-actions .btn-primary:hover {
-  background-color: #14a94a;
+  background-color: #065f46;
 }
 
 .detail-footer-actions .btn-secondary {
-  background-color: #ff0000d8;
+  background-color: #dc2626;
   color: #ffffff; /* 修改文字顏色為白色以提高可讀性 */
   border-color: transparent; /* 移除邊框 */
 }
 .detail-footer-actions .btn-secondary:hover {
-  background-color: #cf0202;
+  background-color: #b91c1c;
 }
 
 .detail-footer-actions .btn-success {
-  background-color: #16a34a;
+  background-color: #047857;
   color: white;
-  border-color: #16a34a;
+  border-color: #047857;
 }
 .detail-footer-actions .btn-success:hover {
-  background-color: #15803d;
+  background-color: #065f46;
   border-color: #15803d;
 }
