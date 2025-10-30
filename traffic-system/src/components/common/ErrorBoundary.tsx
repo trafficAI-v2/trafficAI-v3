@@ -54,12 +54,12 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   // --- 事件處理函式 ---
-  private handleReload = () => {
+  private readonly handleReload = () => {
     // 重新整理整個頁面
-    window.location.reload();
+    globalThis.location.reload();
   };
 
-  private handleReset = () => {
+  private readonly handleReset = () => {
     // 嘗試重設錯誤狀態，讓應用程式恢復
     // 注意：這只有在錯誤不是持續性的情況下才有效
     this.setState({
