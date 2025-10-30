@@ -19,8 +19,7 @@ export interface Violation {
 }
 
 export interface ViolationType {
-  type: string;
-  confidence: number;
+  type_name: string;
 }
 
 // src/types/statistics.ts
