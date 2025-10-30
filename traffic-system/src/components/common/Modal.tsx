@@ -40,15 +40,39 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
     onClose();
   };
 
+  const handleOverlayKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClose();
+    }
+  };
+
   const handleContentClick = (e: React.MouseEvent<HTMLElement>) => {
     e.stopPropagation();
   };
 
+  const handleContentKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
+    // 阻止事件冒泡，但不執行任何動作
+    e.stopPropagation();
+  };
+
   return (
-    <div className="modal-overlay" onClick={handleOverlayClick}>
+    <div 
+      className="modal-overlay" 
+      onClick={handleOverlayClick}
+      onKeyDown={handleOverlayKeyDown}
+      role="button"
+      tabIndex={0}
+      aria-label="關閉對話框背景"
+    >
       <section 
         className="modal-content" 
         onClick={handleContentClick}
+        onKeyDown={handleContentKeyDown}
+        role="dialog"
+        aria-labelledby="modal-title"
+        aria-modal="true"
+        tabIndex={-1}
       >
         <div className="modal-header">
           <h3 id="modal-title" className="modal-title">{title}</h3>
