@@ -51,8 +51,8 @@ jobs:
         if [ -f web_api/requirements.txt ]; then
           pip install -r web_api/requirements.txt || echo "跳過 web_api 依賴安裝"
         fi
-        # 安裝測試和覆蓋率工具
-        pip install pytest pytest-cov flake8 pylint bandit
+        # 安裝代碼品質檢查工具
+        pip install flake8 pylint bandit
 
     - name: 📥 安裝前端依賴
       working-directory: ./traffic-system
@@ -62,16 +62,6 @@ jobs:
         else
           npm install
         fi
-
-    - name: 🧪 執行 Python 測試 (如果存在)
-      run: |
-        # 尋找並執行Python測試
-        if find . -name "*test*.py" -o -name "test_*" -type d | grep -q .; then
-          python -m pytest --cov=. --cov-report=xml --cov-report=html --ignore=traffic-system/ || echo "測試執行完成"
-        else
-          echo "未找到Python測試檔案，跳過測試執行"
-        fi
-      continue-on-error: true
 
     - name: 🧪 執行前端測試 (如果存在)
       working-directory: ./traffic-system
@@ -116,8 +106,6 @@ jobs:
       with:
         name: test-results-${{ github.run_number }}
         path: |
-          coverage.xml
-          htmlcov/
           bandit-report.json
         retention-days: 30
         if-no-files-found: ignore

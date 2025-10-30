@@ -36,7 +36,6 @@ exclude_paths:
   - "**/*.svg"
   - "**/*.ico"
   - "traffic-system/src/vite-env.d.ts"
-  - "htmlcov/**"
   - "__pycache__/**"
   - ".venv/**"
   - "venv/**"
