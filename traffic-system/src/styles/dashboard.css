@@ -102,11 +102,10 @@
   width: 100%; 
   aspect-ratio: 16 / 9; 
   background: #ffffff; 
-  border-radius: 4px; 
   margin-top: 16px; 
   position: relative; 
-  color: white; 
-  border:1.5px solid rgb(209, 207, 207);
+  color: #000000; 
+  border: 1.5px solid rgb(209, 207, 207);
   border-radius: 8px;
   overflow: hidden; /* 防止影像超出容器 */
 }
@@ -307,7 +306,7 @@ input[type=range].custom-slider::-moz-range-thumb {
 .placeholder-content {
   padding: 40px;
   text-align: center;
-  color: #aaa;
+  color: #666666;
   background-color: #fafafa;
   border-radius: 8px;
   min-height: 300px;
