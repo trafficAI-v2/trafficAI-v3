@@ -40,27 +40,15 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
     onClose();
   };
 
-  const handleOverlayKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      onClose();
-    }
+  const handleContentClick = (e: React.MouseEvent<HTMLElement>) => {
+    e.stopPropagation();
   };
 
   return (
-    <div 
-      className="modal-overlay" 
-      onClick={handleOverlayClick}
-      onKeyDown={handleOverlayKeyDown}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modal-title"
-      tabIndex={-1}
-    >
-      <div 
+    <div className="modal-overlay" onClick={handleOverlayClick}>
+      <section 
         className="modal-content" 
-        onClick={(e) => e.stopPropagation()}
-        role="document"
+        onClick={handleContentClick}
       >
         <div className="modal-header">
           <h3 id="modal-title" className="modal-title">{title}</h3>
@@ -83,7 +71,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
           專門用來放「儲存」、「取消」等通用按鈕。
           目前暫時不需要。
         */}
-      </div>
+      </section>
     </div>
   );
 };
