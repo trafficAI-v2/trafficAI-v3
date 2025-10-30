@@ -579,21 +579,12 @@ const ViolationLog: React.FC = () => {
       const isSelected = selectedIds.includes(v.id);
       const isDetailActive = selectedViolation && selectedViolation.id === v.id;
 
-      const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          handleRowClick(v);
-        }
-      };
-
       return (
-        <div 
+        <button 
           key={v.id} 
           className={`violation-card ${isSelected ? 'selected' : ''} ${isDetailActive ? 'detail-active' : ''}`}
           onClick={() => handleRowClick(v)}
-          onKeyDown={handleKeyDown}
-          role="button"
-          tabIndex={0}
+          type="button"
           aria-label={`查看違規紀錄 ${v.plateNumber} 的詳細資訊`}
         >
           <div className="card-cell checkbox">
@@ -624,7 +615,7 @@ const ViolationLog: React.FC = () => {
           <div className="card-cell status">
             <span className={`status-tag status-${v.status}`}>{v.status}</span>
           </div>
-        </div>
+        </button>
       );
     });
   };
