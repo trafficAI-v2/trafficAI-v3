@@ -2,6 +2,9 @@
   padding: 24px;
   background-color: #f9fafb;
   min-height: 100vh;
+  width: 100%;
+  transition: width 0.35s ease-in-out;
+  box-sizing: border-box;
 }
 
 /* ----- 頁面標題 ----- */
@@ -507,16 +510,6 @@
   font-size: 18px;
 }
 
-.ticket-notification-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background-color: #f0f3f6;
-  color: #334155;
-  padding: 16px;
-  border-radius: 8px;
-  font-size: 14px;
-}
 .ticket-notification-bar svg {
   font-size: 20px;
   color: #16a34a;
@@ -545,13 +538,6 @@
   background-color: #f9fafb;
   min-height: 100vh;
   align-items: flex-start;
-}
-
-.violation-log-page {
-  padding: 24px;
-  width: 100%;
-  transition: width 0.35s ease-in-out;
-  box-sizing: border-box;
 }
 
 .violation-detail-view {
