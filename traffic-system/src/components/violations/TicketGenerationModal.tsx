@@ -677,7 +677,8 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
   const { date, time } = formatTimestamp(violation.timestamp);
 
   return (
-    <div 
+    <dialog 
+      open={isOpen}
       className="ticket-modal-overlay" 
       onClick={onClose}
       onKeyDown={(e) => {
@@ -685,20 +686,11 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
           onClose();
         }
       }}
-      role="dialog"
-      aria-modal="true"
       aria-labelledby="ticket-modal-title"
-      tabIndex={-1}
     >
       <div 
         className="ticket-modal" 
         onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => {
-          // 阻止鍵盤事件冒泡，避免觸發overlay的ESC關閉
-          e.stopPropagation();
-        }}
-        role="document"
-        tabIndex={0}
       >
         <div className="ticket-modal-header">
           <h2 id="ticket-modal-title">罰單開立作業 - 違規編號：VIO-{violation.id} | 車牌：{violation.plateNumber}</h2>
@@ -790,19 +782,11 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
                 
                 <div className="preview-section">
                   <h4>罰單附件預覽 (PDF)</h4>
-                  <div 
+                  <button 
                     className="pdf-preview" 
                     onClick={generatePdfPreview} 
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        generatePdfPreview();
-                      }
-                    }}
-                    role="button"
-                    tabIndex={0}
                     aria-label="點擊查看PDF預覽"
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', border: 'none', background: 'none', padding: 0, width: '100%' }}
                   >
                     <div className="pdf-icon">
                       <BiReceipt />
@@ -813,7 +797,7 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
                         {pdfLoading ? '正在生成預覽...' : '點擊查看PDF預覽'}
                       </span>
                     </div>
-                  </div>
+                  </button>
                 </div>
               </div>
             </div>
@@ -828,7 +812,8 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
       
       {/* PDF預覽模態 */}
       {showPdfPreview && ownerInfo && violation && (
-        <div 
+        <dialog 
+          open={showPdfPreview}
           className="pdf-preview-overlay" 
           onClick={closePdfPreview}
           onKeyDown={(e) => {
@@ -836,20 +821,11 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
               closePdfPreview();
             }
           }}
-          role="dialog"
-          aria-modal="true"
           aria-labelledby="pdf-preview-title"
-          tabIndex={-1}
         >
           <div 
             className="pdf-preview-modal" 
             onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-              // 阻止鍵盤事件冒泡，避免觸發overlay的ESC關閉
-              e.stopPropagation();
-            }}
-            role="document"
-            tabIndex={0}
           >
             <div className="pdf-preview-header">
               <h3 id="pdf-preview-title">電子罰單PDF預覽</h3>
@@ -872,9 +848,9 @@ const TicketGenerationModal: React.FC<TicketGenerationModalProps> = ({
               </button>
             </div>
           </div>
-        </div>
+        </dialog>
       )}
-    </div>
+    </dialog>
   );
 };
 
