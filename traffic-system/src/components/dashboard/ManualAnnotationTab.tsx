@@ -27,22 +27,6 @@ interface Annotation {
     description?: string;
 }
 
-// --- 手動違規記錄型別 ---
-interface ManualViolation {
-    license_plate: string;
-    violation_type: string;
-    violation_address: string;
-    description?: string;
-    image_data: string;
-    annotations: {
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-        type: string;
-    }[];
-}
-
 // 這個元件目前不接收任何 props，符合 CameraFeed.tsx 的修正
 const ManualAnnotationTab: React.FC = () => {
     // --- 狀態管理 ---
@@ -77,6 +61,14 @@ const ManualAnnotationTab: React.FC = () => {
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // --- 輔助函數：處理鍵盤事件 ---
+    const handleKeyDown = (e: React.KeyboardEvent, action: () => void) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            action();
+        }
+    };
     
     // --- API 調用函數 ---
     const fetchViolationTypes = async () => {
@@ -141,12 +133,12 @@ const ManualAnnotationTab: React.FC = () => {
             }
         }
         
-        annotations.forEach(anno => {
+        for (const anno of annotations) {
             const isSelected = anno.id === selectedAnnotationId;
             ctx.strokeStyle = isSelected ? '#3b82f6' : '#ef4444';
             ctx.lineWidth = isSelected ? 3 / zoom : 2 / zoom;
             ctx.strokeRect(anno.x, anno.y, anno.width, anno.height);
-        });
+        }
 
         if (currentRect) {
             ctx.strokeStyle = '#10b981';
@@ -163,7 +155,7 @@ const ManualAnnotationTab: React.FC = () => {
         if (!imageDimensions) return;
         
         const canvas = canvasRef.current;
-        if (!canvas || !canvas.parentElement) return;
+        if (!canvas?.parentElement) return;
         
         const parentWidth = canvas.parentElement.clientWidth;
         const parentHeight = canvas.parentElement.clientHeight;
@@ -243,13 +235,11 @@ const ManualAnnotationTab: React.FC = () => {
             if (e.button !== 0) return; // Only allow left click for drawing
             setIsDrawing(true);
             setStartPoint(getTransformedPos(e));
-        } else {
-            // 非標註模式：左鍵拖曳照片
-            if (e.button === 0) { // Left mouse button for panning
-                setIsPanning(true);
-                setLastPanPoint({ x: e.clientX, y: e.clientY });
-                e.preventDefault(); // 防止選取文字等預設行為
-            }
+        } else if (e.button === 0) {
+            // 非標註模式：左鍵拖曳照片 - Left mouse button for panning
+            setIsPanning(true);
+            setLastPanPoint({ x: e.clientX, y: e.clientY });
+            e.preventDefault(); // 防止選取文字等預設行為
         }
     };
     
@@ -309,7 +299,7 @@ const ManualAnnotationTab: React.FC = () => {
             img.onload = () => {
                 setImageDimensions({ width: img.width, height: img.height });
                 const canvas = canvasRef.current;
-                if(canvas && canvas.parentElement){
+                if(canvas?.parentElement){
                     // Fit image within the parent container on initial load
                     const parentWidth = canvas.parentElement.clientWidth;
                     const parentHeight = canvas.parentElement.clientHeight;
@@ -437,13 +427,7 @@ const ManualAnnotationTab: React.FC = () => {
                 </div>
             )}
             
-            {!imageFile ? (
-                <div className="upload-prompt" onClick={triggerFileSelect}>
-                    <div className="upload-icon-circle"><BiPlus /></div>
-                    <p className="upload-text">點擊上傳圖片</p>
-                    <p className="upload-hint">支援 JPG, PNG, GIF 格式</p>
-                </div>
-            ) : (
+            {imageFile ? (
                 <div className="annotation-workspace">
                     <div className="image-info-bar">
                         <span className="info-dot"></span>
@@ -466,12 +450,17 @@ const ManualAnnotationTab: React.FC = () => {
                           overflow: 'hidden',
                           touchAction: 'none' // 防止觸控裝置的滾動
                       }}
+                      role="application"
+                      aria-label="圖片標註區域"
                     >
                         <canvas 
                             ref={canvasRef} 
                             className="annotation-canvas" 
                             style={{ 
-                                cursor: isAnnotationMode ? 'crosshair' : (isPanning ? 'grabbing' : 'grab'),
+                                cursor: (() => {
+                                    if (isAnnotationMode) return 'crosshair';
+                                    return isPanning ? 'grabbing' : 'grab';
+                                })(),
                                 userSelect: 'none' // 防止拖曳時選取文字
                             }} 
                         />
@@ -480,6 +469,8 @@ const ManualAnnotationTab: React.FC = () => {
                             onMouseDown={e => e.stopPropagation()}
                             onMouseMove={e => e.stopPropagation()}
                             onMouseUp={e => e.stopPropagation()}
+                            role="toolbar"
+                            aria-label="畫布控制項"
                         >
                             <button onClick={() => setZoom(z => Math.max(0.1, z / 1.2))} className="control-button">
                                 <BiZoomOut />
@@ -684,6 +675,18 @@ const ManualAnnotationTab: React.FC = () => {
                         </button>
                     </div>
                 </div>
+            ) : (
+                <button 
+                    className="upload-prompt" 
+                    onClick={triggerFileSelect}
+                    onKeyDown={(e) => handleKeyDown(e, triggerFileSelect)}
+                    type="button"
+                    aria-label="點擊上傳圖片"
+                >
+                    <div className="upload-icon-circle"><BiPlus /></div>
+                    <p className="upload-text">點擊上傳圖片</p>
+                    <p className="upload-hint">支援 JPG, PNG, GIF 格式</p>
+                </button>
             )}
             <input 
                 type="file" 
