@@ -273,3 +273,5 @@ DISPLAY_WIDTH = 1024         # 顯示寬度
 
 ### 模型權重檔連結
 https://drive.google.com/drive/folders/1L3pdIyjDhIUJJqrf8NbRdtlb_L9Ph_Pq?usp=drive_link
+
+123
