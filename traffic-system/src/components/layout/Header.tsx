@@ -1,5 +1,3 @@
-// src/components/layout/Header.tsx (完整最終版)
-
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import userAdmin from '../../assets/user-admin.png';
@@ -47,7 +45,6 @@ const Header: React.FC<HeaderProps> = ({ isAdmin }) => {
     setIsDropdownOpen(false);
   };
 
-  // 這個 effect 用來處理「點擊外部關閉選單」的功能
   // 獲取通知列表
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -88,7 +85,7 @@ const Header: React.FC<HeaderProps> = ({ isAdmin }) => {
       await apiService.post('/api/notifications/mark-read', { ids: notificationIds });
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setUnreadCount(0);
-    } catch (error) {
+    } catch (error) { // 【修正】補上 catch 區塊的起始大括號 {
       console.error("標記通知為已讀失敗:", error);
     }
   };
@@ -109,6 +106,32 @@ const Header: React.FC<HeaderProps> = ({ isAdmin }) => {
     };
   }, []);
 
+  // 建立一個獨立的函式來渲染通知列表內容，以取代巢狀三元運算子
+  const renderNotificationList = () => {
+    if (isLoadingNtf) {
+      return <div className="notification-loading">載入中...</div>;
+    }
+
+    if (notifications.length === 0) {
+      return <div className="no-notifications">目前沒有通知</div>;
+    }
+
+    return notifications.map(notification => (
+      <div 
+        key={notification.id} 
+        className={`notification-item ${notification.read ? '' : 'unread'}`}
+      >
+        <div className="notification-content">
+          <div className="notification-title">{notification.title}</div>
+          <div className="notification-text">{notification.message}</div>
+          <div className="notification-time">
+            {new Date(notification.createdAt).toLocaleString()}
+          </div>
+        </div>
+      </div>
+    ));
+  };
+
   return (
     <header className="app-header">
       {/* --- 左側 Logo --- */}
@@ -120,7 +143,7 @@ const Header: React.FC<HeaderProps> = ({ isAdmin }) => {
       {/* --- 右側內容群組 (包含中間導覽和最右側使用者區塊) --- */}
       <div className="header-right-group">
         
-        {/* 【關鍵】補上中間的主導覽列 */}
+        {/* 補上中間的主導覽列 */}
         <div className="header-center">
           <nav className="main-nav">
             <NavLink to="/" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
@@ -136,7 +159,6 @@ const Header: React.FC<HeaderProps> = ({ isAdmin }) => {
               <span>統計分析</span>
             </NavLink>
             
-            {/* 根據從 Layout 傳來的 isAdmin prop 來決定是否顯示「系統管理」 */}
             {isAdmin && (
               <NavLink to="/system" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
                 <BiCog className="nav-icon" />
@@ -176,26 +198,7 @@ const Header: React.FC<HeaderProps> = ({ isAdmin }) => {
                   </button>
                 </div>
                 <div className="notification-list">
-                  {isLoadingNtf ? (
-                    <div className="notification-loading">載入中...</div>
-                  ) : notifications.length === 0 ? (
-                    <div className="no-notifications">目前沒有通知</div>
-                  ) : (
-                    notifications.map(notification => (
-                      <div 
-                        key={notification.id} 
-                        className={`notification-item ${notification.read ? '' : 'unread'}`}
-                      >
-                        <div className="notification-content">
-                          <div className="notification-title">{notification.title}</div>
-                          <div className="notification-text">{notification.message}</div>
-                          <div className="notification-time">
-                            {new Date(notification.createdAt).toLocaleString()}
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
+                  {renderNotificationList()}
                 </div>
                 <div className="notification-footer">
                   <button className="view-all-notifications">查看所有通知</button>
