@@ -1,5 +1,3 @@
-// src/components/system/AddUserForm.tsx
-
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -50,30 +48,33 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onSuccess, onCancel }) => {
 
   return (
     <form onSubmit={handleSubmit} className="add-user-form">
-      {/* 表單欄位... (CSS class 可以在你的通用 CSS 或 system.css 中定義) */}
+      {/* ===== 【本次修改重點】 ===== */}
       <div className="form-group">
-        <label>使用者名稱</label>
-        <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} required />
+        {/* 使用 htmlFor 屬性關聯到 input 的 id */}
+        <label htmlFor="username">使用者名稱</label>
+        <input id="username" type="text" value={username} onChange={(e) => setUsername(e.target.value)} required />
       </div>
       <div className="form-group">
-        <label>Email</label>
-        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <label htmlFor="email">Email</label>
+        <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
       </div>
       <div className="form-group">
-        <label>初始密碼</label>
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        <label htmlFor="password">初始密碼</label>
+        <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
       </div>
       <div className="form-group">
-        <label>姓名</label>
-        <input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
+        <label htmlFor="name">姓名</label>
+        <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} required />
       </div>
       <div className="form-group">
-        <label>角色</label>
-        <select value={role} onChange={(e) => setRole(e.target.value as 'operator' | 'admin')}>
+        <label htmlFor="role">角色</label>
+        <select id="role" value={role} onChange={(e) => setRole(e.target.value as 'operator' | 'admin')}>
           <option value="operator">操作員</option>
           <option value="admin">系統管理員</option>
         </select>
       </div>
+      {/* ========================== */}
+      
       {error && <p style={{ color: 'red' }}>{error}</p>}
       <div className="form-actions">
         <button type="button" onClick={onCancel} disabled={isLoading}>取消</button>
