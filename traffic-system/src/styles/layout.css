@@ -364,3 +364,45 @@
   margin-top: 64px;
   padding: 24px;
 }
+
+/* --- Dropdown Menu Button Reset --- */
+.dropdown-item-button {
+  /* 重設按鈕預設樣式 */
+  background: none;
+  border: none;
+  /* padding: 0;  <-- 已移除此行 */
+  margin: 0;
+  font: inherit; /* 繼承父層的字體設定 */
+  color: inherit; /* 繼承父層的文字顏色 */
+  cursor: pointer;
+  
+  /* 排版設定 */
+  width: 100%; /* 讓按鈕填滿整個 li */
+  display: flex;
+  align-items: center;
+  text-align: left; /* 文字靠左 */
+  
+  /* 視覺樣式 (保留這個正確的 padding) */
+  padding: 8px 12px;
+  gap: 8px; /* 圖示和文字之間的距離 */
+  border-radius: 4px; /* 可選：增加圓角 */
+}
+
+/* 讓按鈕在 hover 和 focus 時有反應 */
+.dropdown-item-button:hover {
+  background-color: #f0f0f0; /* 請改成您設計中的 hover 顏色 */
+}
+
+.dropdown-item-button:focus-visible {
+  outline: 2px solid #007bff; /* 為鍵盤使用者提供清晰的焦點指示 */
+  outline-offset: 2px;
+}
+
+/* 針對登出按鈕的特殊樣式 */
+.dropdown-item-button.logout-item {
+  color: #dc3545; /* 登出通常用紅色表示警示 */
+}
+
+.dropdown-item-button.logout-item:hover {
+  background-color: #f8d7da; /* 登出 hover 的背景色 */
+}
