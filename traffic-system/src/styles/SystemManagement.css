@@ -267,7 +267,7 @@
   font-weight: 500;
 }
 
-/* === 表格標題區域更新 === */
+/* === 表格標題區域 === */
 .management-section-header {
   display: flex;
   justify-content: space-between;
@@ -275,6 +275,13 @@
   margin-bottom: 24px;
   padding-bottom: 16px;
   border-bottom: 1px solid #e5e7eb;
+}
+
+.management-section-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f2937;
 }
 
 .header-actions {
@@ -376,21 +383,29 @@
   background-color: #fef2f2;
 }
 
-/* --- 【新增】頂部功能卡片網格樣式 --- */
+/* 更新 .management-cards 和 .management-card 的樣式 */
 .management-cards {
   display: grid;
-  /* 在大螢幕上顯示 3 欄，小螢幕上自動變為 1 欄 */
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 24px;
+  margin-bottom: 32px;
 }
 
 .management-card {
   background-color: #ffffff;
+  border: 1px solid #e5e7eb;
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
   display: flex;
   flex-direction: column;
+  transition: box-shadow 0.2s, transform 0.2s;
+  cursor: pointer;
+}
+
+.management-card:hover {
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
 }
 
 .management-card h3 {
@@ -404,7 +419,7 @@
   font-size: 14px;
   color: #6b7280;
   flex-grow: 1; /* 讓描述文字填滿剩餘空間，使卡片等高 */
-  margin: 0 0 16px;
+  margin: 0;
 }
 
 /* 開發中卡片的樣式 */
@@ -520,11 +535,12 @@
 
 .dev-note {
     font-size: 14px;
-    color: #fbbf24;
-    background-color: #fffbeb;
+    color: #92400e;
+    background-color: #fef3c7;
     padding: 8px;
     border-radius: 6px;
     text-align: center;
+    border: 1px solid #fcd34d;
 }
 
 .settings-footer {

@@ -150,10 +150,10 @@ const Analytics: React.FC = () => {
         <div className="filter-header"><BiFilter /><h3>統計分析篩選器</h3></div>
         <div className="filters-grid">
             <div className="filter-group">
-              <label>時間範圍</label>
+              <label htmlFor="time-range-select">時間範圍</label>
               <div className="date-picker-input">
                 <BiCalendar className="date-picker-icon"/>
-                <select value={timeRange} onChange={(e) => setTimeRange(e.target.value)}>
+                <select id="time-range-select" value={timeRange} onChange={(e) => setTimeRange(e.target.value)}>
                     <option value="last30days">最近30天</option>
                     <option value="last7days">最近7天</option>
                     <option value="today">今日</option>

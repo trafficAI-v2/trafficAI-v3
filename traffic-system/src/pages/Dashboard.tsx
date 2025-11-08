@@ -88,20 +88,33 @@ const Dashboard: React.FC = () => {
     return value ?? 0;       // 正常情況下顯示數值，如果是 null 或 undefined 則顯示 0
   };
 
+  // --- 取得系統狀態值的輔助函數 ---
+  const getSystemStatus = () => {
+    if (isLoading) return '...';
+    if (error) return '錯誤';
+    return '正常運行';
+  };
+
+  // --- 取得系統狀態的輔助函數 ---
+  const getSystemStatusType = () => {
+    if (error) return 'error';
+    return 'ok';
+  };
+
   return (
     <div className="page-container">
       <div className="page-header">
         <h1>交通違規自動檢測與罰單系統</h1>
         {user && <span>{user.name} - {getRoleDisplayName(user.role)}</span>}
       </div>
-      
+
       <div className="status-overview">
-        <StatusCard 
-          title="系統狀態" 
-          value={isLoading ? '...' : (error ? '錯誤' : '正常運行')}
-          status={error ? 'error' : 'ok'}
-          type="success" 
-          icon={<BiShield />} 
+        <StatusCard
+          title="系統狀態"
+          value={getSystemStatus()}
+          status={getSystemStatusType()}
+          type="success"
+          icon={<BiShield />}
         />
         <StatusCard 
           title="總使用者 / 線上人數" // 修改標題

@@ -81,9 +81,20 @@ const Login: React.FC = () => {
                     placeholder="請輸入密碼"
                     required
                 />
-                <span className="password-toggle-icon" onClick={() => setShowPassword(!showPassword)}>
+                <button
+                  type="button"
+                  className="password-toggle-icon"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? '隱藏密碼' : '顯示密碼'}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setShowPassword(!showPassword);
+                    }
+                  }}
+                >
                     {showPassword ? <BiHide /> : <BiShow />}
-                </span>
+                </button>
             </div>
           </div>
 

@@ -1,7 +1,7 @@
 // src/context/AuthContext.tsx (完整、乾淨的最終版本)
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { ReactNode } from 'react'; 
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import type { ReactNode } from 'react';
 import { jwtDecode } from 'jwt-decode';
 
 // 從 .env 檔案讀取後端 API 的基本 URL
@@ -92,7 +92,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(null);
   };
 
-  const value = { user, token, login, logout, isLoading };
+  const value = useMemo(
+    () => ({ user, token, login, logout, isLoading }),
+    [user, token, login, logout, isLoading]
+  );
 
   return (
     <AuthContext.Provider value={value}>

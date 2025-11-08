@@ -67,9 +67,57 @@ const SystemLogs: React.FC = () => {
     const debounce = setTimeout(() => {
         fetchLogs();
     }, 500); // 在使用者停止輸入 500ms 後才發送請求，避免過於頻繁的 API 呼叫
-    
+
     return () => clearTimeout(debounce);
   }, [fetchLogs]);
+
+  // 提取渲染邏輯到獨立函數，避免嵌套三元運算符
+  const renderLogContent = () => {
+    if (isLoading) {
+      return <p>正在載入日誌...</p>;
+    }
+
+    if (error) {
+      return <p className="error-message">{error}</p>;
+    }
+
+    return (
+      <div className="user-table-container">
+        <table className="user-table">
+          <thead>
+            <tr>
+              <th>時間</th>
+              <th>使用者</th>
+              <th>模組</th>
+              <th>等級</th>
+              <th>操作</th>
+              <th>詳細資訊</th>
+            </tr>
+          </thead>
+          <tbody>
+            {logs.length > 0 ? (
+              logs.map((log) => (
+                <tr key={log.id}>
+                  <td className="log-time">{new Date(log.timestamp).toLocaleString('zh-TW')}</td>
+                  <td>{log.username}</td>
+                  <td>{log.module}</td>
+                  <td>
+                    <span className={`log-level-tag level-${log.level.toLowerCase()}`}>{log.level}</span>
+                  </td>
+                  <td>{log.action}</td>
+                  <td className="log-details" title={log.details}>{log.details}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '40px' }}>沒有符合條件的日誌記錄</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
 
   return (
     <div className="logs-container">
@@ -112,46 +160,7 @@ const SystemLogs: React.FC = () => {
 
       {/* --- 區塊 2: 日誌列表 --- */}
       <div className="log-table-container">
-        {isLoading ? (
-          <p>正在載入日誌...</p>
-        ) : error ? (
-          <p className="error-message">{error}</p>
-        ) : (
-          <div className="user-table-container">
-            <table className="user-table">
-              <thead>
-                <tr>
-                  <th>時間</th>
-                  <th>使用者</th>
-                  <th>模組</th>
-                  <th>等級</th>
-                  <th>操作</th>
-                  <th>詳細資訊</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.length > 0 ? (
-                  logs.map((log) => (
-                    <tr key={log.id}>
-                      <td className="log-time">{new Date(log.timestamp).toLocaleString('zh-TW')}</td>
-                      <td>{log.username}</td>
-                      <td>{log.module}</td>
-                      <td>
-                        <span className={`log-level-tag level-${log.level.toLowerCase()}`}>{log.level}</span>
-                      </td>
-                      <td>{log.action}</td>
-                      <td className="log-details" title={log.details}>{log.details}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '40px' }}>沒有符合條件的日誌記錄</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+        {renderLogContent()}
       </div>
     </div>
   );

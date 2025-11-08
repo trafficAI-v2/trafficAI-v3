@@ -1,9 +1,9 @@
 // src/pages/SystemManagement.tsx (完整最終版 - 整合所有 Modal)
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  BiUser, BiCog, BiHistory, BiBarChartAlt2, BiData, BiCloudUpload, BiNetworkChart, 
-  BiPlus, BiEdit, BiTrash, BiRefresh 
+import {
+  BiCog, BiHistory, BiBarChartAlt2, BiData, BiCloudUpload, BiNetworkChart,
+  BiEdit, BiTrash, BiPlus, BiRefresh
 } from 'react-icons/bi';
 import { useAuth } from '../context/AuthContext';
 import Modal from '../components/common/Modal';
@@ -159,24 +159,24 @@ const SystemManagement: React.FC = () => {
 
       {/* --- 功能總覽卡片 --- */}
       <div className="management-cards">
-        <div className="management-card clickable" onClick={() => openModal('settings')}>
+        <button className="management-card clickable" onClick={() => openModal('settings')} type="button">
           <BiCog /><h3>系統參數設定</h3><p>調整系統名稱、時區、語言等基本參數。</p>
-        </div>
-        <div className="management-card clickable" onClick={() => openModal('logs')}>
+        </button>
+        <button className="management-card clickable" onClick={() => openModal('logs')} type="button">
           <BiHistory /><h3>系統日誌查詢</h3><p>查詢、篩選並匯出系統所有操作日誌。</p>
-        </div>
-        <div className="management-card clickable" onClick={() => openModal('performance')}>
+        </button>
+        <button className="management-card clickable" onClick={() => openModal('performance')} type="button">
           <BiBarChartAlt2 /><h3>系統效能監控</h3><p>監控 CPU、記憶體、網路等即時效能狀況。</p>
-        </div>
-        <div className="management-card clickable" onClick={() => openModal('database')}>
+        </button>
+        <button className="management-card clickable" onClick={() => openModal('database')} type="button">
           <BiData /><h3>資料庫管理</h3><p>管理資料備份、還原與效能最佳化。</p>
-        </div>
-        <div className="management-card clickable" onClick={() => openModal('update')}>
+        </button>
+        <button className="management-card clickable" onClick={() => openModal('update')} type="button">
           <BiCloudUpload /><h3>系統更新管理</h3><p>檢查、排程並管理系統版本更新。</p>
-        </div>
-        <div className="management-card clickable" onClick={() => openModal('integration')}>
+        </button>
+        <button className="management-card clickable" onClick={() => openModal('integration')} type="button">
           <BiNetworkChart /><h3>系統整合設定</h3><p>設定與外部系統的 API 整合。</p>
-        </div>
+        </button>
       </div>
       
       {/* --- 使用者列表 --- */}

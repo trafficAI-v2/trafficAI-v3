@@ -221,11 +221,33 @@ const Header: React.FC<HeaderProps> = ({ isAdmin }) => {
                   <small>{user?.role}</small>
                 </div>
                 <ul className="dropdown-menu">
-                  <li onClick={handleProfileClick}>
-                    <BiUser /> 個人資料
+                  <li>
+                    <button
+                      className="dropdown-button"
+                      onClick={handleProfileClick}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleProfileClick();
+                        }
+                      }}
+                    >
+                      <BiUser /> 個人資料
+                    </button>
                   </li>
-                  <li onClick={logout} className="logout-item">
-                    <BiLogOut /> 登出
+                  <li>
+                    <button
+                      className="dropdown-button logout-item"
+                      onClick={logout}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          logout();
+                        }
+                      }}
+                    >
+                      <BiLogOut /> 登出
+                    </button>
                   </li>
                 </ul>
               </div>

@@ -24,24 +24,24 @@ const UpdateManagement: React.FC = () => {
         <h3 className="section-title">更新設定</h3>
         <div className="form-grid">
           <div className="form-group switch-group">
-            <label>自動下載並安裝更新</label>
+            <label htmlFor="auto-update-switch">自動下載並安裝更新</label>
             <div className="switch-wrapper">
               <input type="checkbox" id="auto-update-switch" className="switch" defaultChecked />
-              <label htmlFor="auto-update-switch"></label>
+              <label htmlFor="auto-update-switch" className="switch-label"></label>
             </div>
           </div>
           <div className="form-group">
-            <label>更新頻道</label>
-            <select defaultValue="stable">
+            <label htmlFor="update-channel">更新頻道</label>
+            <select id="update-channel" defaultValue="stable">
               <option value="stable">穩定版 (Stable)</option>
               <option value="beta">測試版 (Beta)</option>
             </select>
           </div>
            <div className="form-group switch-group">
-            <label>更新前自動備份</label>
+            <label htmlFor="backup-before-update-switch">更新前自動備份</label>
             <div className="switch-wrapper">
               <input type="checkbox" id="backup-before-update-switch" className="switch" defaultChecked />
-              <label htmlFor="backup-before-update-switch"></label>
+              <label htmlFor="backup-before-update-switch" className="switch-label"></label>
             </div>
           </div>
         </div>

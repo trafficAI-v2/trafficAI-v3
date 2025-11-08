@@ -24,8 +24,9 @@ const SystemPerformance: React.FC = () => {
       try {
         const data = await apiService.get<PerformanceData>('/api/system/performance');
         setPerformanceData(data);
-      } catch (err) {
-        setError('無法獲取效能數據，請稍後再試。');
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : '無法獲取效能數據，請稍後再試。';
+        setError(errorMessage);
       } finally {
         setIsLoading(false);
       }

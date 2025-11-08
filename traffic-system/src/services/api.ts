@@ -45,7 +45,7 @@ class ApiService {
           // 清除本地儲存的 token
           localStorage.removeItem('accessToken');
           // 強制重新整理並跳轉到登入頁
-          window.location.href = '/login';
+          globalThis.location.href = '/login';
           // 拋出一個明確的錯誤，中斷後續的程式碼執行
           throw new Error('登入憑證已過期或無效，請重新登入。');
         }

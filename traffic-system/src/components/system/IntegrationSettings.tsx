@@ -21,26 +21,26 @@ const IntegrationSettings: React.FC = () => {
         <h3 className="section-title">服務整合設定</h3>
         <div className="integration-list">
           <div className="integration-item">
-            <span>車管所資料庫</span>
+            <label htmlFor="integ-1">車管所資料庫</label>
             <div className="switch-wrapper">
               <input type="checkbox" id="integ-1" className="switch" defaultChecked />
-              <label htmlFor="integ-1"></label>
+              <span className="switch-label"></span>
             </div>
             <button className="btn btn-secondary">配置</button>
           </div>
           <div className="integration-item">
-            <span>金流系統 (罰單繳費)</span>
+            <label htmlFor="integ-2">金流系統 (罰單繳費)</label>
             <div className="switch-wrapper">
               <input type="checkbox" id="integ-2" className="switch" disabled />
-              <label htmlFor="integ-2"></label>
+              <span className="switch-label"></span>
             </div>
              <button className="btn btn-secondary">配置</button>
           </div>
            <div className="integration-item">
-            <span>LINE 通知服務</span>
+            <label htmlFor="integ-3">LINE 通知服務</label>
             <div className="switch-wrapper">
               <input type="checkbox" id="integ-3" className="switch" />
-              <label htmlFor="integ-3"></label>
+              <span className="switch-label"></span>
             </div>
              <button className="btn btn-secondary">配置</button>
           </div>
