@@ -32,7 +32,7 @@ db = SQLAlchemy(app)
 
 class Owner(db.Model):
     __tablename__ = 'owners'
-    
+
     license_plate_number = db.Column(db.String(20), primary_key=True)
     full_name = db.Column(db.String(100), nullable=False)
     id_number = db.Column(db.String(50))
@@ -166,7 +166,7 @@ if not GEMINI_API_KEY:
 def recognize_plate():
     if "file" not in request.files:
         return jsonify({"error": "No file uploaded"}), 400
-    
+
     file = request.files["file"]
     save_path = "uploaded_image.jpg"
     file.save(save_path)
@@ -188,7 +188,7 @@ def recognize_plate():
     # 確保 plate_number 是一個有效的字串，且不是 'NO_PLATE_FOUND'
     if plate_number and plate_number != 'NO_PLATE_FOUND':
         owner_info = Owner.query.filter_by(license_plate_number=plate_number).first()
-        
+
         if owner_info:
             # 在資料庫中找到了車主資料
             return jsonify({
@@ -202,7 +202,7 @@ def recognize_plate():
                 "license_plate_number": plate_number, 
                 "data": None
             }), 404
-            
+
     else:
         # 處理辨識失敗的情況 (回傳 None 或 'NO_PLATE_FOUND')
         return jsonify({
