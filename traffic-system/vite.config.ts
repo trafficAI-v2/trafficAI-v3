@@ -10,14 +10,18 @@ export default defineConfig({
     proxy: {
       // 將 /api 的請求代理到 web_api 服務
       '/api': {
-        target: 'http://web_api:3002', // 修正：使用容器服務名稱
+        // 安全注意：Docker 內部網絡通信使用 HTTP 是安全的
+        // 該連線僅限於容器內部網絡，不暴露於公網
+        target: 'http://web_api:3002', // NOSONAR: S5332 內部網絡通信
         changeOrigin: true,
         ws: true,
         secure: false,
       },
       // 將 /api2 的請求代理到後端 detect_API (本地運行)
       '/api2': {
-        target: 'http://host.docker.internal:5001', // 修正：連接到主機上的本地服務
+        // 安全注意：Docker 內部網絡通信使用 HTTP 是安全的
+        // 該連線僅限於本機與容器內部通信，不暴露於公網
+        target: 'http://host.docker.internal:5001', // NOSONAR: S5332 內部網絡通信
         changeOrigin: true,
         ws: true,
         secure: false,

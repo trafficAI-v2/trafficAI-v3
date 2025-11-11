@@ -654,6 +654,8 @@ def get_latest_violations():
 
 ## ==================================================
 # 違規狀態更新 API
+# 安全注意：PUT 方法用於更新違規狀態
+# OPTIONS 用於 CORS preflight，PUT 需要有效的 JWT 授權
 @app.route('/api/violations/status', methods=['PUT', 'OPTIONS'])
 def update_violations_status():
     if request.method == 'OPTIONS':
@@ -664,6 +666,13 @@ def update_violations_status():
         return response, 200
 
     try:
+        # 檢查 JWT 授權
+        from flask_jwt_extended import verify_jwt_in_request
+        try:
+            verify_jwt_in_request()
+        except Exception:
+            return jsonify({'error': '未授權，請提供有效的認證令牌'}), 401
+
         data = request.get_json()
         violation_ids = data.get('ids')
         new_status = data.get('status')
@@ -708,6 +717,8 @@ def update_violations_status():
 # ==================================================
 # 手動標註違規記錄 API
 # ==================================================
+# 安全注意：POST 方法用於建立新的違規記錄
+# OPTIONS 用於 CORS preflight，POST 需要有效的 JWT 授權
 @app.route('/api/violations/manual', methods=['POST', 'OPTIONS'])
 def create_manual_violation():
     if request.method == 'OPTIONS':
@@ -718,8 +729,15 @@ def create_manual_violation():
         return response, 200
 
     try:
+        # 檢查 JWT 授權
+        from flask_jwt_extended import verify_jwt_in_request
+        try:
+            verify_jwt_in_request()
+        except Exception:
+            return jsonify({'error': '未授權，請提供有效的認證令牌'}), 401
+
         data = request.get_json()
-        
+
         # 驗證必要欄位
         required_fields = ['license_plate', 'violation_type', 'violation_address', 'image_data']
         for field in required_fields:

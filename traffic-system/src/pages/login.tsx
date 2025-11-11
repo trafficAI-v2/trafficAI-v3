@@ -100,11 +100,12 @@ const Login: React.FC = () => {
 
           <div className="options-group">
             <label className="checkbox-label">
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
               />
+{' '}              
               記住我
             </label>
             <Link to="/forgot-password" className="forgot-password-link">忘記密碼？</Link>
