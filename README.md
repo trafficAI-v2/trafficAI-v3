@@ -30,6 +30,7 @@
 - 🔧 **完整的系統管理**：提供使用者 CRUD、資料庫管理、系統性能監控等功能。
 
 ##  系統架構圖
+![系統架構圖](https://github.com/trafficAI-v2/trafficAI-v3/blob/ef59cac8433bf8c4f061cbad82177fd5b741a2a0/%E7%B3%BB%E7%B5%B1%E6%9E%B6%E6%A7%8B%E5%9C%96.png)
 
 ## 使用流程
 ### 1. 環境需求
