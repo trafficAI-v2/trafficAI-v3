@@ -152,6 +152,9 @@ open http://localhost:8080
 ## 模型權重檔連結
 https://drive.google.com/drive/folders/1L3pdIyjDhIUJJqrf8NbRdtlb_L9Ph_Pq?usp=drive_link
 
+## 系統企劃書
+https://docs.google.com/document/d/15BcL-X85k-5dG_yFRzFBj1f8cJiWQ9aiJRkaJMy53fU/edit?tab=t.qnqb60c9cr40
+
 ## 技術支援與聯繫
 如有任何問題或建議，請通過以下方式聯繫：
 - 提交 GitHub Issue
