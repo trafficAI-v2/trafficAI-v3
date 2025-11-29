@@ -32,6 +32,96 @@
 ##  系統架構圖
 ![系統架構圖](https://github.com/trafficAI-v2/trafficAI-v3/blob/ef59cac8433bf8c4f061cbad82177fd5b741a2a0/%E7%B3%BB%E7%B5%B1%E6%9E%B6%E6%A7%8B%E5%9C%96.png)
 
+## 系統demo 影片
+
+## 專案結構
+```bash
+trafficAI-v2/
+├── README.md                   # 專案說明文件
+├── docker-compose.yml          # Docker 編排配置
+├── .env                        # 環境變數配置
+├── restart_system.sh           # 系統重啟腳本
+├── BADGES.md                   # 徽章/品質標記
+├── CLAUDE.md                   # 互動/說明文件
+├── EMAIL_SETUP.md              # 郵件服務設定指南
+├── sonar-project.properties    # Sonar 靜態分析設定
+├── readme.txt                  # 其他說明
+├── 系統架構圖.png               # 系統架構圖
+│
+├── docs/                       # 文件與 API 測試
+├── tests/                      # 測試目錄
+│
+├── carplate_detect_api/        # 車牌識別服務 (Port 3001)
+│   ├── Dockerfile              # 車牌識別容器配置
+│   ├── requirements.txt        # Python 依賴清單
+│   ├── license_plate_detector.pt # 車牌模型
+│   └── run.py                  # 車牌識別 API 服務
+│
+├── detect_API/                 # 本地偵測服務 (Port 5001)
+│   ├── requirements.txt        # Python 依賴清單
+│   ├── run_local_optimized.py  # 優化版本地偵測（推薦）
+│   ├── halbest.pt              # 安全帽偵測模型
+│   ├── motorcycle-best.pt      # 機車偵測模型
+│   ├── license_plate_detector.pt # 車牌模型（本地用）
+│   └── __pycache__/            # Python 編譯快取
+│
+├── traffic-system/             # 前端 React (Port 8080)
+│   ├── Dockerfile              # 前端容器配置
+│   ├── nginx.conf              # Nginx 反向代理設定
+│   ├── index.html              # 前端入口 HTML
+│   ├── package.json            # 前端依賴管理
+│   ├── package-lock.json
+│   ├── eslint.config.js        # 程式碼規範
+│   ├── postcss.config.js       # PostCSS 設定
+│   ├── tailwind.config.js      # Tailwind 設定
+│   ├── tsconfig.json           # TypeScript 設定
+│   ├── tsconfig.app.json
+│   ├── tsconfig.node.json
+│   ├── vite.config.ts          # Vite 構建設定
+│   ├── .env.local              # 前端本地環境變數
+│   ├── env.local.txt           # 範例環境配置
+│   └── src/                    # React 源碼
+│       ├── App.tsx             # 路由與守衛
+│       ├── main.tsx            # 入口（AuthProvider、Router）
+│       ├── vite-env.d.ts       # Vite 型別宣告
+│       ├── assets/             # 靜態資源
+│       ├── components/         # UI 組件
+│       │   ├── common/         # 通用（Modal、ErrorBoundary）
+│       │   ├── layout/         # 佈局（Header、Layout）
+│       │   ├── dashboard/      # 儀表板（StatusCard、ViolationPanel、CameraFeed）
+│       │   ├── violations/     # 違規處理（GenerateTickets、TicketGenerationModal）
+│       │   └── system/         # 系統管理（AddUserForm、SystemSettings、DatabaseManagement 等）
+│       ├── pages/              # 頁面
+│       │   ├── login.tsx
+│       │   ├── Dashboard.tsx
+│       │   ├── ViolationLog.tsx
+│       │   ├── Analytics.tsx
+│       │   ├── SystemManagement.tsx
+│       │   └── Profile.tsx
+│       ├── context/            # 全域狀態
+│       │   └── AuthContext.tsx # JWT 驗證上下文
+│       ├── services/           # API 服務層
+│       │   └── api.ts          # ApiService 單例
+│       ├── types/              # 型別定義
+│       │   └── index.ts
+│       └── styles/             # 樣式
+│           ├── variables.css
+│           ├── base.css
+│           ├── main.css
+│           ├── layout.css
+│           ├── dashboard.css
+│           ├── modal.css
+│           ├── Profile.css
+│           └── SystemManagement.css
+│
+└── web_api/                    # Flask 後端 API (Port 3002)
+    ├── Dockerfile              # 後端容器配置
+    ├── requirements.txt        # Python 依賴清單
+    ├── .env.example            # 後端環境變數範例
+    ├── app.py                  # Flask 主應用
+    └── __pycache__/            # Python 編譯快取
+```
+
 ## 使用流程
 ### 1. 環境需求
 - **macOS** (推薦) 或 Linux
