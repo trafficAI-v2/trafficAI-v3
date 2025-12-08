@@ -878,32 +878,133 @@ def record_processing_latency():
         violation_id = payload.get('violation_id')
         plate = payload.get('plate')
         latency_ms = payload.get('latency_ms')
-        db_write_time = payload.get('db_write_time')
-        detect_time = payload.get('detect_time')
+        
+        # 取得原始時間字串
+        raw_detect_time = payload.get('detect_time') 
+        raw_db_write_time = payload.get('db_write_time')
 
-        if latency_ms is None:
-            return jsonify({'error': 'latency_ms is required'}), 400
+        # --- 🔧 時間格式修復小幫手 ---
+        def clean_timestamp(ts_str):
+            if not ts_str:
+                return None
+            # 如果發現字串同時包含 +00:00 和 Z，把最後的 Z 去掉
+            if ts_str.endswith('+00:00Z'):
+                return ts_str[:-1]
+            return ts_str
+        # ---------------------------
 
-        # 記錄到 system_logs 以保留可查詢的歷史
+        # 進行清洗
+        detect_time = clean_timestamp(raw_detect_time)
+        db_write_time = clean_timestamp(raw_db_write_time)
+
+        if violation_id is None or latency_ms is None:
+            return jsonify({'error': 'violation_id 與 latency_ms 為必填'}), 400
+
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            # 1. 確保表格存在
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS violation_processing_metrics (
+                    id SERIAL PRIMARY KEY,
+                    violation_id INT NOT NULL,
+                    plate VARCHAR(20),
+                    latency_ms INT NOT NULL,
+                    detect_time TIMESTAMPTZ,
+                    db_write_time TIMESTAMPTZ,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                );
+                """
+            )
+
+            # 2. 插入數據
+            insert_sql = (
+                """
+                INSERT INTO violation_processing_metrics (
+                    violation_id, plate, latency_ms, detect_time, db_write_time
+                ) VALUES (%s, %s, %s, %s, %s)
+                RETURNING id
+                """
+            )
+            
+            cur.execute(
+                insert_sql,
+                (violation_id, plate, int(latency_ms), detect_time, db_write_time)
+            )
+        conn.commit()
+        conn.close()
+
+        # (選用) 寫入系統日誌
         try:
             log_action(
                 module="性能監控",
                 level="INFO",
                 action="違規處理延遲",
-                details=(
-                    f"violation_id={violation_id}, plate={plate}, "
-                    f"latency_ms={latency_ms}, detect_time={detect_time}, db_write_time={db_write_time}"
-                ),
+                details=f"ID: {violation_id}, Latency: {latency_ms}ms",
                 user_identity=get_jwt_identity(),
                 client_ip=request.remote_addr
             )
-        except Exception as log_error:
-            print(f"⚠️ 指標寫入日誌失敗: {log_error}")
+        except Exception:
+            pass
 
-        return jsonify({'message': 'latency recorded', 'latency_ms': latency_ms}), 200
+        return jsonify({'message': 'metric stored', 'latency_ms': latency_ms}), 200
     except Exception as e:
+        # 印出詳細錯誤以便除錯
         print(f"❌ Error in record_processing_latency: {e}")
         return jsonify({'error': ERROR_INTERNAL_SERVER}), 500
+
+# ==================================================
+# 新增：查詢違規處理時間差 API (補回這一段)
+# ==================================================
+@app.route('/api/violations/<int:violation_id>/duration', methods=['GET'])
+def get_violation_processing_duration(violation_id):
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            # 1. 根據 ID 查詢偵測時間與寫入時間
+            cur.execute(
+                """
+                SELECT detect_time, db_write_time 
+                FROM violation_processing_metrics 
+                WHERE violation_id = %s
+                ORDER BY created_at DESC 
+                LIMIT 1
+                """,
+                (violation_id,)
+            )
+            row = cur.fetchone()
+
+        # 2. 如果找不到該 ID 的資料
+        if not row:
+            return jsonify({'error': f'找不到 violation_id: {violation_id} 的效能數據'}), 404
+
+        detect_time = row[0]
+        db_write_time = row[1]
+
+        # 檢查時間欄位是否有值
+        if not detect_time or not db_write_time:
+            return jsonify({'error': '時間資料不完整，無法計算'}), 400
+
+        # 3. 計算時間差
+        duration = db_write_time - detect_time
+        total_seconds = duration.total_seconds()
+
+        return jsonify({
+            'violation_id': violation_id,
+            'detect_time': detect_time.isoformat(),
+            'db_write_time': db_write_time.isoformat(),
+            'duration_seconds': total_seconds,
+            'message': f'從偵測到寫入共花費 {total_seconds} 秒'
+        }), 200
+
+    except Exception as e:
+        print(f"❌ Error in get_violation_processing_duration: {e}")
+        return jsonify({'error': ERROR_INTERNAL_SERVER}), 500
+    finally:
+        if conn:
+            conn.close()
+
 
 # ==================================================
 # 罰單相關 API
