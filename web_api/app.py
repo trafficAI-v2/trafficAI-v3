@@ -869,6 +869,43 @@ def handle_disconnect():
     print('❌ Client disconnected')
 
 # ==================================================
+# 指標與延遲上報 API
+# ==================================================
+@app.route('/api/metrics/processing-latency', methods=['POST'])
+def record_processing_latency():
+    try:
+        payload = request.get_json(force=True)
+        violation_id = payload.get('violation_id')
+        plate = payload.get('plate')
+        latency_ms = payload.get('latency_ms')
+        db_write_time = payload.get('db_write_time')
+        detect_time = payload.get('detect_time')
+
+        if latency_ms is None:
+            return jsonify({'error': 'latency_ms is required'}), 400
+
+        # 記錄到 system_logs 以保留可查詢的歷史
+        try:
+            log_action(
+                module="性能監控",
+                level="INFO",
+                action="違規處理延遲",
+                details=(
+                    f"violation_id={violation_id}, plate={plate}, "
+                    f"latency_ms={latency_ms}, detect_time={detect_time}, db_write_time={db_write_time}"
+                ),
+                user_identity=get_jwt_identity(),
+                client_ip=request.remote_addr
+            )
+        except Exception as log_error:
+            print(f"⚠️ 指標寫入日誌失敗: {log_error}")
+
+        return jsonify({'message': 'latency recorded', 'latency_ms': latency_ms}), 200
+    except Exception as e:
+        print(f"❌ Error in record_processing_latency: {e}")
+        return jsonify({'error': ERROR_INTERNAL_SERVER}), 500
+
+# ==================================================
 # 罰單相關 API
 # ==================================================
 @app.route('/api/violations/confirmed-count', methods=['GET'])

@@ -259,20 +259,21 @@ class DatabaseManager:
     
     @staticmethod
     def execute_insert_query(sql, data):
-        """執行插入查詢"""
+        """執行插入查詢，並回傳紀錄與寫入完成時間"""
         try:
             with psycopg2.connect(DATABASE_URL, connect_timeout=3) as conn:
                 with conn.cursor() as cur:
                     cur.execute(sql, data)
                     new_record = cur.fetchone()
                     conn.commit()
-                    return new_record
+                    write_completed_at = time.time()
+                    return new_record, write_completed_at
         except Exception:
             logging.error("資料庫寫入錯誤")
-            return None
+            return None, None
     
     @staticmethod
-    def format_violation_result(new_record, confidence):
+    def format_violation_result(new_record, confidence, latency_ms=None, write_time_iso=None):
         """格式化違規結果"""
         if new_record:
             result = {
@@ -282,6 +283,10 @@ class DatabaseManager:
                 'timestamp': new_record[3].isoformat() + 'Z', 
                 'status': new_record[4]
             }
+            if latency_ms is not None:
+                result['processingLatencyMs'] = int(latency_ms)
+            if write_time_iso is not None:
+                result['dbWriteTime'] = write_time_iso
             conf_str = f"{confidence:.2f}" if confidence is not None else "N/A"
             logging.info(f"💾 資料庫寫入成功 ({new_record[1]}), 信心度: {conf_str}")
             return result
@@ -305,11 +310,20 @@ def save_to_database(owner_info, image_path, violation_type, fine, confidence=No
     # 準備數據
     data = DatabaseManager.prepare_sql_data(owner_info, image_path, violation_type, fine, confidence)
     
-    # 執行查詢
-    new_record = DatabaseManager.execute_insert_query(sql, data)
+    # 記錄從偵測到寫入的延遲
+    detection_start_ts = time.time()
     
-    # 格式化結果
-    return DatabaseManager.format_violation_result(new_record, confidence)
+    # 執行查詢
+    new_record, write_completed_at = DatabaseManager.execute_insert_query(sql, data)
+    
+    # 計算並格式化結果
+    latency_ms = None
+    write_time_iso = None
+    if write_completed_at is not None:
+        latency_ms = (write_completed_at - detection_start_ts) * 1000.0
+        write_time_iso = datetime.fromtimestamp(write_completed_at).isoformat() + 'Z'
+        logging.info(f"⏱️ 偵測至資料庫寫入耗時: {latency_ms:.1f} ms")
+    return DatabaseManager.format_violation_result(new_record, confidence, latency_ms, write_time_iso)
 
 # ==================== 5. 通知服務模組 ====================
 class NotificationService:
@@ -327,6 +341,25 @@ class NotificationService:
                 logging.error(f"❌ 通知伺服器失敗，狀態碼: {response.status_code}")
         except requests.exceptions.RequestException as e:
             logging.error(f"❌ 呼叫廣播 API 時發生網路錯誤: {e}")
+
+        # 同時上報處理延遲指標（若有）
+        try:
+            if 'processingLatencyMs' in violation_data:
+                metrics_url = f"{WEB_API_URL}/api/metrics/processing-latency"
+                payload = {
+                    'violation_id': violation_data.get('id'),
+                    'plate': violation_data.get('plateNumber'),
+                    'latency_ms': violation_data.get('processingLatencyMs'),
+                    'db_write_time': violation_data.get('dbWriteTime'),
+                    'detect_time': violation_data.get('timestamp')
+                }
+                mresp = requests.post(metrics_url, json=payload, timeout=3)
+                if mresp.status_code == 200:
+                    logging.info(f"此違規項目總花費處理時間{payload['latency_ms']} ms")
+                else:
+                    logging.error(f"❌ 延遲上報失敗，狀態碼: {mresp.status_code}")
+        except requests.exceptions.RequestException as e:
+            logging.error(f"❌ 呼叫延遲上報 API 時發生網路錯誤: {e}")
 
 def notify_violation(violation_data):
     """通知違規 (向後相容函數)"""
