@@ -52,9 +52,10 @@ class Config:
         self.PERSON_CLASS_NAMES = [self.HELMET_CLASS_NAME, self.NO_HELMET_CLASS_NAME]
         
         # ROI 擴展參數
-        self.ROI_EXPAND_UP = 15.0
-        self.ROI_EXPAND_DOWN = 3.0
-        self.ROI_EXPAND_HORIZONTAL = 4.0
+        self.ROI_EXPAND_UP = 30.0
+        self.ROI_EXPAND_DOWN = 6.0
+        self.ROI_EXPAND_LEFT = 8.0
+        self.ROI_EXPAND_RIGHT = 8.0
         
         # 檢測參數
         self.CONFIDENCE_THRESHOLD = 0.65
@@ -144,7 +145,8 @@ NUMBER_PLATE_CLASS_NAME = config.NUMBER_PLATE_CLASS_NAME
 PERSON_CLASS_NAMES = config.PERSON_CLASS_NAMES
 ROI_EXPAND_UP = config.ROI_EXPAND_UP
 ROI_EXPAND_DOWN = config.ROI_EXPAND_DOWN
-ROI_EXPAND_HORIZONTAL = config.ROI_EXPAND_HORIZONTAL
+ROI_EXPAND_LEFT = config.ROI_EXPAND_LEFT
+ROI_EXPAND_RIGHT = config.ROI_EXPAND_RIGHT
 CONFIDENCE_THRESHOLD = config.CONFIDENCE_THRESHOLD
 VISUAL_CONFIDENCE = config.VISUAL_CONFIDENCE
 SCREENSHOT_PATH = config.SCREENSHOT_PATH
@@ -566,8 +568,8 @@ class DetectionLogic:
             'plate_w': plate_w,
             'roi_y1': max(0, npy1 - int(plate_h * ROI_EXPAND_UP)),
             'roi_y2': npy2 + int(plate_h * ROI_EXPAND_DOWN),
-            'roi_x1': max(0, npx1 - int(plate_w * ROI_EXPAND_HORIZONTAL)),
-            'roi_x2': npx2 + int(plate_w * ROI_EXPAND_HORIZONTAL)
+            'roi_x1': max(0, npx1 - int(plate_w * ROI_EXPAND_LEFT)),
+            'roi_x2': npx2 + int(plate_w * ROI_EXPAND_RIGHT)
         }
     
     @staticmethod
