@@ -1133,6 +1133,8 @@ def get_analytics_data():
         time_filter_sql = ""
         if time_range == 'today': time_filter_sql = "AND timestamp >= CURRENT_DATE"
         elif time_range == 'last7days': time_filter_sql = "AND timestamp >= NOW() - INTERVAL '7 days'"
+        elif time_range == 'last60days': time_filter_sql = "AND timestamp >= NOW() - INTERVAL '60 days'"
+        elif time_range == 'last90days': time_filter_sql = "AND timestamp >= NOW() - INTERVAL '90 days'"
         else: time_filter_sql = "AND timestamp >= NOW() - INTERVAL '30 days'"
         cur.execute(f"SELECT COUNT(*), COUNT(CASE WHEN status = '已開罰' THEN 1 END), COALESCE(SUM(CASE WHEN status = '已開罰' THEN fine END), 0) FROM violations WHERE 1=1 {time_filter_sql};")
         kpi = cur.fetchone()

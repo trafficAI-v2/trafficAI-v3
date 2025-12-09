@@ -154,6 +154,8 @@ const Analytics: React.FC = () => {
               <div className="date-picker-input">
                 <BiCalendar className="date-picker-icon"/>
                 <select id="time-range-select" value={timeRange} onChange={(e) => setTimeRange(e.target.value)}>
+                    <option value="last90days">最近90天</option>
+                    <option value="last60days">最近60天</option>
                     <option value="last30days">最近30天</option>
                     <option value="last7days">最近7天</option>
                     <option value="today">今日</option>
