@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { BiSearch, BiTag, BiMapPin, BiX, BiCalendar, BiDownload, BiReceipt, BiCheckCircle } from 'react-icons/bi';
 import './ViolationLog.css'; 
+import { useAuth } from '../context/AuthContext'; // 【新增】引入 useAuth
 
 // --- 從環境變數讀取後端 API 的 URL ---
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -334,6 +335,7 @@ const ViolationDetail: React.FC<{
 
 // --- React 元件主體 ---
 const ViolationLog: React.FC = () => {
+  const { token } = useAuth(); // 【新增】從 AuthContext 獲取 token
   const [activeTab, setActiveTab] = useState<string>('全部');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [violations, setViolations] = useState<ViolationRecord[]>([]);
@@ -519,7 +521,10 @@ const ViolationLog: React.FC = () => {
     try {
       const response = await fetch(updateUrl, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` // 【新增】加入授權標頭
+        },
         body: JSON.stringify({
           ids: selectedIds,
           status: newStatus,
@@ -556,7 +561,10 @@ const ViolationLog: React.FC = () => {
     try {
       const response = await fetch(updateUrl, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` // 【新增】加入授權標頭
+        },
         body: JSON.stringify({
           ids: [id],
           status: newStatus,
