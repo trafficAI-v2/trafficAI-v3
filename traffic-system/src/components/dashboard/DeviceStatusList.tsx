@@ -11,7 +11,7 @@ export interface Device {
 }
 
 
-const API_BASE_URL = import.meta.env.VITE_CAMERA_STATUS_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const DeviceStatusList: React.FC = () => {
   const [devices, setDevices] = useState<Device[]>([]);
@@ -28,7 +28,7 @@ const DeviceStatusList: React.FC = () => {
 
     const fetchDevices = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}`);
+        const response = await fetch(`${API_BASE_URL}/api/cameras/status`);
         if (!response.ok) {
           throw new Error(`伺服器回應錯誤: ${response.status}`);
         }
