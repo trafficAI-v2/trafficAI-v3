@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { BiPlus, BiZoomIn, BiZoomOut, BiTrash, BiSave } from "react-icons/bi";
 import type { ViolationType } from '../../types';
 import type { MouseEvent as ReactMouseEvent } from "react";
+import { useAuth } from "../../context/AuthContext"; // 導入 useAuth
 import './ManualAnnotationTab.css';
 
 // --- 從環境變數讀取後端 API 的 URL ---
@@ -30,6 +31,7 @@ interface Annotation {
 // 這個元件目前不接收任何 props，符合 CameraFeed.tsx 的修正
 const ManualAnnotationTab: React.FC = () => {
     // --- 狀態管理 ---
+    const { token } = useAuth(); // 獲取 token
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
     const [imageDimensions, setImageDimensions] = useState<{ width: number, height: number } | null>(null);
@@ -389,6 +391,7 @@ const ManualAnnotationTab: React.FC = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` // 添加 Authorization header
                 },
                 body: JSON.stringify(violationData),
             });
@@ -440,7 +443,7 @@ const ManualAnnotationTab: React.FC = () => {
                         </span>
                     </div>
 
-                    <button 
+                    <div 
                       className="annotation-canvas-container" 
                       onMouseDown={handleMouseDown}
                       onMouseMove={handleMouseMove}
@@ -456,7 +459,6 @@ const ManualAnnotationTab: React.FC = () => {
                           height: '100%'
                       }}
                       aria-label="圖片標註區域"
-                      type="button"
                     >
                         <canvas 
                             ref={canvasRef} 
@@ -498,7 +500,7 @@ const ManualAnnotationTab: React.FC = () => {
                                 重置
                             </button>
                         </div>
-                    </button>
+                    </div>
 
                     {/* 標註列表 */}
                     {annotations.length > 0 && (
