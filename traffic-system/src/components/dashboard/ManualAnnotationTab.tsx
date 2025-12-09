@@ -436,7 +436,7 @@ const ManualAnnotationTab: React.FC = () => {
                         <span className="info-dot"></span>
                         <span>已載入圖片 - 尺寸: {imageDimensions?.width} x {imageDimensions?.height}</span>
                         <span style={{ marginLeft: 'auto', fontSize: '12px', color: '#666' }}>
-                            {isAnnotationMode ? '🎯 左鍵畫框標註' : '👆 左鍵拖曳 | 滾輪縮放'}
+                            {isAnnotationMode ? '左鍵畫框標註' : '左鍵拖曳 | 滾輪縮放'}
                         </span>
                         <span style={{ marginLeft: '10px' }}>
                             已標註: {annotations.length} 個區域
@@ -546,7 +546,7 @@ const ManualAnnotationTab: React.FC = () => {
                         <h4 className="text-lg font-semibold">手動違規標註</h4>
                         <div className="flex items-center gap-2">
                             <label htmlFor="annotation-toggle" className="text-sm font-medium">
-                                {isAnnotationMode ? '🎯 標註模式' : '👆 拖曳模式'}
+                                {isAnnotationMode ? '標註模式' : ' 拖曳模式'}
                             </label>
                             <input
                                 type="checkbox"
