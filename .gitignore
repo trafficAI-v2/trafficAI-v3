@@ -1,18 +1,6 @@
-# .gitignore
-
-# Python 虚拟环境
+.env
+node_modules/
 .venv/
-detect_API/.venv/
-
-# Python 快取档案
 __pycache__/
-*.pyc
-
-# Node.js 依賴
-traffic-system/node_modules/
-
-# macOS 系统档案
 .DS_Store
-
-# IDE 设定
-.vscode/.env
+.vscode/
