@@ -15,4 +15,4 @@ traffic-system/node_modules/
 .DS_Store
 
 # IDE 设定
-.vscode/
+.vscode/.env
